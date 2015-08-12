@@ -1,3 +1,10 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.optimize as optimize
+import pdb
+from pylab import plot, legend, title, figure, arange, cm, imshow
+
+
 def imshow(data, x=[], y=[], aspect='auto', interpolation='nearest', cmap=None, vmin=[], vmax=[]):
     """ Version of pylab's IMSHOW with my own defaults:
     ::
@@ -7,8 +14,6 @@ def imshow(data, x=[], y=[], aspect='auto', interpolation='nearest', cmap=None, 
     Other IMSHOW options are default, but a new one exists: 
           x=  and y=  let you set the axes values by passing in the x and y coordinates."""
     #2008-07-25 18:30 IJC: Created to save a little bit of time and do axes.
-
-    from pylab import arange, cm, imshow
 
     if cmap==None:
         cmap = cm.gray
@@ -78,7 +83,6 @@ def bfixpix(data, badmask, n=4, retdat=False):
     #2012-04-05 14:12 IJMC: Added retdat option
     # 2012-04-06 18:51 IJMC: Added a kludgey way to work for 1D inputs
     # 2012-08-09 11:39 IJMC: Now the 'n' option actually works.
-    import numpy as np
 
     if data.ndim==1:
         data = np.tile(data, (3,1))
@@ -220,9 +224,6 @@ def traceorders(filename,g,rn, pord=5, dispaxis=0, nord=1, verbose=False, ordloc
 
     #global gain
     #global readnoise
-    import numpy as np
-    import matplotlib.pyplot as plt
-
 
     gain = g
     readnoise = rn
@@ -343,6 +344,10 @@ def traceorders(filename,g,rn, pord=5, dispaxis=0, nord=1, verbose=False, ordloc
         # Determine the other positions at which to fit:
         xAbove = np.arange(1, np.ceil(1.0*(nx-xInit)/stepsize))*stepsize + xInit
         xBelow = np.arange(-1,-np.ceil((1.+xInit)/stepsize),-1)*stepsize + xInit
+        #The edges of the 2D array might contain overscan, so don't fit those for the
+        # trace. So we now shorten xAbove and xBelow by one.
+        xAbove = xAbove[:-1]
+        xBelow = xBelow[:-1]
         nAbove = len(xAbove)
         nBelow = len(xBelow)
         nToMeasure = nAbove + nBelow + 1
@@ -448,8 +453,6 @@ def pickloc(ax=None, zoom=10):
     # 2011-04-29 19:26 IJC: 
     # 2011-09-03 20:59 IJMC: Zoom can now be a tuple; x,y not cast as int.
 
-    import matplotlib.pyplot as plt
-
     pickedloc = False
     if ax is None:
         ax = plt.gca()
@@ -516,8 +519,6 @@ def fitPSF(ec, guessLoc, fitwidth=20, verbose=False, sigma=5, medwidth=6, err_ec
     # 2012-04-27 05:15 IJMC: Now allow error estimates to be passed in.
     # 2012-04-28 08:48 IJMC: Added better guessing for initial case.
 
-    import numpy as np
-
     if verbose<0:
         verbose = False
 
@@ -551,13 +552,21 @@ def fitPSF(ec, guessLoc, fitwidth=20, verbose=False, sigma=5, medwidth=6, err_ec
     if not np.isfinite(guessAmp):
         pdb.set_trace()
 
-    #fit, efit = fitGaussian(firstSeg, verbose=verbose, err=err, guess=[guessAmp[0], 5, fitwidth/2., np.median(firstSeg)])
-    fit, efit = fitGaussian(firstSeg, verbose=verbose, err=err, guess=None)
+    #VERY important to give fitGaussian initial guess. Otherwise will fail.
+    fit, efit = fitGaussian(firstSeg, verbose=verbose, err=err, guess=[guessAmp[0], 5, fitwidth/2., np.median(firstSeg)])
+    #fit, efit = fitGaussian(firstSeg, verbose=verbose, err=err, guess=None)
+    ##################
+    ###Use the following if you want to see each fit plotted
+    ###blah = np.arange(1.0*len(firstSeg))
+    ###plt.clf()
+    ###plt.plot(firstSeg)
+    ###plt.plot(gaussian(fit,blah))
+    ###plt.show()
+    ##################
     newY = ymin+fit[2]
     err_newY = efit[2]
     if verbose:
         message("Initial position: (%3.2f,%3.2f)"%(x,newY))
-
     return x, newY, err_newY
 
 def wmean(a, w, axis=None, reterr=False):
@@ -582,8 +591,6 @@ def wmean(a, w, axis=None, reterr=False):
     # 2008-07-30 12:44 IJC: Created this from ...
     # 2012-02-28 20:31 IJMC: Added a bit of documentation
     # 2012-03-07 10:58 IJMC: Added reterr option
-
-    import numpy as np
 
     newdata    = np.array(a, subok=True, copy=True)
     newweights = np.array(w, subok=True, copy=True)
@@ -629,11 +636,6 @@ def fitGaussian(vec, err=None, verbose=False, guess=None):
     
     SEE ALSO: :func:`analysis.gaussian`"""
     # 2012-12-20 13:28 IJMC: Make a more robust guess for the centroid.
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import scipy.optimize as optimize
-    import pdb
 
     xtemp = np.arange(1.0*len(vec))
 
@@ -703,10 +705,9 @@ def egaussian(p, x, y, e=None):
     # 2008-09-11 15:19 IJC: Created
     # 2009-09-02 15:20 IJC: Added weighted case
     # 2011-05-18 11:46 IJMC: Moved to analysis.
-    from numpy import ones
 
     if e==None:
-        e=ones(x.shape)
+        e=np.ones(x.shape)
     fixval(e,y.max()*1e10)
 
     z = (y - gaussian(p, x))/e
@@ -733,7 +734,7 @@ def gaussian(p, x):
     # 2011-05-18 11:46 IJC: Moved to analysis.
     # 2013-04-11 12:03 IJMC: Tried to speed things up slightly via copy=False
     # 2013-05-06 21:42 IJMC: Tried to speed things up a little more.
-    import numpy as np
+
     if not isinstance(x, np.ndarray):
         x = array(x, dtype=float, copy=False)
 
@@ -766,8 +767,6 @@ def fixval(arr, repval, retarr=False):
        """
     # 2009-09-02 14:07 IJC: Created
     # 2012-12-23 11:49 IJMC: Halved run time.
-
-    import numpy as np
 
     if retarr:
         arr2 = arr.ravel().copy()
@@ -827,30 +826,27 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
     # 2013-05-21 23:15 IJMC: Added catchLinAlgError
 
     #from CARSMath import polyfitw
-    from numpy import array
-    from numpy import polyfit, polyval, isfinite, ones
+    
     from numpy.linalg import LinAlgError
-    import numpy as np
-    from pylab import plot, legend, title, figure
 
     if verbose < 0:
         verbose = 0
 
-    xx = array(x, copy=False)
-    yy = array(y, copy=False)
+    xx = np.array(x, copy=False)
+    yy = np.array(y, copy=False)
     noweights = (w==None)
     if noweights:
-        ww = ones(xx.shape, float)
+        ww = np.ones(xx.shape, float)
     else:
-        ww = array(w, copy=False)
+        ww = np.array(w, copy=False)
 
     ii = 0
     nrej = 1
 
     if noweights:
-        goodind = isfinite(xx)*isfinite(yy)
+        goodind = np.isfinite(xx)*np.isfinite(yy)
     else:
-        goodind = isfinite(xx)*isfinite(yy)*isfinite(ww)
+        goodind = np.isfinite(xx)*np.isfinite(yy)*np.isfinite(ww)
     
     xx2 = xx[goodind]
     yy2 = yy[goodind]
@@ -858,8 +854,8 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
 
     while (ii<fev and (nrej<>0)):
         if noweights:
-            p = polyfit(xx2,yy2,N)
-            residual = yy2 - polyval(p,xx2)
+            p = np.polyfit(xx2,yy2,N)
+            residual = yy2 - np.polyval(p,xx2)
             stdResidual = std(residual)
             clipmetric = s * stdResidual
         else:
@@ -872,30 +868,30 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
                 p = polyfitw(xx2,yy2, ww2, N)
 
             p = p[::-1]  # polyfitw uses reverse coefficient ordering
-            residual = (yy2 - polyval(p,xx2)) * np.sqrt(ww2)
+            residual = (yy2 - np.polyval(p,xx2)) * np.sqrt(ww2)
             clipmetric = s
 
         if clip=='both':
             worstOffender = abs(residual).max()
             #pdb.set_trace()
             if worstOffender <= clipmetric or worstOffender < eps:
-                ind = ones(residual.shape, dtype=bool)
+                ind = np.ones(residual.shape, dtype=bool)
             else:
                 ind = abs(residual) < worstOffender
         elif clip=='above':
             worstOffender = residual.max()
             if worstOffender <= clipmetric:
-                ind = ones(residual.shape, dtype=bool)
+                ind = np.ones(residual.shape, dtype=bool)
             else:
                 ind = residual < worstOffender
         elif clip=='below':
             worstOffender = residual.min()
             if worstOffender >= -clipmetric:
-                ind = ones(residual.shape, dtype=bool)
+                ind = np.ones(residual.shape, dtype=bool)
             else:
                 ind = residual > worstOffender
         else:
-            ind = ones(residual.shape, dtype=bool)
+            ind = np.ones(residual.shape, dtype=bool)
     
         xx2 = xx2[ind]
         yy2 = yy2[ind]
@@ -966,38 +962,38 @@ def polyfitw(x, y, w, ndegree, return_fit=0):
                  Mark Rivers.  
                  Python version, May 2002, Mark Rivers
    """
-   import numpy as N
+
    n = min(len(x), len(y)) # size = smaller of x,y
    m = ndegree + 1         # number of elements in coeff vector
-   a = N.zeros((m,m),dtype=float)  # least square matrix, weighted matrix
-   b = N.zeros(m,dtype=float)    # will contain sum w*y*x^j
-   z = N.ones(n,dtype=float)     # basis vector for constant term
+   a = np.zeros((m,m),dtype=float)  # least square matrix, weighted matrix
+   b = np.zeros(m,dtype=float)    # will contain sum w*y*x^j
+   z = np.ones(n,dtype=float)     # basis vector for constant term
 
-   a[0,0] = N.sum(w)
-   b[0] = N.sum(w*y)
+   a[0,0] = np.sum(w)
+   b[0] = np.sum(w*y)
 
    for p in range(1, 2*ndegree+1):     # power loop
       z = z*x   # z is now x^p
-      if (p < m):  b[p] = N.sum(w*y*z)   # b is sum w*y*x^j
-      sum = N.sum(w*z)
+      if (p < m):  b[p] = np.sum(w*y*z)   # b is sum w*y*x^j
+      sum = np.sum(w*z)
       for j in range(max(0,(p-ndegree)), min(ndegree,p)+1):
          a[j,p-j] = sum
 
    #a = LinearAlgebra.inverse(a)
-   a = N.linalg.inv(a)
+   a = np.linalg.inv(a)
    #c = N.matrixmultiply(b, a)
-   c = N.dot(b, a)
+   c = np.dot(b, a)
    if (return_fit == 0):
       return c     # exit if only fit coefficients are wanted
 
    # compute optional output parameters.
-   yfit = N.zeros(n,dtype=float)+c[0]   # one-sigma error estimates, init
+   yfit = np.zeros(n,dtype=float)+c[0]   # one-sigma error estimates, init
    for k in range(1, ndegree +1):
       yfit = yfit + c[k]*(x**k)  # sum basis vectors
-   var = N.sum((yfit-y)**2 )/(n-m)  # variance estimate, unbiased
-   sigma = N.sqrt(var)
-   yband = N.zeros(n,dtype=float) + a[0,0]
-   z = N.ones(n,dtype=float)
+   var = np.sum((yfit-y)**2 )/(n-m)  # variance estimate, unbiased
+   sigma = np.sqrt(var)
+   yband = np.zeros(n,dtype=float) + a[0,0]
+   z = np.ones(n,dtype=float)
    for p in range(1,2*ndegree+1):     # compute correlated error estimates on y
       z = z*x		# z is now x^p
       sum = 0.
@@ -1005,7 +1001,7 @@ def polyfitw(x, y, w, ndegree, return_fit=0):
          sum = sum + a[j,p-j]
       yband = yband + sum * z      # add in all the error sources
    yband = yband*var
-   yband = N.sqrt(yband)
+   yband = np.sqrt(yband)
    return c, yfit, yband, sigma, a
 
 class baseObject:

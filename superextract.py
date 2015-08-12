@@ -309,7 +309,7 @@ def superExtract(*args, **kw):
     background[badBackground] = 0.
     if verbose and badBackground.any():
         print "Found bad background values at: ", badBackground.nonzero()
-
+    #Subtract the background here
     skysubFrame = frame - background
 
 
