@@ -26,8 +26,15 @@ data = np.transpose(data)
 varmodel = rdnoise**2. + np.absolute(data)/gain
 
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=1,tord=2,bkg_radii=[50,60],extract_radius=3,dispaxis=1,verbose=True)
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,tord=2,bord=2,bkg_radii=[50,60],bsigma=3,extract_radius=3,dispaxis=1,verbose=True)
 #tord = degree of spectral-trace polynomial, 1 = line
+#bord = degree of polynomial background fit
+#bkg_radii = inner and outer radii to use in computing background. Goes on both sides of aperture.
+#bsigma = sigma-clipping thresholf for computing background
+#extract_radius: radius for spectral extraction
+#csigma = sigma-clipping threshold for cleaning & cosmic-ray rejection. Default = 5.
+#qmode: how to compute Marsh's Q-matrix. 'fast-linear' default and preferred.
+#nreject = number of outlier-pixels to reject at each iteration. Default = 100
 
 print 'Done extracting!'
 
