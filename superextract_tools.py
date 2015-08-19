@@ -901,16 +901,17 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
         nrej = len(residual) - len(xx2)
         if plotall:
             figure()
-            plot(x,y, '.', xx2,yy2, 'x', x, polyval(p, x), '--')
+            plot(x,y, '.', xx2,yy2, 'x', x, np.polyval(p, x), '--')
             legend(['data', 'fit data', 'fit'])
             title('Iter. #' + str(ii) + ' -- Close all windows to continue....')
+            plt.show()
 
         if verbose:
             print str(len(x)-len(xx2)) + ' points rejected on iteration #' + str(ii)
 
     if (plotfit or plotall):
         figure()
-        plot(x,y, '.', xx2,yy2, 'x', x, polyval(p, x), '--')
+        plot(x,y, '.', xx2,yy2, 'x', x, np.polyval(p, x), '--')
         legend(['data', 'fit data', 'fit'])
         title('Close window to continue....')
 
