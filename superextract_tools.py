@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as optimize
 import pdb
-from pylab import plot, legend, title, figure, arange, cm, imshow
+from pylab import plot, legend, title, figure, arange, cm
 
 
 def imshow(data, x=[], y=[], aspect='auto', interpolation='nearest', cmap=None, vmin=[], vmax=[]):

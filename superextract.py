@@ -144,7 +144,7 @@ def superExtract(*args, **kw):
 
     from scipy import signal
     from pylab import *
-    from superextract_tools import imshow, bfixpix, traceorders, polyfitr, baseObject,message
+    from superextract_tools import bfixpix, traceorders, polyfitr, baseObject,message
 
 
 
@@ -555,7 +555,7 @@ def superExtract(*args, **kw):
         for i in range(fitwidth):
             profile[i,:] = (Q[:,i,:] * Gsoln).sum(0)
 
-        #P = profile.copy() # for debugging 
+        #Normalize the profile here
         if profile.min() < 0:
             profile[profile < 0] = 0. 
         profile /= profile.sum(0).reshape(1, nlam)
