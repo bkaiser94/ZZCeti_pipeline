@@ -287,6 +287,8 @@ def superExtract(*args, **kw):
     #nextract = extractionAperture.sum()
     #xb = xxx[backgroundAperture]
 
+    #trace.reshape(nlam,1) is the center of the fitted profile of the star
+    # xxx is the distance of the frame on either side of the fitted profile.
     xxx = np.arange(fitwidth) - trace.reshape(nlam,1)
     backgroundApertures = (np.abs(xxx) > bkg_radii[0]) * (np.abs(xxx) <= bkg_radii[1])
     extractionApertures = np.abs(xxx) <= extract_radius
@@ -548,7 +550,6 @@ def superExtract(*args, **kw):
         for n in range(npoly):
             Gsoln[n] = np.polyval(Asoln[n,::-1], jjnorm) # reorder polynomial coef.
 
-
         # Compute the profile (Marsh eq. 6) and normalize it:
         if verbose: tic = time()
         profile = np.zeros((fitwidth, nlam), dtype=float)
@@ -569,7 +570,7 @@ def superExtract(*args, **kw):
         variance = variance0 / (goodpixelmask + 1e-9) # De-weight bad pixels, avoiding infinite variance
 
         outlierVariances = (frame - modelData)**2/variance
-
+       
         if outlierVariances.max() > csigma**2:
             newBadPixels = True
             # Base our nreject-counting only on pixels within the spectral trace:
@@ -581,9 +582,8 @@ def superExtract(*args, **kw):
         else:
             newBadPixels = False
             numberRejected = 0
-        
+       
         if verbose: print "Rejected %i pixels on this iteration " % numberRejected
-
             
         # Optimal Spectral Extraction: (Horne, Step 8)
         fixSkysubFrame = bfixpix(skysubFrame, True-goodpixelmask, n=8, retdat=True)

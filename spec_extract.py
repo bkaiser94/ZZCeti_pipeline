@@ -27,7 +27,7 @@ data = np.transpose(data)
 varmodel = rdnoise**2. + np.absolute(data)/gain
 
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[50,60],bsigma=3,extract_radius=3,dispaxis=1,verbose=True)
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[50,60],bsigma=3,extract_radius=7,dispaxis=1,verbose=True,csigma=5.)
 #pord = order of profile polynomial, Default = 2
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
@@ -39,12 +39,14 @@ output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2
 #nreject = number of outlier-pixels to reject at each iteration. Default = 100
 
 print 'Done extracting!'
-
+print type(output_spec.varSpectrum)
+sigSpectrum = np.sqrt(output_spec.varSpectrum)
 plt.clf()
 #plt.imshow(data)
 plt.plot(output_spec.spectrum,'b')
 plt.plot(output_spec.raw,'g')
 plt.plot(output_spec.varSpectrum,'r')
-plt.plot(output_spec.trace,'m')
-plt.plot(output_spec.background,'k')
+plt.plot(sigSpectrum,'r')
+#plt.plot(output_spec.trace,'m')
+#plt.plot(output_spec.background,'k')
 plt.show()
