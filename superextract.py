@@ -297,9 +297,30 @@ def superExtract(*args, **kw):
 
     #Step3: Sky Subtraction
     background = 0. * frame
+    #bkgrndmask = goodpixelmask
     for ii in range(nlam):
         if goodpixelmask[ii, backgroundApertures[ii]].any():
             fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(goodpixelmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1)
+            #print p
+            #Want to iterate background fitting
+         #   bkgrnd_done = True
+          #  dracula = 0.
+          #  while bkgrnd_done:
+          #      print dracula
+          #      for n in frame[ii, backgroundApertures[ii]]:
+          #          stdev_bkgrnd = np.std(frame[ii, backgroundApertures[ii]]*bkgrndmask[ii,backgroundApertures[ii]])
+          #          bkgrnd_point = (frame[ii,n]-np.polyval(fit,xxx[ii,n]))/stdev_bkgrnd
+                    #print bkgrnd_point
+          #          if bkgrnd_point > bsigma:
+          #              print bkgrndmask[ii,n]
+          #              bkgrndmask[ii,n] = 0.
+          #              print bkgrndmask[ii,n]
+          #      fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(bkgrndmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1)
+          #      dracula += 1
+                
+            #plt.plot(xxx[ii,backgroundApertures[ii]],frame[ii, backgroundApertures[ii]])
+            #plt.plot(xxx[ii,:],np.polyval(fit,xxx[ii,:]))
+            #plt.show()
             background[ii, :] = np.polyval(fit, xxx[ii])
         else:
             background[ii] = 0.

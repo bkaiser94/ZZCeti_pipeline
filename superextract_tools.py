@@ -831,7 +831,7 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
 
     if verbose < 0:
         verbose = 0
-
+    
     xx = np.array(x, copy=False)
     yy = np.array(y, copy=False)
     noweights = (w==None)
@@ -905,7 +905,7 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
             legend(['data', 'fit data', 'fit'])
             title('Iter. #' + str(ii) + ' -- Close all windows to continue....')
             plt.show()
-
+        
         if verbose:
             print str(len(x)-len(xx2)) + ' points rejected on iteration #' + str(ii)
 
