@@ -7,6 +7,7 @@ import numpy as np
 import pyfits as fits
 import matplotlib.pyplot as plt
 
+import spectools as st
 import superextract
 from pylab import *
 
@@ -15,13 +16,12 @@ gain = 1.4
 rdnoise = 4.74
 
 specfile = 'tnb.0526.WD1422p095_930_blue.fits'
+#specfile = '0317.WDJ0349p1036_930_blue.fits'
 #specfile = '0532.WD1422p095_930_red.fits'
 datalist = fits.open(specfile)
-header = datalist[0].header
 data = datalist[0].data
 data = data[0,:,:]
 data = np.transpose(data)
-
 
 #Calculate the variance of each pixel
 #From Horne (1986) eq. 12
@@ -39,6 +39,13 @@ output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2
 #qmode: how to compute Marsh's Q-matrix. 'fast-linear' default and preferred.
 #nreject = number of outlier-pixels to reject at each iteration. Default = 100
 
+###########
+# In superextract, to plot a 2D frame at any point, use the following
+#   plt.clf()
+#   plt.imshow(np.transpose(frame),aspect='auto',interpolation='nearest')
+#   plt.show()
+##########
+
 print 'Done extracting!'
 
 sigSpectrum = np.sqrt(output_spec.varSpectrum)
@@ -52,26 +59,26 @@ sigSpectrum = np.sqrt(output_spec.varSpectrum)
 #plt.plot(output_spec.background,'k')
 #plt.show()
 
-#Reshape the background array
-background = np.reshape(output_spec.background,(-1,1)) #The -1 tells numpy to automatically determine size
-print background.shape, output_spec.raw.shape
-
-####Need to transpose the spectra and check out what Nx should be
-##############3
-
+#Get the image header and add keywords
+header = st.readheader(specfile)
+header.set('BANDID1','Optimally Extracted Spectrum')
+header.set('BANDID2','Raw Extracted Spectrum')
+header.set('BANDID3','Background')
+header.set('BANDID4','Sigma Spectrum')
+header.set('DISPCOR',0) #Dispersion axis of image
 
 #Save the extracted image
 Ni = 4. #Number of extensions
-Nx = len(output_spec.spectrum)
-Ny = 1. #All 1D spectra
+Nx = 1. #All 1D spectra
+Ny = len(output_spec.spectrum[:,0])
 
 spectrum = np.empty(shape = (Ni,Nx,Ny))
-spectrum[0,:,:] = output_spec.spectrum
-spectrum[1,:,:] = output_spec.raw
-spectrum[2,:,:] = background
-spectrum[3,:,:] = sigSpectrum
+spectrum[0,:,:] = output_spec.spectrum[:,0]
+spectrum[1,:,:] = output_spec.raw[:,0]
+spectrum[2,:,:] = output_spec.background
+spectrum[3,:,:] = sigSpectrum[:,0]
 
-#newim = fits.PrimaryHDU(data=data)#,header=header)
+#newim = fits.PrimaryHDU(data=spectrum,header=header)
 #newim.writeto('test.ms.fits')
 
 

@@ -591,7 +591,6 @@ def superExtract(*args, **kw):
         variance = variance0 / (goodpixelmask + 1e-9) # De-weight bad pixels, avoiding infinite variance
 
         outlierVariances = (frame - modelData)**2/variance
-       
         if outlierVariances.max() > csigma**2:
             newBadPixels = True
             # Base our nreject-counting only on pixels within the spectral trace:
