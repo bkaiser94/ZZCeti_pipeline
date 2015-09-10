@@ -126,8 +126,6 @@ def superExtract(*args, **kw):
 
 
     :TO_DO:
-      Iterate background fitting and reject outliers; maybe first time
-      would be unweighted for robustness.
 
       Introduce even more array-based, rather than loop-based,
       calculations.  For large spectra computing the C-matrix takes
@@ -265,6 +263,7 @@ def superExtract(*args, **kw):
 
     variance[True-goodpixelmask] = frame[goodpixelmask].max() * 1e9
     nlam, fitwidth = frame.shape
+   
 
     # Define trace (Marsh's "X_j" in Eq. 9)
     if kw.has_key('trace'):
@@ -300,25 +299,10 @@ def superExtract(*args, **kw):
     #bkgrndmask = goodpixelmask
     for ii in range(nlam):
         if goodpixelmask[ii, backgroundApertures[ii]].any():
-            fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(goodpixelmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1)
-            #print p
-            #Want to iterate background fitting
-         #   bkgrnd_done = True
-          #  dracula = 0.
-          #  while bkgrnd_done:
-          #      print dracula
-          #      for n in frame[ii, backgroundApertures[ii]]:
-          #          stdev_bkgrnd = np.std(frame[ii, backgroundApertures[ii]]*bkgrndmask[ii,backgroundApertures[ii]])
-          #          bkgrnd_point = (frame[ii,n]-np.polyval(fit,xxx[ii,n]))/stdev_bkgrnd
-                    #print bkgrnd_point
-          #          if bkgrnd_point > bsigma:
-          #              print bkgrndmask[ii,n]
-          #              bkgrndmask[ii,n] = 0.
-          #              print bkgrndmask[ii,n]
-          #      fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(bkgrndmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1)
-          #      dracula += 1
-                
-            #plt.plot(xxx[ii,backgroundApertures[ii]],frame[ii, backgroundApertures[ii]])
+            fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(goodpixelmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1,plotall=False)
+            #If you want to plot the fit to the background you can use this. Or set plotall=True above
+            #plt.clf()
+            #plt.plot(xxx[ii,backgroundApertures[ii]],frame[ii, backgroundApertures[ii]],'b^')
             #plt.plot(xxx[ii,:],np.polyval(fit,xxx[ii,:]))
             #plt.show()
             background[ii, :] = np.polyval(fit, xxx[ii])
@@ -481,7 +465,7 @@ def superExtract(*args, **kw):
     if verbose: print '%1.2f s to compute Q matrix (%s mode)' % (time() - tic, qmode)
         
 
-    # Some quick math to find out which dat columns are important, and
+    # Some quick math to find out which data columns are important, and
     #   which contain no useful spectral information:
     Qmask = Q.sum(0).transpose() > 0
     Qind = Qmask.transpose().nonzero()
@@ -501,7 +485,7 @@ def superExtract(*args, **kw):
         # Compute pixel fractions (Marsh Eq. 5):
         #     (Note that values outside the desired polynomial region
         #     have Q=0, and so do not contribute to the fit)
-        #E = (skysubFrame / spectrum).transpose()
+        E = (skysubFrame / spectrum).transpose()
         invEvariance = (spectrum**2 / variance).transpose()
         weightedE = (skysubFrame * spectrum / variance).transpose() # E / var_E
         invEvariance_subset = invEvariance[Q_cols[0]:Q_cols[1]+1,:]
@@ -584,6 +568,12 @@ def superExtract(*args, **kw):
         profile[True - np.isfinite(profile)] = 0.
         if verbose: print '%1.2f s to compute profile' % (time() - tic)
 
+        #Plot the profile and estimated fraction. This mimics Marsh's Figure 2.
+        #plt.clf()
+        #plt.plot(profile[:,400],'b')
+        #plt.plot(E[:,400],'g')
+        #plt.show()
+
         #Step6: Revise variance estimates 
         modelSpectrum = spectrum * profile.transpose()
         modelData = modelSpectrum + background
@@ -602,29 +592,24 @@ def superExtract(*args, **kw):
         else:
             newBadPixels = False
             numberRejected = 0
-       
         if verbose: print "Rejected %i pixels on this iteration " % numberRejected
             
         # Optimal Spectral Extraction: (Horne, Step 8)
         fixSkysubFrame = bfixpix(skysubFrame, True-goodpixelmask, n=8, retdat=True)
         spectrum = np.zeros((nlam, 1), dtype=float)
-        #spectrum1 = np.zeros((nlam, 1), dtype=float)
         varSpectrum = np.zeros((nlam, 1), dtype=float)
-        goodprof =  profile.transpose() #* goodpixelmask
+        goodprof =  profile.transpose() * goodpixelmask
+       
         for ii in range(nlam):
-            thisrow_good = extractionApertures[ii] #* goodpixelmask[ii]
+            thisrow_good = extractionApertures[ii]
             denom = (goodprof[ii, thisrow_good] * profile.transpose()[ii, thisrow_good] / variance0[ii, thisrow_good]).sum()
             if denom==0:
                 spectrum[ii] = 0.
                 varSpectrum[ii] = 9e9
             else:
-                spectrum[ii] = (goodprof[ii, thisrow_good] * skysubFrame[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom
-                #spectrum1[ii] = (goodprof[ii, thisrow_good] * modelSpectrum[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom
+                spectrum[ii] = (goodprof[ii, thisrow_good] * fixSkysubFrame[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom
                 varSpectrum[ii] = goodprof[ii, thisrow_good].sum() / denom
-            #if spectrum.size==1218 and ii>610:
-            #    pdb.set_trace()
-
-        #if spectrum.size==1218: pdb.set_trace()
+           
 
     ret = baseObject()
     ret.spectrum = spectrum

@@ -856,7 +856,7 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
         if noweights:
             p = np.polyfit(xx2,yy2,N)
             residual = yy2 - np.polyval(p,xx2)
-            stdResidual = std(residual)
+            stdResidual = np.std(residual)
             clipmetric = s * stdResidual
         else:
             if catchLinAlgError:

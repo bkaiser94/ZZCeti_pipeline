@@ -1,5 +1,13 @@
 '''
-Testing spectral extraction
+Spectral Extraction from a 2D image.
+Uses superextract written by Ian Crossfield and modified by JTF.
+superextract is based on optimal spectral extraction as detailed by Marsh (1989) and Horne (1986)
+Dependencies: superextract.py and superextrac_tools.py
+
+For best results, first bias-subract and flat-field the 2D image before running this. It is also best to set the extract_radius to be large as this helps the profiles fit better.
+
+To Do:
+- Make it possible to read in a file with different parameters
 
 '''
 
@@ -23,18 +31,21 @@ data = datalist[0].data
 data = data[0,:,:]
 data = np.transpose(data)
 
+#Cut down the frame size.
+#data = data[:,50:170]
+
 #Calculate the variance of each pixel
 #From Horne (1986) eq. 12
 varmodel = rdnoise**2. + np.absolute(data)/gain
 
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[40,60],bsigma=3,extract_radius=7,dispaxis=1,verbose=True,csigma=5.)
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[40,60],bsigma=3,extract_radius=10,dispaxis=1,verbose=True,csigma=5.)
 #pord = order of profile polynomial, Default = 2
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
-#bkg_radii = inner and outer radii to use in computing background. Goes on both sides of aperture.
+#bkg_radii = inner and outer radii to use in computing background. Goes on both sides of aperture.  
 #bsigma = sigma-clipping thresholf for computing background
-#extract_radius: radius for spectral extraction
+#extract_radius: radius for spectral extraction. Best to make this value large (>15?) as that will help the profile fit better.
 #csigma = sigma-clipping threshold for cleaning & cosmic-ray rejection. Default = 5.
 #qmode: how to compute Marsh's Q-matrix. 'fast-linear' default and preferred.
 #nreject = number of outlier-pixels to reject at each iteration. Default = 100
@@ -63,7 +74,7 @@ sigSpectrum = np.sqrt(output_spec.varSpectrum)
 header = st.readheader(specfile)
 header.set('BANDID1','Optimally Extracted Spectrum')
 header.set('BANDID2','Raw Extracted Spectrum')
-header.set('BANDID3','Background')
+header.set('BANDID3','Background at trace')
 header.set('BANDID4','Sigma Spectrum')
 header.set('DISPCOR',0) #Dispersion axis of image
 
@@ -79,6 +90,6 @@ spectrum[2,:,:] = output_spec.background
 spectrum[3,:,:] = sigSpectrum[:,0]
 
 #newim = fits.PrimaryHDU(data=spectrum,header=header)
-#newim.writeto('test.ms.fits')
+#newim.writeto('test_10.ms.fits')
 
 
