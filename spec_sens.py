@@ -73,11 +73,11 @@ spec = spectrum.ArraySourceSpectrum(wave=obs_spectra.warr,flux=obs_spectra.farr)
 f = np.ones(len(obs_spectra.warr))
 filt = spectrum.ArraySpectralElement(obs_spectra.warr,f,waveunits='angstrom')
 obs = observation.Observation(spec,filt,binset=wavenew,force='taper')
-#plt.clf()
-#plt.plot(obs_spectra.warr,obs_spectra.farr)
-#plt.plot(wavenew,obs.binflux)
-#plt.show()
-
+plt.clf()
+plt.plot(obs_spectra.warr,obs_spectra.farr)
+plt.plot(wavenew,obs.binflux)
+plt.show()
+exit()
 
 #Now sum the rebinned spectra into the same bins as the standard star file
 counts = st.sum_std(std_spectra.warr,std_spectra.wbin,wavenew,obs.binflux,dispersion,size)
