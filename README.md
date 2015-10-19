@@ -12,7 +12,7 @@ superextract.py - Written mostly by Ian Crossfield and available here: http://ww
 
 superextract_tools.py - Tools used by superextract.py, mostly for tracing the spectrum.
 
-
+The reduction flow is a follows: Bias-subtract, flat-field, trim (ReduceSpec.py). Extract spectrum (spec_extract.py). Flux calibration (spec_sens.py).
 
 Dependencies:
 - pyfits
