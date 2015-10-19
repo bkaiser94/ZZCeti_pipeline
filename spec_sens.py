@@ -18,12 +18,9 @@ import spectools as st
 
 import matplotlib.pyplot as plt
 
-sys.path.append('pysynphot-0.9.6/pysynphot')
-import observation #This is from pysynphot
-import spectrum #This is from pysynphot
 
 #File names
-stdspecfile = 'wnb.GD50_930_blue.ms.fits'
+stdspecfile = 'wnb.GD50_930_red.ms.fits'
 stdfile = 'mgd50.dat'
 specfile = 'wnb.WD0122p0030_930_blue.ms.fits'
 
@@ -63,28 +60,29 @@ std_spectra.magarr = st.fnutofwave(std_spectra.warr, std_spectra.magarr)
 #Set the new binning here.
 low = np.rint(np.min(obs_spectra.warr)) #Rounds to nearest integer
 high = np.rint(np.max(obs_spectra.warr))
-size = 0.5 #size in Angstroms you want each bin
+size = 0.05 #size in Angstroms you want each bin
 
 num = (high - low) / size + 1. #number of bins. Must add one to get correct number.
 wavenew = np.linspace(low,high,num=num) #wavelength of each new bin
 
-#Now do the rebinning
-spec = spectrum.ArraySourceSpectrum(wave=obs_spectra.warr,flux=obs_spectra.farr)
-f = np.ones(len(obs_spectra.warr))
-filt = spectrum.ArraySpectralElement(obs_spectra.warr,f,waveunits='angstrom')
-obs = observation.Observation(spec,filt,binset=wavenew,force='taper')
+#Now do the rebinning using Ian Crossfield rebinning package
+binflux = st.resamplespec(wavenew,obs_spectra.warr,obs_spectra.farr,200.) #200 is the oversampling factor
+
 plt.clf()
 plt.plot(obs_spectra.warr,obs_spectra.farr)
-plt.plot(wavenew,obs.binflux)
-plt.show()
-exit()
+plt.plot(wavenew,binflux)
+#plt.show()
+
+irafwv,irafflux,irafbin,irafcounts = np.genfromtxt('wnb.GD50_930_red_std',unpack=True,skip_header=1)
 
 #Now sum the rebinned spectra into the same bins as the standard star file
-counts = st.sum_std(std_spectra.warr,std_spectra.wbin,wavenew,obs.binflux,dispersion,size)
-#plt.clf()
+counts = st.sum_std(std_spectra.warr,std_spectra.wbin,wavenew,binflux)
+plt.clf()
 #plt.plot(std_spectra.warr,std_spectra.magarr)
-#plt.plot(std_spectra.warr,counts)
-#plt.show()
+plt.plot(obs_spectra.warr,obs_spectra.farr,'b')
+plt.plot(std_spectra.warr,counts,'g+')
+plt.plot(irafwv,irafcounts,'r+')
+plt.show()
 
 #Calculate the sensitivity function
 sens_function = st.sensfunc(counts,std_spectra.magarr,exptime,std_spectra.wbin,airmass)
