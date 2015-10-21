@@ -54,6 +54,7 @@ def imshow(data, x=[], y=[], aspect='auto', interpolation='nearest', cmap=None, 
               vmin=clim[0], vmax=clim[1], extent=extent)
     
 
+# ===========================================================================
 
 def bfixpix(data, badmask, n=4, retdat=False):
     """Replace pixels flagged as nonzero in a bad-pixel mask with the
@@ -136,6 +137,8 @@ def bfixpix(data, badmask, n=4, retdat=False):
 
     return ret
     
+# ===========================================================================
+
 
 def traceorders(filename,g,rn, pord=5, dispaxis=0, nord=1, verbose=False, ordlocs=None, stepsize=20, fitwidth=20, plotalot=False, medwidth=6, xylims=None, uncertainties=None, badpixelmask=None, retsnr=False, retfits=False):
     """
@@ -434,6 +437,8 @@ def traceorders(filename,g,rn, pord=5, dispaxis=0, nord=1, verbose=False, ordloc
         ret = ret[0]
     return  ret
 
+# ===========================================================================
+
 
 def message(text):
     """Display a message; for now, with text."""
@@ -441,6 +446,8 @@ def message(text):
 
     print text
     stdout.flush()
+# ===========================================================================
+
 
 def pickloc(ax=None, zoom=10):
     """
@@ -491,6 +498,9 @@ def pickloc(ax=None, zoom=10):
             loc = confirmevent[0]
 
     return loc
+
+# ===========================================================================
+
 
 def fitPSF(ec, guessLoc, fitwidth=20, verbose=False, sigma=5, medwidth=6, err_ec=None):
     """
@@ -569,6 +579,9 @@ def fitPSF(ec, guessLoc, fitwidth=20, verbose=False, sigma=5, medwidth=6, err_ec
         message("Initial position: (%3.2f,%3.2f)"%(x,newY))
     return x, newY, err_newY
 
+# ===========================================================================
+
+
 def wmean(a, w, axis=None, reterr=False):
     """wmean(a, w, axis=None)
 
@@ -628,6 +641,9 @@ def wmean(a, w, axis=None, reterr=False):
         ret = weightedmean
 
     return ret
+
+# ===========================================================================
+
 
 def fitGaussian(vec, err=None, verbose=False, guess=None):
     """Fit a Gaussian function to an input data vector.
@@ -692,6 +708,9 @@ def fitGaussian(vec, err=None, verbose=False, guess=None):
 
     return fit, fiterr
 
+# ===========================================================================
+
+
 def egaussian(p, x, y, e=None):
     """ Compute the deviation between the values y and the gaussian defined by p, x:
 
@@ -714,6 +733,9 @@ def egaussian(p, x, y, e=None):
     fixval(z,0)
 
     return z
+
+# ===========================================================================
+
 
 def gaussian(p, x):
     """ Compute a gaussian distribution at the points x.
@@ -745,6 +767,9 @@ def gaussian(p, x):
     #    p = array(p, copy=False)
 
     return  p[3] + p[0]/(p[1]*np.sqrt(2*np.pi)) * np.exp(-(x-p[2])**2 / (2*p[1]**2))
+
+# ===========================================================================
+
 
 def fixval(arr, repval, retarr=False):
     """Fix non-finite values in a numpy array, and replace them with repval.
@@ -782,6 +807,9 @@ def fixval(arr, repval, retarr=False):
         return arr2.reshape(arr.shape)
     else:
         return
+
+# ===========================================================================
+
 
 def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
                  verbose=False, plotfit=False, plotall=False, eps=1e-13, catchLinAlgError=False):
@@ -921,6 +949,9 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
 
     return p
 
+# ===========================================================================
+
+
 def polyfitw(x, y, w, ndegree, return_fit=0):
    """
    Performs a weighted least-squares polynomial fit with optional error estimates.
@@ -1004,6 +1035,9 @@ def polyfitw(x, y, w, ndegree, return_fit=0):
    yband = yband*var
    yband = np.sqrt(yband)
    return c, yfit, yband, sigma, a
+
+# ===========================================================================
+
 
 class baseObject:
     """Empty object container.

@@ -22,12 +22,17 @@ class spectrum(object):
         self.sigma = sigma
         self.warr = warr
 
+# ===========================================================================
+
 class standard(object):
 
     def __init__(self,warr,magarr,wbin):
         self.warr = warr
         self.magarr = magarr
         self.wbin = wbin
+
+# ===========================================================================
+
 
 def readspectrum(specfile):
     """ Given a specfile, read in the spectra and return
@@ -57,6 +62,9 @@ def readspectrum(specfile):
     result = spectrum(var_farr,farr,sky,sigma,warr)
     return result,airmass,exptime,specdeltawav
 
+# ===========================================================================
+
+
 def readheader(specfile):
     spec = fits.open(specfile)
     #Delete the parts of the header that are not uniform in Goodman. These are primarily the parts that contain degree symbols.
@@ -67,10 +75,16 @@ def readheader(specfile):
     del header['param63']
     return header
 
+# ===========================================================================
+
+
 def readstandard(stdfile):
     warr,magarr,wbin = np.genfromtxt(stdfile,unpack=True)
     result = standard(warr,magarr,wbin)
     return result
+
+# ===========================================================================
+
 
 def magtoflux(marr, fzero):
     """Convert from magnitude to flux
@@ -79,10 +93,16 @@ def magtoflux(marr, fzero):
     """
     return fzero * 10. ** (-0.4 * marr)
 
+# ===========================================================================
+
+
 def fnutofwave(warr,farr):
     """Converts farr in ergs/s/cm2/Hz to ergs/s/cm2/A"""
     c = 2.99792458e18 #speed of light in Angstroms/s
     return farr * c / warr**2.
+
+# ===========================================================================
+
 
 def sum_std(std_warr,wbin,spec_warr,spec_farr):
     #Sum the standard star spectrum into the same bins as the flux
@@ -110,6 +130,9 @@ def sum_std(std_warr,wbin,spec_warr,spec_farr):
         n += 1.
     return np.asarray(result)
 
+# ===========================================================================
+
+
 def sensfunc(obs_counts,std_flux,exptime,bins,airmass):
     #This function calculates the sensitivity curve for the spectrum
     #It is calculated by:
@@ -125,10 +148,16 @@ def sensfunc(obs_counts,std_flux,exptime,bins,airmass):
     sensitivity = np.asarray(sens)
     return sensitivity
 
+# ===========================================================================
+
+
 def cal_spec(counts,sens,exptime,disp):
     #Calibrates a observed star using a sensitivity function
     flux = (counts) / (exptime * disp * 10.**(sens/2.5))
     return flux
+
+# ===========================================================================
+
 
 def resamplespec(w1, w0, spec0, oversamp=100):
     """
@@ -175,6 +204,9 @@ def resamplespec(w1, w0, spec0, oversamp=100):
     junk, spec1, junk2, junk3 = errxy(w0int, spec0int, w1bins, xmode=None, ymode='sum', xerr=None, yerr=None)
 
     return spec1
+
+# ===========================================================================
+
 
 
 def errxy(x,y,xbins, xmode='mean', ymode='mean', xerr='minmax', yerr='sdom', clean=None, binfactor=None, verbose=False,returnstats=False, timing=False):
@@ -500,6 +532,9 @@ def errxy(x,y,xbins, xmode='mean', ymode='mean', xerr='minmax', yerr='sdom', cle
 
     return ret 
 
+# ===========================================================================
+
+
 def removeoutliers(data, nsigma, remove='both', center='mean', niter=500, retind=False, verbose=False):
     """Strip outliers from a dataset, iterating until converged.
     Written by Ian Crossfield: www.lpl.arizona.edu/~ianc/python/index.html
@@ -593,6 +628,9 @@ def removeoutliers(data, nsigma, remove='both', center='mean', niter=500, retind
     else:
         ret = data[goodind]
     return ret
+
+
+# ===========================================================================
 
 
 def resample(old_dispersion, new_dispersion):

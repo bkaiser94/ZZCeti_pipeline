@@ -2,6 +2,7 @@
 Spectral Extraction from a 2D image.
 Uses superextract written by Ian Crossfield and modified by JTF.
 superextract is based on optimal spectral extraction as detailed by Marsh (1989) and Horne (1986)
+Crossfield's version can be found at www.lpl.arizona.edu/!ianc/python/index.html
 Dependencies: superextract.py and superextrac_tools.py
 
 For best results, first bias-subract and flat-field the 2D image before running this. It is also best to set the extract_radius to be large as this helps the profiles fit better.
@@ -19,36 +20,31 @@ import spectools as st
 import superextract
 from pylab import *
 
-#SOAR parameters
-gain = 1.4
-rdnoise = 4.74
+#SOAR parameters (Assumes 200 kHz, ATTN 0 - standard for ZZ Ceti mode)
+gain = 1.4 #electrons/ADU
+rdnoise = 4.74 #electrons
 
 specfile = 'tnb.0526.WD1422p095_930_blue.fits'
-#specfile = '0317.WDJ0349p1036_930_blue.fits'
-#specfile = '0532.WD1422p095_930_red.fits'
 datalist = fits.open(specfile)
 data = datalist[0].data
 data = data[0,:,:]
 data = np.transpose(data)
 
-#Cut down the frame size.
-#data = data[:,50:170]
-
-#Calculate the variance of each pixel
-#From Horne (1986) eq. 12
-varmodel = rdnoise**2. + np.absolute(data)/gain
+#Calculate the variance of each pixel in ADU
+varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
 
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[40,60],bsigma=3,extract_radius=10,dispaxis=1,verbose=True,csigma=5.)
-#pord = order of profile polynomial, Default = 2
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[40,60],bsigma=3,extract_radius=5,dispaxis=1,verbose=True,csigma=5.,polyspacing=1)
+#pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
 #bkg_radii = inner and outer radii to use in computing background. Goes on both sides of aperture.  
 #bsigma = sigma-clipping thresholf for computing background
-#extract_radius: radius for spectral extraction. Best to make this value large (>15?) as that will help the profile fit better.
+#extract_radius: radius for spectral extraction. Want this value to be around the FWHM as this will optimize the S/N of the 1D spectrum.
 #csigma = sigma-clipping threshold for cleaning & cosmic-ray rejection. Default = 5.
 #qmode: how to compute Marsh's Q-matrix. 'fast-linear' default and preferred.
 #nreject = number of outlier-pixels to reject at each iteration. Default = 100
+#polyspacing = Marsh's S: the spacing between the polynomials. This should be <= 1. Default = 1. Best to leave at 1. S/N decreases dramatically if greater than 1. If less than one, slower but final spectrum is the same. Crossfield note: A few cursory tests suggests that the extraction precision (in the high S/N case) scales as S^-2 -- but the code slows down as S^2.
 
 ###########
 # In superextract, to plot a 2D frame at any point, use the following
@@ -60,15 +56,15 @@ output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2
 print 'Done extracting!'
 
 sigSpectrum = np.sqrt(output_spec.varSpectrum)
-#plt.clf()
+plt.clf()
 #plt.imshow(data)
-#plt.plot(output_spec.spectrum,'b')
+plt.plot(output_spec.spectrum,'b')
 #plt.plot(output_spec.raw,'g')
 #plt.plot(output_spec.varSpectrum,'r')
 #plt.plot(sigSpectrum,'r')
 #plt.plot(output_spec.trace,'m')
 #plt.plot(output_spec.background,'k')
-#plt.show()
+plt.show()
 
 #Get the image header and add keywords
 header = st.readheader(specfile)
@@ -90,6 +86,6 @@ spectrum[2,:,:] = output_spec.background
 spectrum[3,:,:] = sigSpectrum[:,0]
 
 #newim = fits.PrimaryHDU(data=spectrum,header=header)
-#newim.writeto('test_10.ms.fits')
+#newim.writeto('test_0344_rad7.ms.fits')
 
 

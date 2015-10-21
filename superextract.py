@@ -236,7 +236,8 @@ def superExtract(*args, **kw):
     if kw.has_key('qmode'):
         qmode = kw['qmode']
     else:
-        qmode = 'fast'
+        #qmode = 'fast'
+        qmode = 'fast-linear' #Best option if the machine can handle it
         if verbose: message("Setting option 'qmode' to: " + str(qmode))
 
     if kw.has_key('nreject'):
@@ -274,7 +275,7 @@ def superExtract(*args, **kw):
     if trace is None:
         trace = tord
     if not hasattr(trace, '__iter__'):
-        if verbose: print "Tracing not fully tested; dispaxis may need adjustment."
+        #if verbose: print "Tracing not fully tested; dispaxis may need adjustment."
         #pdb.set_trace()
         tracecoef = traceorders(frame, pord=trace, nord=1, verbose=verbose, plotalot=verbose-1, g=gain, rn=readnoise, badpixelmask=True-goodpixelmask, dispaxis=dispaxis, fitwidth=min(fitwidth, 80))
         trace = np.polyval(tracecoef.ravel(), np.arange(nlam))
@@ -570,8 +571,8 @@ def superExtract(*args, **kw):
 
         #Plot the profile and estimated fraction. This mimics Marsh's Figure 2.
         #plt.clf()
-        #plt.plot(profile[:,400],'b')
-        #plt.plot(E[:,400],'g')
+        #plt.plot(profile[:,1000],'b')
+        #plt.plot(E[:,1000],'g')
         #plt.show()
 
         #Step6: Revise variance estimates 
