@@ -15,8 +15,8 @@ from scipy.interpolate import InterpolatedUnivariateSpline as interpo
 
 class spectrum(object):
 
-    def __init__(self,var_farr,farr,sky,sigma,warr):
-        self.var_farr = var_farr
+    def __init__(self,opfarr,farr,sky,sigma,warr):
+        self.opfarr = opfarr
         self.farr = farr
         self.sky = sky
         self.sigma = sigma
@@ -36,12 +36,12 @@ class standard(object):
 
 def readspectrum(specfile):
     """ Given a specfile, read in the spectra and return
-    a spectrum object
-    warr, farr, farr_err
+    a spectrum object consisting of
+    opfar(optimally extracted spectrum),farr(raw extracted spectrum),sky(background),sigma(sigma spectrum)
     """
 
     spec = fits.open(specfile)
-    var_farr = spec[0].data[0,0,:]
+    opfarr = spec[0].data[0,0,:]
     farr = spec[0].data[1,0,:]
     sky = spec[0].data[2,0,:]
     sigma = spec[0].data[3,0,:]
@@ -59,7 +59,7 @@ def readspectrum(specfile):
     for i in ival:
         warr[i] = warr[i-1] + specdeltawav
 
-    result = spectrum(var_farr,farr,sky,sigma,warr)
+    result = spectrum(opfarr,farr,sky,sigma,warr)
     return result,airmass,exptime,specdeltawav
 
 # ===========================================================================

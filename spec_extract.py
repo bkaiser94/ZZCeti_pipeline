@@ -5,7 +5,10 @@ superextract is based on optimal spectral extraction as detailed by Marsh (1989)
 Crossfield's version can be found at www.lpl.arizona.edu/!ianc/python/index.html
 Dependencies: superextract.py and superextrac_tools.py
 
-For best results, first bias-subract and flat-field the 2D image before running this. It is also best to set the extract_radius to be large as this helps the profiles fit better.
+For best results, first bias-subract, flat-field, and trim the 2D image before running this. It is also best to set the extract_radius to be approximately the FWHM. This maximizes the S/N.
+
+Inputs:
+filename, extract_radius, bkg_radii, output file name
 
 To Do:
 - Make it possible to read in a file with different parameters
