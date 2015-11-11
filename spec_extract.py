@@ -8,7 +8,7 @@ Dependencies: superextract.py and superextrac_tools.py
 For best results, first bias-subract, flat-field, and trim the 2D image before running this. It is also best to set the extract_radius to be approximately the FWHM. This maximizes the S/N.
 
 Inputs:
-filename, extract_radius, bkg_radii, output file name
+spectral filename, extract_radius, bkg_radii, output file name, lamp filename, extraction radius for lamp, lamp output filename
 
 To Do:
 - Make it possible to read in a file with different parameters
@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 
 import spectools as st
 import superextract
+from superextract_tools import lampextract
 from pylab import *
 
 #SOAR parameters (Assumes 200 kHz, ATTN 0 - standard for ZZ Ceti mode)
@@ -59,15 +60,15 @@ output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2
 print 'Done extracting!'
 
 sigSpectrum = np.sqrt(output_spec.varSpectrum)
-plt.clf()
+#plt.clf()
 #plt.imshow(data)
-plt.plot(output_spec.spectrum,'b')
+#plt.plot(output_spec.spectrum,'b')
 #plt.plot(output_spec.raw,'g')
 #plt.plot(output_spec.varSpectrum,'r')
 #plt.plot(sigSpectrum,'r')
 #plt.plot(output_spec.trace,'m')
 #plt.plot(output_spec.background,'k')
-plt.show()
+#plt.show()
 
 #Get the image header and add keywords
 header = st.readheader(specfile)
@@ -91,4 +92,32 @@ spectrum[3,:,:] = sigSpectrum[:,0]
 #newim = fits.PrimaryHDU(data=spectrum,header=header)
 #newim.writeto('test_0344_rad7.ms.fits')
 
+###########################
+#Extract a lamp spectrum using the trace from above
+##########################
+lamp = 't.Fe_ZZCeti_930_blue_long.fits'
+lamplist = fits.open(lamp)
+lampdata = lamplist[0].data
+lampdata = lampdata[0,:,:]
+lampdata = np.transpose(lampdata)
 
+lampradius = 3. #extraction radius
+
+lampspec = lampextract(lampdata,output_spec.trace,lampradius)
+
+
+#Save the 1D lamp
+lampheader = st.readheader(lamp)
+lampheader.set('BANDID2','Raw Extracted Spectrum')
+
+Ni = 1. #We are writing just 1 1D spectrum
+Ny = len(lampspec[:,0])
+lampspectrum = np.empty(shape = (Ni,Ny))
+lampspectrum[0,:] = lampspec[:,0]
+
+#plt.clf()
+#plt.plot(lampspectrum[0,0,:])
+#plt.show()
+
+lampim = fits.PrimaryHDU(data=lampspectrum,header=lampheader)
+lampim.writeto('t.Fe_ZZCeti_930_blue_long.ms.fits')
