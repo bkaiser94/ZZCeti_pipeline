@@ -126,8 +126,6 @@ def superExtract(*args, **kw):
 
 
     :TO_DO:
-      Iterate background fitting and reject outliers; maybe first time
-      would be unweighted for robustness.
 
       Introduce even more array-based, rather than loop-based,
       calculations.  For large spectra computing the C-matrix takes
@@ -238,7 +236,8 @@ def superExtract(*args, **kw):
     if kw.has_key('qmode'):
         qmode = kw['qmode']
     else:
-        qmode = 'fast'
+        #qmode = 'fast'
+        qmode = 'fast-linear' #Best option if the machine can handle it
         if verbose: message("Setting option 'qmode' to: " + str(qmode))
 
     if kw.has_key('nreject'):
@@ -265,6 +264,7 @@ def superExtract(*args, **kw):
 
     variance[True-goodpixelmask] = frame[goodpixelmask].max() * 1e9
     nlam, fitwidth = frame.shape
+   
 
     # Define trace (Marsh's "X_j" in Eq. 9)
     if kw.has_key('trace'):
@@ -275,7 +275,7 @@ def superExtract(*args, **kw):
     if trace is None:
         trace = tord
     if not hasattr(trace, '__iter__'):
-        if verbose: print "Tracing not fully tested; dispaxis may need adjustment."
+        #if verbose: print "Tracing not fully tested; dispaxis may need adjustment."
         #pdb.set_trace()
         tracecoef = traceorders(frame, pord=trace, nord=1, verbose=verbose, plotalot=verbose-1, g=gain, rn=readnoise, badpixelmask=True-goodpixelmask, dispaxis=dispaxis, fitwidth=min(fitwidth, 80))
         trace = np.polyval(tracecoef.ravel(), np.arange(nlam))
@@ -287,6 +287,8 @@ def superExtract(*args, **kw):
     #nextract = extractionAperture.sum()
     #xb = xxx[backgroundAperture]
 
+    #trace.reshape(nlam,1) is the center of the fitted profile of the star
+    # xxx is the distance of the frame on either side of the fitted profile.
     xxx = np.arange(fitwidth) - trace.reshape(nlam,1)
     backgroundApertures = (np.abs(xxx) > bkg_radii[0]) * (np.abs(xxx) <= bkg_radii[1])
     extractionApertures = np.abs(xxx) <= extract_radius
@@ -295,9 +297,15 @@ def superExtract(*args, **kw):
 
     #Step3: Sky Subtraction
     background = 0. * frame
+    #bkgrndmask = goodpixelmask
     for ii in range(nlam):
         if goodpixelmask[ii, backgroundApertures[ii]].any():
-            fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(goodpixelmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1)
+            fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(goodpixelmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1,plotall=False)
+            #If you want to plot the fit to the background you can use this. Or set plotall=True above
+            #plt.clf()
+            #plt.plot(xxx[ii,backgroundApertures[ii]],frame[ii, backgroundApertures[ii]],'b^')
+            #plt.plot(xxx[ii,:],np.polyval(fit,xxx[ii,:]))
+            #plt.show()
             background[ii, :] = np.polyval(fit, xxx[ii])
         else:
             background[ii] = 0.
@@ -458,7 +466,7 @@ def superExtract(*args, **kw):
     if verbose: print '%1.2f s to compute Q matrix (%s mode)' % (time() - tic, qmode)
         
 
-    # Some quick math to find out which dat columns are important, and
+    # Some quick math to find out which data columns are important, and
     #   which contain no useful spectral information:
     Qmask = Q.sum(0).transpose() > 0
     Qind = Qmask.transpose().nonzero()
@@ -478,7 +486,7 @@ def superExtract(*args, **kw):
         # Compute pixel fractions (Marsh Eq. 5):
         #     (Note that values outside the desired polynomial region
         #     have Q=0, and so do not contribute to the fit)
-        #E = (skysubFrame / spectrum).transpose()
+        E = (skysubFrame / spectrum).transpose()
         invEvariance = (spectrum**2 / variance).transpose()
         weightedE = (skysubFrame * spectrum / variance).transpose() # E / var_E
         invEvariance_subset = invEvariance[Q_cols[0]:Q_cols[1]+1,:]
@@ -548,7 +556,6 @@ def superExtract(*args, **kw):
         for n in range(npoly):
             Gsoln[n] = np.polyval(Asoln[n,::-1], jjnorm) # reorder polynomial coef.
 
-
         # Compute the profile (Marsh eq. 6) and normalize it:
         if verbose: tic = time()
         profile = np.zeros((fitwidth, nlam), dtype=float)
@@ -562,6 +569,12 @@ def superExtract(*args, **kw):
         profile[True - np.isfinite(profile)] = 0.
         if verbose: print '%1.2f s to compute profile' % (time() - tic)
 
+        #Plot the profile and estimated fraction. This mimics Marsh's Figure 2.
+        #plt.clf()
+        #plt.plot(profile[:,1000],'b')
+        #plt.plot(E[:,1000],'g')
+        #plt.show()
+
         #Step6: Revise variance estimates 
         modelSpectrum = spectrum * profile.transpose()
         modelData = modelSpectrum + background
@@ -569,7 +582,6 @@ def superExtract(*args, **kw):
         variance = variance0 / (goodpixelmask + 1e-9) # De-weight bad pixels, avoiding infinite variance
 
         outlierVariances = (frame - modelData)**2/variance
-
         if outlierVariances.max() > csigma**2:
             newBadPixels = True
             # Base our nreject-counting only on pixels within the spectral trace:
@@ -581,30 +593,24 @@ def superExtract(*args, **kw):
         else:
             newBadPixels = False
             numberRejected = 0
-        
         if verbose: print "Rejected %i pixels on this iteration " % numberRejected
-
             
         # Optimal Spectral Extraction: (Horne, Step 8)
         fixSkysubFrame = bfixpix(skysubFrame, True-goodpixelmask, n=8, retdat=True)
         spectrum = np.zeros((nlam, 1), dtype=float)
-        #spectrum1 = np.zeros((nlam, 1), dtype=float)
         varSpectrum = np.zeros((nlam, 1), dtype=float)
-        goodprof =  profile.transpose() #* goodpixelmask
+        goodprof =  profile.transpose() * goodpixelmask
+       
         for ii in range(nlam):
-            thisrow_good = extractionApertures[ii] #* goodpixelmask[ii]
+            thisrow_good = extractionApertures[ii]
             denom = (goodprof[ii, thisrow_good] * profile.transpose()[ii, thisrow_good] / variance0[ii, thisrow_good]).sum()
             if denom==0:
                 spectrum[ii] = 0.
                 varSpectrum[ii] = 9e9
             else:
-                spectrum[ii] = (goodprof[ii, thisrow_good] * skysubFrame[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom
-                #spectrum1[ii] = (goodprof[ii, thisrow_good] * modelSpectrum[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom
+                spectrum[ii] = (goodprof[ii, thisrow_good] * fixSkysubFrame[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom
                 varSpectrum[ii] = goodprof[ii, thisrow_good].sum() / denom
-            #if spectrum.size==1218 and ii>610:
-            #    pdb.set_trace()
-
-        #if spectrum.size==1218: pdb.set_trace()
+           
 
     ret = baseObject()
     ret.spectrum = spectrum
