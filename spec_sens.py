@@ -9,7 +9,7 @@ observation and a standard star.
 Inputs: 1D standard star spectrum, 1D spectrum of observed star, filename of standard details, order of polynomial fit for sensitivity function, output filename for flux calibrated spectrum
 
 To do:
-- Make the sensitivity funtion fitting interactive. Need to be able to test different polynomials.
+-
 
 """
 
@@ -31,6 +31,8 @@ def onclick(event):
     global ix,iy
     ix, iy = event.xdata,event.ydata
     global coords
+    ax.axvline(x=ix,color='k',linewidth='3')
+    fig.canvas.draw()
     coords.append((ix,iy))
     
 
@@ -114,9 +116,12 @@ ax = fig.add_subplot(111)
 ax.plot(std_spectra.warr,sens_function)
 cid = fig.canvas.mpl_connect('button_press_event',onclick)
 print 'Please click on both sides of regions you want to exclude. Then close the plot.'
+plt.title('Click both sides of regions you want to exclude. Then close the plot.')
 plt.show(1)
 
-#Mask our the regions you don't want to git
+
+#Mask our the regions you don't want to fit
+#We need make sure left to right clicking and right to left clicking both work.
 mask = np.ones(len(std_spectra.warr))
 n = 0
 if len(coords) > 0:
@@ -124,6 +129,8 @@ if len(coords) > 0:
         x1 = np.where(std_spectra.warr == (find_nearest(std_spectra.warr,coords[n][0])))
         n += 1
         x2 = np.where(std_spectra.warr == (find_nearest(std_spectra.warr,coords[n][0])))
+        if x2 < x1:
+            x1,x2 = x2,x1
         mask[x1[0][0]:x2[0][0]] = 0
         n += 1
 
@@ -137,21 +144,31 @@ lambdasfit = lambdasfit[ind1]
 fluxesfit = fluxesfit[ind1]
 
 
-print 'Fitting the sensitivity funtion now. Close the plot to continue.'
-order = 4.
+print 'Fitting the sensitivity funtion now.'
+order = 4
 repeat = 'yes'
 while repeat == 'yes':
     p = np.polyfit(lambdasfit,fluxesfit,order)
     f = np.poly1d(p)
     smooth_sens = f(lambdasfit)
-    plt.clf()
-    plt.plot(lambdasfit,fluxesfit,'b+')
-    plt.plot(lambdasfit,smooth_sens,'r',linewidth=2.0)
+    residual = fluxesfit - smooth_sens
+    plt.close()
+    plt.ion()
+    #ax1 = plt.subplot(211)
+    g, (ax1,ax2) = plt.subplots(2,sharex=True)
+    ax1.plot(lambdasfit,fluxesfit,'b+')
+    ax1.plot(lambdasfit,smooth_sens,'r',linewidth=2.0)
+    ax1.set_ylabel('Sensitivity Function')
+    #ax2 = plt.subplot(212,sharex=ax1)
+    ax2.plot(lambdasfit,residual,'k+')
+    ax2.set_ylabel('Residuals')
+    ax1.set_title('Current polynomial order: %s' % order)
+    g.subplots_adjust(hspace=0)
+    plt.setp([a.get_xticklabels() for a in g.axes[:-1]],visible=False)
     plt.show()
     repeat = raw_input('Do you want to try again (yes/no)? ')
     if repeat == 'yes':
         order = raw_input('New order for polynomial: ')
-
 
 #Read in the spectrum we want to flux calibrate
 WD_spectra,airmass,exptime,dispersion = st.readspectrum(specfile)

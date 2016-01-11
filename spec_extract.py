@@ -8,7 +8,7 @@ Dependencies: superextract.py and superextrac_tools.py
 For best results, first bias-subract, flat-field, and trim the 2D image before running this. It is also best to set the extract_radius to be approximately the FWHM. This maximizes the S/N.
 
 Inputs:
-spectral filename, extract_radius, bkg_radii, output file name, lamp filename, extraction radius for lamp, lamp output filename
+spectral filename, extract_radius, bkg_radii, output file name, lamp filename, lamp output filename
 
 To Do:
 - Make it possible to read in a file with different parameters
@@ -37,8 +37,10 @@ data = np.transpose(data)
 #Calculate the variance of each pixel in ADU
 varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
 
+extraction_rad = 5.
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[40,60],bsigma=3,extract_radius=5,dispaxis=1,verbose=True,csigma=5.,polyspacing=1)
+
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[40,60],bsigma=3,extract_radius=extraction_rad,dispaxis=1,verbose=True,csigma=5.,polyspacing=1)
 #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
@@ -101,9 +103,9 @@ lampdata = lamplist[0].data
 lampdata = lampdata[0,:,:]
 lampdata = np.transpose(lampdata)
 
-lampradius = 3. #extraction radius
+#extraction radius will be the same as the star
 
-lampspec = lampextract(lampdata,output_spec.trace,lampradius)
+lampspec = lampextract(lampdata,output_spec.trace,extraction_rad)
 
 
 #Save the 1D lamp
