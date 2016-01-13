@@ -7,28 +7,49 @@ Dependencies: superextract.py and superextrac_tools.py
 
 For best results, first bias-subract, flat-field, and trim the 2D image before running this. It is also best to set the extract_radius to be approximately the FWHM. This maximizes the S/N.
 
+To run:
+python spec_extract.py filename_of_2d_spectrum
+python spec_extract.py tnb.0526.WD1422p095_930_blue.fits
+
 Inputs:
-spectral filename, extract_radius, bkg_radii, output file name, lamp filename, lamp output filename
+spectral filename, lamp file (?)
+extract_radius and  bkg_radii computed automatically. FWHM used for extract_radius
+output file name and lamp output filename done automatically
 
 To Do:
-- Make it possible to read in a file with different parameters
+- 
 
 '''
-
+import sys
 import numpy as np
 import pyfits as fits
 import matplotlib.pyplot as plt
+import datetime
+import mpfit
 
 import spectools as st
 import superextract
 from superextract_tools import lampextract
 from pylab import *
 
+def gauss(x,p): #single gaussian
+    return p[0] +  p[1]*np.exp(-(((x-p[2])/(np.sqrt(2)*p[3])))**2.)
+
+def fitgauss(p,fjac=None,x=None,y=None,err=None):
+    #Parameter values are passed in p
+    #fjac = None just means partial derivatives will not be computed
+    model = gauss(x,p)
+    status = 0
+    return([status,(y-model)/err])
+
+#Read in file from command line
+script, specfile = sys.argv
+#specfile = 'tnb.0526.WD1422p095_930_blue.fits'
+
 #SOAR parameters (Assumes 200 kHz, ATTN 0 - standard for ZZ Ceti mode)
 gain = 1.4 #electrons/ADU
 rdnoise = 4.74 #electrons
 
-specfile = 'tnb.0526.WD1422p095_930_blue.fits'
 datalist = fits.open(specfile)
 data = datalist[0].data
 data = data[0,:,:]
@@ -37,10 +58,51 @@ data = np.transpose(data)
 #Calculate the variance of each pixel in ADU
 varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
 
-extraction_rad = 5.
+#Fit a column of the 2D image to determine the FWHM
+forfit = data[1200,:]
+
+guess = np.zeros(4)
+guess[0] = np.mean(forfit)
+guess[1] = np.amax(forfit)
+guess[2] = np.argmax(forfit)
+guess[3] = 3.
+
+error_fit = np.ones(len(forfit))
+xes = np.linspace(0,198,num=199)
+fa = {'x':xes,'y':forfit,'err':error_fit}
+fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa)
+
+fwhm = 2.*np.sqrt(2.*np.log(2.))*fitparams.params[3]
+extraction_rad = np.round(fwhm,decimals=1)
 
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=[40,60],bsigma=3,extract_radius=extraction_rad,dispaxis=1,verbose=True,csigma=5.,polyspacing=1)
+#Check to make sure background region does not go within 10 pixels of edge
+background_radii = [35,60]
+#First check this against the bottom
+if fitparams.params[2] - background_radii[1] < 10.:
+    background_radii[1] = fitparams.params[2] - 10.
+    background_radii[0] -= 100. - background_radii[1]
+
+#Then check against the top
+hold = background_radii[1]
+if fitparams.params[2] + background_radii[1] > 190.:
+    background_radii[1] = 190. - fitparams.params[2]
+    background_radii[0] -= hold - background_radii[1]
+#Ensure that the closest point is at least 20 pixels away.
+if background_radii[0] < 20.:
+    background_radii[0] = 20.
+background_radii[0] = np.round(background_radii[0],decimals=1)
+background_radii[1] = np.round(background_radii[1],decimals=1)
+
+#plt.plot(data[1200,:])
+#plt.plot(xes,gauss(xes,fitparams.params))
+#plt.show()
+
+#extraction_rad = 5.
+#background_radii = [40,60]
+
+
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=background_radii,bsigma=3,extract_radius=extraction_rad,dispaxis=1,verbose=True,csigma=5.,polyspacing=1)
 #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
@@ -91,8 +153,12 @@ spectrum[1,:,:] = output_spec.raw[:,0]
 spectrum[2,:,:] = output_spec.background
 spectrum[3,:,:] = sigSpectrum[:,0]
 
+#Save the extracted spectra with .ms.fits in the filename
+loc = specfile.find('.fits')
+newname = specfile[0:loc] + '.ms.fits'
+
 #newim = fits.PrimaryHDU(data=spectrum,header=header)
-#newim.writeto('test_0344_rad7.ms.fits')
+#newim.writeto(newname)
 
 ###########################
 #Extract a lamp spectrum using the trace from above
@@ -121,5 +187,16 @@ lampspectrum[0,:] = lampspec[:,0]
 #plt.plot(lampspectrum[0,0,:])
 #plt.show()
 
-lampim = fits.PrimaryHDU(data=lampspectrum,header=lampheader)
-lampim.writeto('t.Fe_ZZCeti_930_blue_long.ms.fits')
+loc2 = lamp.find('.fits')
+newname2 = lamp[0:loc2] + '.ms.fits'
+
+#lampim = fits.PrimaryHDU(data=lampspectrum,header=lampheader)
+#lampim.writeto(newname2)
+
+#Save parameters to a file for future reference. 
+# specfile,date of extraction, extration_rad,background_radii,newname,newname2
+f = open('extraction_params.txt','a')
+now = datetime.datetime.now().strftime("%Y-%m-%d")
+newinfo = specfile + ',' + now + ',' + str(extraction_rad) + ',' + str(background_radii) + ',' + newname + ',' + newname2
+f.write(newinfo + "\n")
+f.close()

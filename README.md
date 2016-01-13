@@ -19,4 +19,7 @@ Dependencies:
 - numpy
 - scipy
 - pylb
+- mpfit (can be found at http://code.google.com/p/astrolibpy/source/browse/trunk/)
+
+
 

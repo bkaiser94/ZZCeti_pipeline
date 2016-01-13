@@ -6,10 +6,16 @@ And reading the darned IRAF documentation
 spec_sens.p calculates the calibration curve given an
 observation and a standard star.
 
-Inputs: 1D standard star spectrum, 1D spectrum of observed star, filename of standard details, order of polynomial fit for sensitivity function, output filename for flux calibrated spectrum
+To run file:
+python spec_sens.py stdspecfile stdfile specfile
+python spec_sens.py wnb.GD50_930_blue.ms.fits mgd50.dat wnb.WD0122p0030_930_blue.ms.fits
+
+Inputs: 1D standard star spectrum, 1D spectrum of observed star, filename of standard details, size of bin for rebinning
+
+Outputs: flux calibrated file (_flux is added to the filename), sensitivity_params.txt is updated to list all the parameters used in the flux calibration.
 
 To do:
--
+- Read in inputs
 
 """
 
@@ -19,6 +25,7 @@ import time
 import numpy as np
 import pyfits as pf
 import spectools as st
+import datetime
 
 import matplotlib.pyplot as plt
 
@@ -38,10 +45,11 @@ def onclick(event):
 
 
 
-#File names
-stdspecfile = 'wnb.GD50_930_blue.ms.fits'
-stdfile = 'mgd50.dat'
-specfile = 'wnb.WD0122p0030_930_blue.ms.fits'
+#Read in file names from command line
+script, stdspecfile, stdfile, specfile = sys.argv
+#stdspecfile = 'wnb.GD50_930_blue.ms.fits'
+#stdfile = 'mgd50.dat'
+#specfile = 'wnb.WD0122p0030_930_blue.ms.fits'
 
 #Read in the observed spectrum of the standard star
 obs_spectra,airmass,exptime,dispersion = st.readspectrum(stdspecfile) #This is an object containing var_farr,farr,sky,sigma,warr
@@ -179,7 +187,7 @@ WD_spectra,airmass,exptime,dispersion = st.readspectrum(specfile)
 #Get the sensitivity function at the correct wavelength spacing
 sens_wave = f(WD_spectra.warr)
 
-#Perform the flux calibration. We do this on the non-variance weighted aperture, the sky spectrum, and the sigma spectrum.
+#Perform the flux calibration. We do this on the optimal extraction, non-variance weighted aperture, the sky spectrum, and the sigma spectrum.
 
 star_opflux = st.cal_spec(WD_spectra.opfarr,sens_wave,exptime,dispersion)
 star_flux = st.cal_spec(WD_spectra.farr,sens_wave,exptime,dispersion)
@@ -213,8 +221,18 @@ data[0,:,:] = star_flux
 data[1,:,:] = sky_flux
 data[2,:,:] = sigma_flux
 
+#Add '_flux' to the end of the filename
+loc = specfile.find('.ms.fits')
+newname = specfile[0:loc] + '_flux.ms.fits'
 #newim = pf.PrimaryHDU(data=data,header=header)
-#newim.writeto('blah.fits')
+#newim.writeto(newname)
 
+#Finally, save all the used parameters into a file for future reference.
+# specfile,current date, stdspecfile,stdfile,order,size,newname
+f = open('sensitivity_params.txt','a')
+now = datetime.datetime.now().strftime("%Y-%m-%d")
+newinfo = specfile + ',' + now + ',' + stdspecfile + ',' + stdfile + ',' + str(order) + ',' + str(size) + ',' + newname
+f.write(newinfo + "\n")
+f.close()
 
 
