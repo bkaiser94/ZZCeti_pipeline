@@ -131,17 +131,22 @@ plt.show(1)
 #Mask our the regions you don't want to fit
 #We need make sure left to right clicking and right to left clicking both work.
 mask = np.ones(len(std_spectra.warr))
+excluded = np.zeros(len(coords))
 n = 0
 if len(coords) > 0:
     while n < len(coords):
         x1 = np.where(std_spectra.warr == (find_nearest(std_spectra.warr,coords[n][0])))
+        excluded[n] = np.asarray(x1)
         n += 1
         x2 = np.where(std_spectra.warr == (find_nearest(std_spectra.warr,coords[n][0])))
         if x2 < x1:
             x1,x2 = x2,x1
         mask[x1[0][0]:x2[0][0]] = 0
+        excluded[n-1] = np.asarray(x1)
+        excluded[n] = np.asarray(x2)
         n += 1
 
+excluded =  np.array(excluded).tolist()
 indices = np.where(mask !=0.)
 lambdasfit = std_spectra.warr[indices]
 fluxesfit = sens_function[indices]
@@ -230,8 +235,8 @@ newname = specfile[0:loc] + '_flux.ms.fits'
 #Finally, save all the used parameters into a file for future reference.
 # specfile,current date, stdspecfile,stdfile,order,size,newname
 f = open('sensitivity_params.txt','a')
-now = datetime.datetime.now().strftime("%Y-%m-%d")
-newinfo = specfile + ',' + now + ',' + stdspecfile + ',' + stdfile + ',' + str(order) + ',' + str(size) + ',' + newname
+now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+newinfo = specfile + ',' + now + ',' + stdspecfile + ',' + stdfile + ',' + str(excluded) + ',' + str(order) + ',' + str(size) + ',' + newname
 f.write(newinfo + "\n")
 f.close()
 

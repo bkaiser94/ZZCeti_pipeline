@@ -196,7 +196,7 @@ newname2 = lamp[0:loc2] + '.ms.fits'
 #Save parameters to a file for future reference. 
 # specfile,date of extraction, extration_rad,background_radii,newname,newname2
 f = open('extraction_params.txt','a')
-now = datetime.datetime.now().strftime("%Y-%m-%d")
+now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
 newinfo = specfile + ',' + now + ',' + str(extraction_rad) + ',' + str(background_radii) + ',' + newname + ',' + newname2
 f.write(newinfo + "\n")
 f.close()
