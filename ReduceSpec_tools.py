@@ -134,7 +134,7 @@ def Trim_Spec(img):
     img_head= pf.getheader(img) 
     img_data= pf.getdata(img)    
     Fix_Header(img_head)
-    img_head.append( ('TRIM', '[:, 1:200, 9:2055]' ,'Pixels'),
+    img_head.append( ('TRIM', '[:, 1:200, 9:2055]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
     NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
     NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
@@ -176,7 +176,7 @@ def Norm_Flat( flat ):
     # Read Data, take average, and divide # 
     flat_data = pf.getdata(flat)
     # Calculate Average of the flat excluding bottom row and overscan regions # 
-    avg_flat = np.average( flat_data[:, 1:199, 9:2054] )
+    avg_flat = np.average( flat_data[:, 1:200, 9:2055] )
     norm_flat_data = np.divide( flat_data, float(avg_flat) )
     print 'Average Value: %s\n' % avg_flat
     # Copy Header, write changes, and write file #
