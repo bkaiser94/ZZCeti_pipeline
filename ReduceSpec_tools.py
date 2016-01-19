@@ -37,7 +37,7 @@ def Fix_Header( header ):
             if '\xb0' in bad_str:
                 del header[p]      
 
-def decimal(hdu_str):
+def decimal_dec(hdu_str):
     # Read header strings in "hh:mm:ss" or "dd:mm:ss" fromat 
     # and outputs the value as a decimal. 
     val_list = [float(n) for n in hdu_str.split(':')]
@@ -47,6 +47,19 @@ def decimal(hdu_str):
     else:
         sng = 1
     val_deci =  sng*(val_list[0]+((val_list[1]+(val_list[2]/60.0))/60.0))
+    return val_deci
+
+def decimal_ra(hdu_str):
+    # Read header strings in "hh:mm:ss" or "dd:mm:ss" fromat 
+    # and outputs the value as a decimal. 
+    val_list = [float(n) for n in hdu_str.split(':')]
+    if val_list[0] < 0 :
+        sng = -1
+        val_list[0] = sng*val_list[0]
+    else:
+        sng = 1
+    val_deci =  15*sng*(val_list[0]+((val_list[1]+(val_list[2]/60.0))/60.0))
+
     return val_deci
 
 def SigClip(data_set, lo_sig, hi_sig):
@@ -71,13 +84,13 @@ def RaDec2AltAz(ra, dec, lat, lst ):
     # Output: ALT, AZ, HA in decimal deg. 
 
     # Compute Hour Angle
-        ha = 15*(lst-ra) # hour angle in deg
+        ha = lst-ra # hour angle in deg
         if ha < 0 :
             ha = ha+360
         if ha > 360:
             ha = ha-360
     # Convert Qunataties to Radians 
-        ra = ra*15*(np.pi/180.0) 
+        ra = ra*(np.pi/180.0) 
         dec = dec*(np.pi/180.0) 
         lat = lat*(np.pi/180.0) 
         ha = ha*(np.pi/180.0)
@@ -114,6 +127,19 @@ def EffectiveAirMass(AM_st, AM_mid, AM_end):
     # Output: Effective Airmass 
     AM_eff = (AM_st + 4*AM_mid + AM_end)/6.  
     return AM_eff
+
+def Trim_Spec(img):
+    # Trims Overscan region and final row of of image #
+    # The limits of the trim are: [:, 1:199, 9:2054]
+    img_head= pf.getheader(img) 
+    img_data= pf.getdata(img)    
+    Fix_Header(img_head)
+    img_head.append( ('TRIM', '[:, 1:200, 9:2055]' ,'Pixels'),
+                   useblanks= True, bottom= True )
+    NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
+    NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
+    return ('t'+img)
+    
 
 # ===========================================================================
 # Main Functions ============================================================
@@ -203,9 +229,9 @@ def SetAirMass(img, lat= -30.238, scale= 750):
     
     Fix_Header(hdu.header)
             
-    ra = decimal( hdu.header['RA'] ) # hours
-    dec = decimal( hdu.header['DEC'] ) # deg
-    lst_st = decimal( hdu.header['LST'] ) # start exposure LST in hours
+    ra = decimal_ra( hdu.header['RA'] ) # hours
+    dec = decimal_dec( hdu.header['DEC'] ) # deg
+    lst_st = decimal_dec( hdu.header['LST'] ) # start exposure LST in hours
     exp = hdu.header['EXPTIME']  # sec
     lst_mid = lst_st + (exp/2.)/3600. # mid exposure LST in hours
     lst_end = lst_st + (exp)/3600. # end exposure LST in hours

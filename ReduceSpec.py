@@ -77,6 +77,8 @@ if __name__ == "__main__":
     # Combine Spectra # 
     comb_fb_spec = rt.imcombine(fb_spec_list, 'fb.'+name_spec, method, 
                         lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite)
+    # Trim Spectra # 
+    rt.Trim_Spec(comb_fb_spec); 
                         
     print "\n====================\n"
     print "Done. Ready for Apeture Extraction.\n"
