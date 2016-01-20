@@ -276,7 +276,7 @@ def imcombine(im_list, output_name, method,
               
     print "\n====================\n" 
     print "Combining Images:"
-    print "\nUsing %s of count values." % method 
+    print "Using %s of count values." % method 
     print "Sigma Cliping Factors (low, high): (%s, %s)\n" % (lo_sig, hi_sig)
     # print images being combined
     for img in im_list:
