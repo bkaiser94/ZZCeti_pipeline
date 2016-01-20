@@ -68,7 +68,7 @@ guess[2] = np.argmax(forfit)
 guess[3] = 3.
 
 error_fit = np.ones(len(forfit))
-xes = np.linspace(0,198,num=199)
+xes = np.linspace(0,len(forfit)-1,num=len(forfit))
 fa = {'x':xes,'y':forfit,'err':error_fit}
 fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa)
 
@@ -157,12 +157,13 @@ spectrum[3,:,:] = sigSpectrum[:,0]
 loc = specfile.find('.fits')
 newname = specfile[0:loc] + '.ms.fits'
 
-#newim = fits.PrimaryHDU(data=spectrum,header=header)
-#newim.writeto(newname)
+newim = fits.PrimaryHDU(data=spectrum,header=header)
+newim.writeto(newname)
 
 ###########################
 #Extract a lamp spectrum using the trace from above
 ##########################
+'''
 lamp = 't.Fe_ZZCeti_930_blue_long.fits'
 lamplist = fits.open(lamp)
 lampdata = lamplist[0].data
@@ -192,11 +193,11 @@ newname2 = lamp[0:loc2] + '.ms.fits'
 
 #lampim = fits.PrimaryHDU(data=lampspectrum,header=lampheader)
 #lampim.writeto(newname2)
-
+'''
 #Save parameters to a file for future reference. 
 # specfile,date of extraction, extration_rad,background_radii,newname,newname2
 f = open('extraction_params.txt','a')
 now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-newinfo = specfile + ',' + now + ',' + str(extraction_rad) + ',' + str(background_radii) + ',' + newname + ',' + newname2
+newinfo = specfile + ',' + now + ',' + str(extraction_rad) + ',' + str(background_radii) + ',' + newname #+ ',' + newname2
 f.write(newinfo + "\n")
 f.close()

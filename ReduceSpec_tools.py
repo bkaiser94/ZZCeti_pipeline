@@ -231,7 +231,7 @@ def SetAirMass(img, lat= -30.238, scale= 750):
             
     ra = decimal_ra( hdu.header['RA'] ) # hours
     dec = decimal_dec( hdu.header['DEC'] ) # deg
-    lst_st = decimal_dec( hdu.header['LST'] ) # start exposure LST in hours
+    lst_st = decimal_ra( hdu.header['LST'] ) # start exposure LST in hours
     exp = hdu.header['EXPTIME']  # sec
     lst_mid = lst_st + (exp/2.)/3600. # mid exposure LST in hours
     lst_end = lst_st + (exp)/3600. # end exposure LST in hours
