@@ -46,14 +46,15 @@ def fitgauss(p,fjac=None,x=None,y=None,err=None):
 script, specfile = sys.argv
 #specfile = 'tnb.0526.WD1422p095_930_blue.fits'
 
-#SOAR parameters (Assumes 200 kHz, ATTN 0 - standard for ZZ Ceti mode)
-gain = 1.4 #electrons/ADU
-rdnoise = 4.74 #electrons
 
+#Open file and read gain and readnoise
 datalist = fits.open(specfile)
 data = datalist[0].data
 data = data[0,:,:]
 data = np.transpose(data)
+
+gain = datalist[0].header['GAIN']
+rdnoise = datalist[0].header['RDNOISE']
 
 #Calculate the variance of each pixel in ADU
 varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
