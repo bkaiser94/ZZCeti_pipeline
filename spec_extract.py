@@ -82,8 +82,7 @@ background_radii = [35,60]
 #First check this against the bottom
 if fitparams.params[2] - background_radii[1] < 10.:
     background_radii[1] = fitparams.params[2] - 10.
-    background_radii[0] -= 100. - background_radii[1]
-
+    background_radii[0] -= 60 - background_radii[1]
 #Then check against the top
 hold = background_radii[1]
 if fitparams.params[2] + background_radii[1] > 190.:
@@ -94,11 +93,9 @@ if background_radii[0] < 20.:
     background_radii[0] = 20.
 background_radii[0] = np.round(background_radii[0],decimals=1)
 background_radii[1] = np.round(background_radii[1],decimals=1)
-
 #plt.plot(data[1200,:])
 #plt.plot(xes,gauss(xes,fitparams.params))
 #plt.show()
-
 #extraction_rad = 5.
 #background_radii = [40,60]
 
