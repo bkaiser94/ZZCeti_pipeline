@@ -25,6 +25,25 @@ def Read_List( lst ):
     list_file.close()
     im_list = im_list.split()
     return im_list
+    
+def List_Combe(img_list):
+    # This is meant to combe trough list names to identify seperate sublist of
+    # stars / flats / standars 
+    sub_lists= [] # list of sub_list of images 
+    sl= [] # sub_list of images
+    sl.append(img_list[0]) # place first image in sublist
+    i= 0; # image counter  
+    while i < len(img_list)-1: # run trough all images 
+        if img_list[i+1].__contains__(img_list[i][4:]) == True:
+            sl.append(img_list[i+1]) # place it in the sub_list 
+        else:
+            # if the images dont match: 
+            sub_lists.append(sl) # write the sublist to the list of sublist 
+            sl= [] # clear the sublist
+            sl.append(img_list[i+1]) # append the image to the new list 
+        i= i+1 # image counter
+    sub_lists.append(sl) # append the last sublist to the list of sublist 
+    return sub_lists # return the list of sub_list of images
 
 def Fix_Header( header ):
     # This function deletes the header cards that contain the badly coded 
@@ -138,6 +157,8 @@ def Trim_Spec(img):
                    useblanks= True, bottom= True )
     NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
     NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
+    print "\n====================\n"  
+    print 'Triming Images.\n'
     return ('t'+img)
     
 

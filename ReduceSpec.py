@@ -20,65 +20,158 @@ import ReduceSpec_tools as rt
 if __name__ == "__main__":
     from sys import argv
     args = argv # arguments from comand line #
-    print args
     nargs = len(args) # number of arguments # 
     
-    if (nargs < 4):
+    if (nargs < 5):
         print "\n====================\n"
         print "\nNot Enough Inputs." 
-        print "Need at least 3 inputs: listZero, listFlat, listSpec"
+        print "Need at least 4 inputs: listZero, listFlat, listStar, listStand"
         print "Optional inputs: overwrite= , low_sig= , high_sig=  "
         print "Example:"
         print "\n>>> python imcombine.py listZero listFlat listSpec \n"
         print "\n====================\n"
     
-    # Unpack list from command line and take their names # 
+    # Unpack list from command line and combe trough them for diffrent observations # 
     scriptname = args[0]
-    zero_list = rt.Read_List( args[1] )
-    name_zero = args[1].lstrip("list") + '.fits'
-    flat_list = rt.Read_List( args[2] )
-    name_flat = args[2].lstrip("list") + '.fits'
-    spec_list = rt.Read_List( args[3] ) 
-    name_spec = args[3].lstrip("list") + '.fits'    
-    
-    # Default values for special commands if None are Given these dont change #   
+    zero_lists = rt.List_Combe( rt.Read_List( args[1] ) )
+    flat_lists = rt.List_Combe( rt.Read_List( args[2] ) )
+    star_lists = rt.List_Combe( rt.Read_List( args[3] ) )
+    stand_lists = rt.List_Combe( rt.Read_List( args[4] ) )
+     
+    # Select names from the first image of each observation # 
+    zero_names= []
+    for zero in zero_lists:
+        zero_names.append(zero[0][5:])
+    flat_names= []
+    for flat in flat_lists:
+        flat_names.append(flat[0][5:])
+    star_names= []
+    for star in star_lists:
+        star_names.append(star[0][5:])  
+    stand_names= []
+    for stand in stand_lists:
+        stand_names.append(stand[0][5:])
+
+    # Default values for special commands if none are given these dont change #   
     overwrite = False # dont give imcombine permision to overwrite files # 
     lo_sig = 10
     hi_sig = 3
     method = 'median' # method used to combine images 
     
     # If overwrite special comand is given # 
-    if nargs >= 5:
-        overwrite = args[4]
+    if nargs >= 6:
+        overwrite = args[5]
     # If low_sigma and high_sigma values are given # 
-    if nargs >= 7: 
-        lo_sig = float(args[5])
-        hi_sig = float(args[6]) 
+    if nargs >= 8: 
+        lo_sig = float(args[7])
+        hi_sig = float(args[8]) 
     # If method is given #  
-    if nargs >= 8:
-        method = args[7]
+    if nargs >= 9:
+        method = args[8]
+    
+
     
     # The rest of the code runs the reduction procces up to apall # 
     
+    
     # Combine Zeros # 
-    comb_zero = rt.imcombine(zero_list, name_zero, method, lo_sig= lo_sig, 
+    comb_zero = rt.imcombine(zero_lists[0], zero_names[0], method, lo_sig= lo_sig, 
                         hi_sig= hi_sig, overwrite= overwrite)
+                        
     # Bias Subtract Flats # 
-    b_flat_list = rt.Bias_Subtract(flat_list, comb_zero )
+    nf= len(flat_lists) # number of flats
+    b_flat_lists= []
+    i= 0
+    while i < nf:
+        b_flat_lists.append( rt.Bias_Subtract(flat_lists[i], comb_zero ) )
+        i= i+1
+    print len(b_flat_lists)
+    
     # Combine Bias Subtracted Flats # 
-    comb_flat = rt.imcombine(b_flat_list, 'b.'+name_flat, method, 
-                        lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite)
+    i= 0
+    comb_flat= []
+    while i < nf:
+        comb_flat.append( rt.imcombine(b_flat_lists[i], 'b.'+flat_names[i], method, 
+                        lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
+        i= i+1
+                        
     # Normalize Flat (divide by average of counts) # 
-    nb_flat = rt.Norm_Flat(comb_flat)
-    # Bias Subtract Spectra # 
-    b_spec_list = rt.Bias_Subtract(spec_list, comb_zero)
-    # Flat Field Individual Spectra # 
-    fb_spec_list = rt.Flat_Field(b_spec_list, nb_flat )
-    # Combine Spectra # 
-    comb_fb_spec = rt.imcombine(fb_spec_list, 'fb.'+name_spec, method, 
-                        lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite)
-    # Trim Spectra # 
-    rt.Trim_Spec(comb_fb_spec); 
+    i= 0
+    nb_flat= []
+    while i < nf:
+        nb_flat.append( rt.Norm_Flat(comb_flat[i]) )
+        i= i+1
+                        
+    # Bias Subtract Stars # 
+    i= 0
+    b_star_list= []
+    nst= len(star_lists); # number of stars
+    while i < nst:
+        b_star_list.append( rt.Bias_Subtract(star_lists[i], comb_zero) )
+        i= i+1
+    
+    # Bias Subtract Standards # 
+    i= 0
+    b_stand_list= []
+    nsd= len(stand_lists); # number of stars
+    while i < nsd:
+        b_stand_list.append( rt.Bias_Subtract(stand_lists[i], comb_zero) )
+        i= i+1
+        
+    # Flat Field Individual Stars #
+    i= 0
+    fb_star_list = []
+    while i < nst:
+        if b_star_list[i][0].__contains__('blue') == True:
+            fb_star_list.append( rt.Flat_Field(b_star_list[i], nb_flat[0]) )
+        elif b_star_list[i][0].__contains__('red') == True:
+            fb_star_list.append( rt.Flat_Field(b_star_list[i], nb_flat[1]) )
+        else: 
+            print ("Problem applying the Flats." )
+            print ("Could not identify blue or red setup.")
+        i= i+1
+        
+    # Flat Field Individual Standards #
+    i= 0
+    nsd= len(stand_lists);
+    fb_stand_list = []
+    while i < nsd:
+        if b_stand_list[i][0].__contains__('blue') == True:
+            fb_stand_list.append( rt.Flat_Field(b_stand_list[i], nb_flat[0]) )
+        elif b_stand_list[i][0].__contains__('red') == True:
+            fb_stand_list.append( rt.Flat_Field(b_stand_list[i], nb_flat[1]) )
+        else: 
+            print ("Problem applying the Flats." )
+            print ("Could not identify blue or red setup.")
+        i= i+1
+    
+    # Combine Stars # 
+    i= 0 
+    comb_fb_star = []
+    while i < nst:
+        comb_fb_star.append ( rt.imcombine(fb_star_list[i], 'fb.'+star_names[i], method, 
+                        lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
+        i= i+1
+                        
+    # Combine Standards # 
+    i=0 
+    comb_fb_stand = []
+    while i < nsd:
+        comb_fb_stand.append ( rt.imcombine(fb_stand_list[i], 'fb.'+stand_names[i], method, 
+                        lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
+        i= i+1
+    
+    # Trim Stars # 
+    i= 0
+    while i < nst:
+        rt.Trim_Spec(comb_fb_star[i]); 
+        i= i+1
+    
+    # Trim Stars # 
+    i= 0
+    while i < nsd:
+        rt.Trim_Spec(comb_fb_stand[i])
+        i= i+1
                         
     print "\n====================\n"
     print "Done. Ready for Apeture Extraction.\n"
