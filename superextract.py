@@ -292,7 +292,6 @@ def superExtract(*args, **kw):
     xxx = np.arange(fitwidth) - trace.reshape(nlam,1)
     backgroundApertures = (np.abs(xxx) > bkg_radii[0]) * (np.abs(xxx) <= bkg_radii[1])
     extractionApertures = np.abs(xxx) <= extract_radius
-
     nextracts = extractionApertures.sum(1)
 
     #Step3: Sky Subtraction

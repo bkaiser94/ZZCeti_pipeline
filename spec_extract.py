@@ -96,7 +96,7 @@ background_radii[1] = np.round(background_radii[1],decimals=1)
 #plt.plot(data[1200,:])
 #plt.plot(xes,gauss(xes,fitparams.params))
 #plt.show()
-#extraction_rad = 5.
+#extraction_rad = 15.
 #background_radii = [40,60]
 
 
