@@ -303,11 +303,13 @@ while avocado < length:
     header1.set('EX-FLAG',-1) #Extiction correction? 0=yes, -1=no
     header1.set('CA-FLAG',0) #Calibrated to flux scale? 0=yes, -1=no
     header1.set('BUNIT','erg/cm2/s/A') #physical units of the array value
+    header1.set('STANDARD',str(standards[choice]),'Flux standard used') #flux standard used for flux-calibration
 
     header2 = st.readheader(specfile[avocado+1])
     header2.set('EX-FLAG',-1) #Extiction correction? 0=yes, -1=no
     header2.set('CA-FLAG',0) #Calibrated to flux scale? 0=yes, -1=no
     header2.set('BUNIT','erg/cm2/s/A') #physical units of the array value
+    header2.set('STANDARD',str(standards[choice+1]),'Flux standard used') #flux standard used for flux-calibration
 
     #Set up size of new fits image
     Ni = 4. #Number of extensions
