@@ -101,7 +101,7 @@ def RaDec2AltAz(ra, dec, lat, lst ):
     # Input: RA in decimal hours; DEC in decimal deg; 
     # LAT in decimal deg; LST in decimal hours; 
     # Output: ALT, AZ, HA in decimal deg. 
-
+     
     # Compute Hour Angle
         ha = lst-ra # hour angle in deg
         if ha < 0 :
@@ -150,6 +150,8 @@ def EffectiveAirMass(AM_st, AM_mid, AM_end):
 def Trim_Spec(img):
     # Trims Overscan region and final row of of image #
     # The limits of the trim are: [:, 1:199, 9:2054]
+    print "\n====================\n"  
+    print 'Triming Image: %s\n' % img
     img_head= pf.getheader(img) 
     img_data= pf.getdata(img)    
     Fix_Header(img_head)
@@ -157,8 +159,6 @@ def Trim_Spec(img):
                    useblanks= True, bottom= True )
     NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
     NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
-    print "\n====================\n"  
-    print 'Triming Images.\n'
     return ('t'+img)
     
 
@@ -172,14 +172,17 @@ def Bias_Subtract( img_list, zero_img ):
     # The function writes the bias subtracted images as 'bImg_Name.fits'.
     # The output is a list of names for the bias subtrated images. 
     print "\n====================\n"  
-    print 'Bias Subtracting Images.\n' 
+    print 'Bias Subtracting Images: \n' 
+        
     zero_data = pf.getdata(zero_img)
     bias_sub_list = []
     for img in img_list:
         hdu = pf.getheader(img)
         Fix_Header(hdu) 
         img_data = pf.getdata(img)
+        img_data[ np.isnan(img_data) ] = 0
         b_img_data = np.subtract(img_data, zero_data)
+        print 'b.'+"%s Mean: %.3f StDiv: %.3f" % (img, np.mean(b_img_data), np.std(img_data))
         hdu.append( ('BIASSUB', zero_img ,'Image Used to Bias Subtract.'),
                    useblanks= True, bottom= True )
         NewHdu = pf.PrimaryHDU(b_img_data, hdu)
@@ -189,13 +192,14 @@ def Bias_Subtract( img_list, zero_img ):
 
 # ===========================================================================
 
-def Norm_Flat( flat ):
+def Norm_Flat_Avg( flat ):
     # Takes average value of all the pixels and devides the entier flat by 
     # that value using numpy. 
     print "\n====================\n" 
     print 'Normalizing %s By Dividing Each Pixel By Average Value:' % ( flat )
     # Read Data, take average, and divide # 
     flat_data = pf.getdata(flat)
+    flat_data[ np.isnan(flat_data) ] = 0
     # Calculate Average of the flat excluding bottom row and overscan regions # 
     avg_flat = np.average( flat_data[:, 1:200, 9:2055] )
     norm_flat_data = np.divide( flat_data, float(avg_flat) )
@@ -207,6 +211,56 @@ def Norm_Flat( flat ):
                useblanks= True, bottom= True )
     NewHdu = pf.PrimaryHDU(data= norm_flat_data, header= hdu)
     NewHdu.writeto('n'+flat, output_verify='warn', clobber= True )
+    
+    print 'Flat: %s Mean: %.3f StDiv: %.3f' % ('n'+flat, np.mean(norm_flat_data), np.std(norm_flat_data)) 
+    return ('n'+flat)
+
+# ============================================================================    
+
+def Norm_Flat_Poly( flat ):
+    print "\n====================\n" 
+    print 'Normalizing %s By Fitting Polynomial to center rows [95:105]:' % ( flat )
+    # Decide Order # 
+    if flat.__contains__("blue")== True:
+        order= 4;
+    elif flat.__contains__("red")== True:
+        order= 4; 
+    else:
+        print ("Could not identifiy blue or red flat")
+        order= raw_input("Fit Order?>>>")
+    print "Fit Order: %s" % order
+    # Read Flat and Average Center Rows # 
+    flat_data = pf.getdata(flat)
+    flat_data[ np.isnan(flat_data) ] = 0
+    fit_data= np.median(flat_data[0][95:105], axis=0) # Median of center Rows
+    X= range(0,len(fit_data)) # Column Numbers 
+    # Fit the data removeing the limits of the overscan regions. #
+    lo= 10;
+    hi= 2055;
+    # Calculate Fit # 
+    coeff= np.polyfit(X[lo:hi], fit_data[lo:hi], order ) # coefficents of polynomial fit # 
+    profile= np.poly1d(coeff)(X) # Profile Along Dispersion axis # 
+    # Divide each Row by the Profile # 
+    for row in flat_data[0]:
+        i= 0; 
+        while i < len(row): 
+            row[i]= row[i]/profile[i]
+            i= i+1   
+            
+    # Copy Header, write changes, and write file #
+    hdu = pf.getheader(flat)
+    Fix_Header(hdu)
+    hdu.append( ('NORMFLAT ', order,'Flat Polynomial Fit Order'), 
+               useblanks= True, bottom= True )
+    coeff_str= str(coeff[0])
+    for i in range(1,len(coeff)):
+        coeff_str= coeff_str + " " + str(coeff[i])
+    hdu.append( ('NORMCOEF ', coeff_str,'Flat Polynomial Coefficients'), 
+               useblanks= True, bottom= True )
+    NewHdu = pf.PrimaryHDU(data= flat_data, header= hdu)
+    NewHdu.writeto('n'+flat, output_verify='warn', clobber= True )
+    
+    print '\nFlat: %s Mean: %.3f StDiv: %.3f' % ('n'+flat, np.mean(flat_data), np.std(flat_data))
     return ('n'+flat)
     
 # ===========================================================================    
@@ -216,16 +270,19 @@ def Flat_Field( spec_list, flat ):
     # The new images as fits files. The output is a list of file names of 
     # the flat fielded images. 
     print "\n====================\n" 
-    print 'Flat Fielding %s by Dividing by %s\n' % (spec_list, flat) 
+    print 'Flat Fielding Images by Dividing by %s\n' % (flat) 
+        
     np.seterr(divide= 'warn')
     flat_data = pf.getdata(flat)
     f_spec_list = []
     for spec in spec_list:
         spec_data = pf.getdata(spec)
         f_spec_data = np.divide(spec_data, flat_data)
+        f_spec_data[ np.isnan(f_spec_data) ] = 0
+        print "f"+"%s Mean: %.3f StDiv: %.3f" % (spec, np.mean(f_spec_data), np.std(f_spec_data) ) 
         hdu = pf.getheader(spec)
         Fix_Header(hdu)
-        hdu.append( ('FLTFIELD', flat,'Image used to Flat Field.'), 
+        hdu.append( ('FLATFLD', flat,'Image used to Flat Field.'), 
                useblanks= True, bottom= True )    
         NewHdu = pf.PrimaryHDU(data= f_spec_data, header= hdu)
         NewHdu.writeto('f'+spec, output_verify='warn', clobber= True)
@@ -243,7 +300,7 @@ def SetAirMass(img, lat= -30.238, scale= 750):
     #   scale = atmospheric scale factor 750
     # Output: 
     #   AMeff = effective airmass for single image
-
+     
     # Image Info #    
     hdulist = pf.open(img, 'update')
     hdu = hdulist[0]
@@ -299,9 +356,6 @@ def imcombine(im_list, output_name, method,
     print "Combining Images:"
     print "Using %s of count values." % method 
     print "Sigma Cliping Factors (low, high): (%s, %s)\n" % (lo_sig, hi_sig)
-    # print images being combined
-    for img in im_list:
-        print "%s" % img
     
     # Read image data and put it in a numpy block # 
     Ni = len(im_list)
@@ -321,6 +375,9 @@ def imcombine(im_list, output_name, method,
             img_block[i,:,:] = pf.getdata(im_list[i])
         # set nan values to zero # 
         img_block[ np.isnan(img_block) ] = 0
+        # Print Name and Statistics of Each image % 
+        print ( "%02d: %s Mean: %.3f StDiv: %.3f " % (i,im_list[i], 
+                np.mean(img_block[i,:,:]), np.std(img_block[i,:,:])) )
     
     ## Combine the images acording to input "method" using SigmaClip() above ## 
     comb_img = np.ndarray( shape= (1,Ny,Nx), dtype='float32')
@@ -454,9 +511,9 @@ def imcombine(im_list, output_name, method,
     # write combined data to new fits file  # 
     pf.update(output_name, data= comb_img, header= hdu.header, 
                 output_verify='warn')
-                        
-    print '\nDone!' 
-    print 'File', output_name, 'was succesfuly writen.' 
+                         
+    print ( "\nCombined Image: %s Mean: %.3f StDiv: %.3f" 
+            % (output_name, np.mean(comb_img), np.std(comb_img)) ) 
     return output_name             
 
 # ===========================================================================

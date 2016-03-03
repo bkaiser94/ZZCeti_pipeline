@@ -10,6 +10,7 @@
 import numpy as np
 import pyfits as pf
 import ReduceSpec_tools as rt
+import warnings
 
 # ===========================================================================
 # Code to Reduce Spectrum ===================================================
@@ -57,6 +58,7 @@ if __name__ == "__main__":
     # If overwrite special comand is given # 
     if nargs >= 5:
         overwrite = args[4]
+        warnings.filterwarnings('ignore', category=UserWarning, append=True)
     # If low_sigma and high_sigma values are given # 
     if nargs >= 7: 
         lo_sig = float(args[5])
@@ -64,13 +66,11 @@ if __name__ == "__main__":
     # If method is given #  
     if nargs >= 8:
         method = args[7]
+        
+        
+    # The rest of the code runs the reduction procces up to apall #  =========
     
 
-    
-    # The rest of the code runs the reduction procces up to apall # 
-    
-
-    
     # Combine Zeros # 
     comb_zero = rt.imcombine(zero_lists[0], zero_names[0], method, lo_sig= lo_sig, 
                         hi_sig= hi_sig, overwrite= overwrite)
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     i= 0
     nb_flat= []
     while i < nf:
-        nb_flat.append( rt.Norm_Flat(comb_flat[i]) )
+        nb_flat.append( rt.Norm_Flat_Poly(comb_flat[i]) )
         i= i+1
                         
     # Bias Subtract Spec # 
