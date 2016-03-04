@@ -72,7 +72,7 @@ if __name__ == "__main__":
     
 
     # Combine Zeros # 
-    comb_zero = rt.imcombine(zero_lists[0], zero_names[0], method, lo_sig= lo_sig, 
+    comb_zero = rt.imcombine(zero_lists[0], zero_names[0], 'average', lo_sig= lo_sig, 
                         hi_sig= hi_sig, overwrite= overwrite)
                         
     # Bias Subtract Flats # 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     i= 0
     comb_flat= []
     while i < nf:
-        comb_flat.append( rt.imcombine(b_flat_lists[i], 'b.'+flat_names[i], method, 
+        comb_flat.append( rt.imcombine(b_flat_lists[i], 'b.'+flat_names[i], 'median', 
                         lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
         i= i+1
                         
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     i= 0 
     comb_fb_spec = []
     while i < nsp:
-        comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], method, 
+        comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], 'sum', 
                         lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
         i= i+1
                         

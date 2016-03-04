@@ -405,6 +405,8 @@ def imcombine(im_list, output_name, method,
                     counts = img_block[:,y,x]
                     val = np.sum( SigClip(counts, lo_sig, hi_sig) )
                     comb_img[0,y,x] = np.float32(val)
+            #print img_block[:,100,50]
+            #print comb_img[:,100,50]
             break # exit while loop
         
         else:
