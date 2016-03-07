@@ -332,13 +332,45 @@ while avocado < length:
     #Add '_flux' to the end of the filename
     loc1 = specfile[avocado].find('.ms.fits')
     newname1 = specfile[avocado][0:loc1] + '_flux.ms.fits'
+    clob = False
+    mylist = [True for f in os.listdir('.') if f == newname1]
+    exists = bool(mylist)
+
+    if exists:
+        print 'File %s already exists.' % newname1
+        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+        if nextstep == 'overwrite':
+            clob = True
+            exists = False
+        elif nextstep == 'new':
+            newname1 = raw_input('New file name: ')
+            exists = False
+        else:
+            exists = False
+
     newim1 = pf.PrimaryHDU(data=data1,header=header1)
-    newim1.writeto(newname1)
+    newim1.writeto(newname1,clobber=clob)
 
     loc2 = specfile[avocado+1].find('.ms.fits')
     newname2 = specfile[avocado+1][0:loc2] + '_flux.ms.fits'
+    clob = False
+    mylist = [True for f in os.listdir('.') if f == newname2]
+    exists = bool(mylist)
+
+    if exists:
+        print 'File %s already exists.' % newname2
+        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+        if nextstep == 'overwrite':
+            clob = True
+            exists = False
+        elif nextstep == 'new':
+            newname2 = raw_input('New file name: ')
+            exists = False
+        else:
+            exists = False
+
     newim2 = pf.PrimaryHDU(data=data2,header=header2)
-    newim2.writeto(newname2)
+    newim2.writeto(newname2,clobber=clob)
 
     #Finally, save all the used parameters into a file for future reference.
     # specfile,current date, stdspecfile,stdfile,order,size,newname
