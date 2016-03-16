@@ -215,6 +215,17 @@ newname2 = lamp[0:loc2] + '.ms.fits'
 # specfile,date of extraction, extration_rad,background_radii,newname,newname2
 f = open('extraction_params.txt','a')
 now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-newinfo = specfile + ',' + now + ',' + str(extraction_rad) + ',' + str(background_radii) + ',' + newname #+ ',' + newname2
+newinfo = specfile + '\t' + now + '\t' + str(extraction_rad) + '\t' + str(background_radii) + '\t' + newname
 f.write(newinfo + "\n")
 f.close()
+
+#To unpack these values, use the following
+#arr = np.genfromtxt('extraction_params.txt',dtype=None,delimiter='\t')
+#names, date, fwhm, back, newname = [], [],np.zeros(len(arr)),[],[]
+#for m in np.arange(len(arr)):
+#    names.append(arr[m][0])
+#    date.append(arr[m][1])
+#    fwhm[m] = arr[m][2]    
+#    back.append(arr[m][3])
+#    newname.append(arr[m][4])
+    

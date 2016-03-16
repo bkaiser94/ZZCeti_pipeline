@@ -376,8 +376,8 @@ while avocado < length:
     # specfile,current date, stdspecfile,stdfile,order,size,newname
     f = open('sensitivity_params.txt','a')
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-    newinfo1 = specfile[avocado] + ',' + now + ',' + standards[choice] + ',' + stdflux[choice//2] + ',' + str(allexcluded[choice]) + ',' + str(orderused[choice]) + ',' + str(size) + ',' + newname1
-    newinfo2 = specfile[avocado+1] + ',' + now + ',' + standards[choice+1] + ',' + stdflux[choice//2] + ',' + str(allexcluded[choice+1]) + ',' + str(orderused[choice+1]) + ',' + str(size) + ',' + newname2
+    newinfo1 = specfile[avocado] + '\t' + now + '\t' + standards[choice] + '\t' + stdflux[choice//2] + '\t' + str(allexcluded[choice]) + '\t' + str(orderused[choice]) + '\t' + str(size) + '\t' + newname1
+    newinfo2 = specfile[avocado+1] + '\t' + now + '\t' + standards[choice+1] + '\t' + stdflux[choice//2] + '\t' + str(allexcluded[choice+1]) + '\t' + str(orderused[choice+1]) + '\t' + str(size) + '\t' + newname2
     f.write(newinfo1 + "\n" + newinfo2 + "\n")
     f.close()
 
