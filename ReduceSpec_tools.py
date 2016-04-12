@@ -160,8 +160,45 @@ def Trim_Spec(img):
     NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
     NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
     return ('t'+img)
-    
 
+def Add_Scale (img_block):
+    # Function to be called by Imcombine. 
+    # The function is meant to additively sclae a set of images, (zeros in particular). 
+    # The input is a numpy block of pixel values (see imcombine). 
+    # The function calculates the average number of 
+    # counts of the region [25:75, 1700:1800] of the first image. 
+    # Then scales the rest of the images by adding the diffrence between the 
+    # average counts of the first image and its own.
+    # Returns a scaled image block, and a list of scale values. 
+    print("Scaling Counts Additively.\n")
+    ni, ny, nx = np.shape(img_block)
+    Cavg= [] # Average Counts 
+    Sval= []  # Scale Values
+    for i in range(0,ni):
+        Cavg.append( np.mean(img_block[i, 25:75, 1700:1800]) )
+        Sval.append( Cavg[0]-Cavg[i] )
+        img_block[i]= img_block[i] + Sval[i]     
+    return img_block, Sval
+    
+def Mult_Scale (img_block):
+    # Function to be called by Imcombine. 
+    # The function is meant to multiplicative sclae a set of images, (flats in particular). 
+    # The input is a numpy block of pixel values (see imcombine). 
+    # The function calculates the average number of 
+    # counts of the region [25:75, 1700:1800] of the first image. 
+    # Then scales the rest of the images by multiplying by the ratio between the 
+    # average counts of the first image and its own.
+    # Returns a scaled image block, and a list of scale values. 
+    print("Scaling Counts Multiplicatively.\n")
+    ni, ny, nx = np.shape(img_block)
+    Cavg= [] # Average Counts 
+    Sval= []  # Scale Values
+    for i in range(0,ni):
+        Cavg.append( np.mean(img_block[i, 25:75, 1700:1800]) )
+        Sval.append( Cavg[0]/Cavg[i] )
+        img_block[i]= img_block[i]*Sval[i]     
+    return img_block, Sval
+    
 # ===========================================================================
 # Main Functions ============================================================
 # ===========================================================================
@@ -375,9 +412,25 @@ def imcombine(im_list, output_name, method,
             img_block[i,:,:] = pf.getdata(im_list[i])
         # set nan values to zero # 
         img_block[ np.isnan(img_block) ] = 0
-        # Print Name and Statistics of Each image % 
-        print ( "%02d: %s Mean: %.3f StDiv: %.3f " % (i,im_list[i], 
-                np.mean(img_block[i,:,:]), np.std(img_block[i,:,:])) )
+        
+    # If Zero Additive Scale Images # 
+    if im_list[0].__contains__("Zero"):
+        img_block, Scale= Add_Scale(img_block)
+    # If Flats Multiplicative Scale Images # 
+    elif im_list[0].__contains__("Flat"):
+        img_block, Scale= Mult_Scale(img_block)
+    # If Not, Dont Scale # 
+    else: 
+        print "Did Not Scale Images.\n" 
+        Scale= np.empty(Ni)
+        Scale[:]= np.NaN
+    
+    # Print Name and Statistics of Each image % 
+    for i in range(0,Ni):
+        Avg= np.mean(img_block[i,25:75,1700:1800])
+        Std= np.std(img_block[i,25:75,1700:1800])
+        print ( "%02d: %s ScaleValue:% .3f Mean: %.3f StDiv: %.3f" 
+                % (i, im_list[i], Scale[i], Avg, Std) )
     
     ## Combine the images acording to input "method" using SigmaClip() above ## 
     comb_img = np.ndarray( shape= (1,Ny,Nx), dtype='float32')

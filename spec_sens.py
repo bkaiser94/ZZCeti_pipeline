@@ -64,8 +64,6 @@ def onclick(event):
     ax.axvline(x=ix,color='k',linewidth='3')
     fig.canvas.draw()
     coords.append((ix,iy))
-    
-
 
 
 #Read in lists from command line
