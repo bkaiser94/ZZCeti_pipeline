@@ -74,7 +74,7 @@ fa = {'x':xes,'y':forfit,'err':error_fit}
 fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa)
 
 fwhm = 2.*np.sqrt(2.*np.log(2.))*fitparams.params[3]
-extraction_rad = np.round(fwhm,decimals=1)
+extraction_rad = 2.*np.round(fwhm,decimals=1)
 
 
 #Check to make sure background region does not go within 10 pixels of edge
