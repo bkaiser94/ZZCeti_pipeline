@@ -21,6 +21,7 @@ To Do:
 
 '''
 import sys
+import os
 import numpy as np
 import pyfits as fits
 import matplotlib.pyplot as plt
@@ -74,7 +75,11 @@ fa = {'x':xes,'y':forfit,'err':error_fit}
 fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa)
 
 fwhm = 2.*np.sqrt(2.*np.log(2.))*fitparams.params[3]
+<<<<<<< HEAD
 extraction_rad = 2.*np.round(fwhm,decimals=1)
+=======
+extraction_rad = 5. * np.round(fwhm,decimals=1) #Extract up to 5 times FWHM
+>>>>>>> 96264eccbbb2a5a87cc6a480e2ea0d1ce940c130
 
 
 #Check to make sure background region does not go within 10 pixels of edge
@@ -96,7 +101,7 @@ background_radii[1] = np.round(background_radii[1],decimals=1)
 #plt.plot(data[1200,:])
 #plt.plot(xes,gauss(xes,fitparams.params))
 #plt.show()
-#extraction_rad = 15.
+#extraction_rad = 10.
 #background_radii = [40,60]
 
 
@@ -152,11 +157,29 @@ spectrum[2,:,:] = output_spec.background
 spectrum[3,:,:] = sigSpectrum[:,0]
 
 #Save the extracted spectra with .ms.fits in the filename
+#Ask to overwrite if file already exists or provide new name
 loc = specfile.find('.fits')
 newname = specfile[0:loc] + '.ms.fits'
+clob = False
+
+mylist = [True for f in os.listdir('.') if f == newname]
+exists = bool(mylist)
+
+if exists:
+    print 'File %s already exists.' % newname
+    nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+    if nextstep == 'overwrite':
+        clob = True
+        exists = False
+    elif nextstep == 'new':
+        newname = raw_input('New file name: ')
+        exists = False
+    else:
+        exists = False
+
 
 newim = fits.PrimaryHDU(data=spectrum,header=header)
-newim.writeto(newname)
+newim.writeto(newname,clobber=clob)
 
 ###########################
 #Extract a lamp spectrum using the trace from above
@@ -196,6 +219,17 @@ newname2 = lamp[0:loc2] + '.ms.fits'
 # specfile,date of extraction, extration_rad,background_radii,newname,newname2
 f = open('extraction_params.txt','a')
 now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-newinfo = specfile + ',' + now + ',' + str(extraction_rad) + ',' + str(background_radii) + ',' + newname #+ ',' + newname2
+newinfo = specfile + '\t' + now + '\t' + str(extraction_rad) + '\t' + str(background_radii) + '\t' + newname
 f.write(newinfo + "\n")
 f.close()
+
+#To unpack these values, use the following
+#arr = np.genfromtxt('extraction_params.txt',dtype=None,delimiter='\t')
+#names, date, fwhm, back, newname = [], [],np.zeros(len(arr)),[],[]
+#for m in np.arange(len(arr)):
+#    names.append(arr[m][0])
+#    date.append(arr[m][1])
+#    fwhm[m] = arr[m][2]    
+#    back.append(arr[m][3])
+#    newname.append(arr[m][4])
+    
