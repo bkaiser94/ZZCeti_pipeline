@@ -27,6 +27,7 @@ import pyfits as fits
 import matplotlib.pyplot as plt
 import datetime
 import mpfit
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 import spectools as st
 import superextract
@@ -137,7 +138,7 @@ sigSpectrum = np.sqrt(output_spec.varSpectrum)
 header = st.readheader(specfile)
 header.set('BANDID1','Optimally Extracted Spectrum')
 header.set('BANDID2','Raw Extracted Spectrum')
-header.set('BANDID3','Background at trace')
+header.set('BANDID3','Mean Background')
 header.set('BANDID4','Sigma Spectrum')
 header.set('DISPCOR',0) #Dispersion axis of image
 
@@ -176,20 +177,38 @@ if exists:
 
 newim = fits.PrimaryHDU(data=spectrum,header=header)
 newim.writeto(newname,clobber=clob)
+print 'Wrote ' + newname + ' to file.'
 
+#Save parameters to a file for future reference. 
+# specfile,date of extraction, extration_rad,background_radii,newname,newname2
+f = open('extraction_params.txt','a')
+now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+newinfo = specfile + '\t' + now + '\t' + str(extraction_rad) + '\t' + str(background_radii) + '\t' + newname
+f.write(newinfo + "\n")
+f.close()
+'''
 ###########################
 #Extract a lamp spectrum using the trace from above
 ##########################
-'''
-lamp = 't.Fe_ZZCeti_930_blue_long.fits'
+
+lamp = '0016.Fe_ZZCeti_930_red_long.fits'
 lamplist = fits.open(lamp)
 lampdata = lamplist[0].data
 lampdata = lampdata[0,:,:]
 lampdata = np.transpose(lampdata)
 
 #extraction radius will be the same as the star
+#But since the Fe lamps are taken binned by 1 in spectral direction, we need to adjust the trace to match.
+#We do that by expanding out the trace to match the length of the Fe lamps, then interpolate and read off values for every pixel.
+bin2size = np.arange(1,len(output_spec.trace)+1)
+bin1size = np.arange(1,len(lampdata)+1)
+ratio = float(len(bin1size)) / float(len(bin2size))
+interpolates = InterpolatedUnivariateSpline(ratio*bin2size,output_spec.trace,k=1)
+bin1size = np.arange(1,len(lampdata)+1)
+newtrace = interpolates(bin1size)
 
-lampspec = lampextract(lampdata,output_spec.trace,extraction_rad)
+#Do the extraction here.
+lampspec = lampextract(lampdata,newtrace,extraction_rad)
 
 
 #Save the 1D lamp
@@ -205,19 +224,44 @@ lampspectrum[0,:] = lampspec[:,0]
 #plt.plot(lampspectrum[0,0,:])
 #plt.show()
 
+#Save the extracted spectra with .ms.fits in the filename
+#Ask to overwrite if file already exists or provide new name
 loc2 = lamp.find('.fits')
 newname2 = lamp[0:loc2] + '.ms.fits'
+clob = False
 
-#lampim = fits.PrimaryHDU(data=lampspectrum,header=lampheader)
-#lampim.writeto(newname2)
-'''
+mylist = [True for f in os.listdir('.') if f == newname2]
+exists = bool(mylist)
+
+if exists:
+    print 'File %s already exists.' % newname2
+    nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+    if nextstep == 'overwrite':
+        clob = True
+        exists = False
+    elif nextstep == 'new':
+        newname2 = raw_input('New file name: ')
+        exists = False
+    else:
+        exists = False
+
+
+lampim = fits.PrimaryHDU(data=lampspectrum,header=lampheader)
+lampim.writeto(newname2,clobber=clob)
+
 #Save parameters to a file for future reference. 
 # specfile,date of extraction, extration_rad,background_radii,newname,newname2
+background_radii2 = [0,0] #We do not extract a background for the lamp
 f = open('extraction_params.txt','a')
 now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-newinfo = specfile + '\t' + now + '\t' + str(extraction_rad) + '\t' + str(background_radii) + '\t' + newname
-f.write(newinfo + "\n")
+newinfo2 = lamp + '\t' + now + '\t' + str(extraction_rad) + '\t' + str(background_radii2) + '\t' + newname2
+f.write(newinfo2 + "\n")
 f.close()
+
+#######################
+# End lamp extraction
+#######################
+'''
 
 #To unpack these values, use the following
 #arr = np.genfromtxt('extraction_params.txt',dtype=None,delimiter='\t')

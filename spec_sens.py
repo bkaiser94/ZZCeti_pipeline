@@ -78,8 +78,10 @@ script, stdlist, fluxlist, speclist = sys.argv
 #Read in each standard star spectrum 
 standards = np.genfromtxt(stdlist,dtype=str)
 stdflux = np.genfromtxt(fluxlist,dtype=str)
-
+stdflux = np.array([stdflux]) #save stdflux explicitly as an array so you can index if only 1 element
 #Check that the files are set up correctly to avoid mixing standards.
+#This checks that the files in liststandard have similar characters to those in listflux and the correct order. But might break if flux file doesn't match. E.G. mcd32d9927.dat is often called CD-32_9927 in our system. 
+'''
 onion = 0
 for stanspec in standards:
     quickcheck = stdflux[onion//2].lower()[1:-4] in stanspec.lower()
@@ -87,7 +89,7 @@ for stanspec in standards:
         print 'Check your standard star and flux files. They are mixed up.'
         sys.exit()
     onion += 1
-
+'''
 orderused = np.zeros([len(standards)])
 senspolys = []
 airstd = np.zeros([len(standards)])

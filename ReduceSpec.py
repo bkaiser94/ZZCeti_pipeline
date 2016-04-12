@@ -123,7 +123,7 @@ if __name__ == "__main__":
     i= 0 
     comb_fb_spec = []
     while i < nsp:
-        comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], 'sum', 
+        comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], 'average', 
                         lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
         i= i+1
                         
