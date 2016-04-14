@@ -26,10 +26,10 @@ if __name__ == "__main__":
     if (nargs < 5):
         print "\n====================\n"
         print "\nNot Enough Inputs." 
-        print "Need at least 3 inputs: listZero, listFlat, listSpec"
+        print "Need at least 4 inputs: listZero, listFlat, listSpec, listFe"
         print "Optional inputs: overwrite= , low_sig= , high_sig=  "
         print "Example:"
-        print "\n>>> python imcombine.py listZero listFlat listSpec \n"
+        print "\n>>> python imcombine.py listZero listFlat listSpec listFe \n"
         print "\n====================\n"
     
     # Unpack list from command line and combe trough them for diffrent observations # 
@@ -37,6 +37,7 @@ if __name__ == "__main__":
     zero_lists = rt.List_Combe( rt.Read_List( args[1] ) )
     flat_lists = rt.List_Combe( rt.Read_List( args[2] ) )
     spec_lists = rt.List_Combe( rt.Read_List( args[3] ) )
+    fe_lists = rt.List_Combe( rt.Read_List( args[4] ) )
      
     # Select names from the first image of each observation # 
     zero_names= []
@@ -47,7 +48,10 @@ if __name__ == "__main__":
         flat_names.append(flat[0][5:])
     spec_names= []
     for spec in spec_lists:
-        spec_names.append(spec[0][5:]) 
+        spec_names.append(spec[0][5:])
+    fe_names = []
+    for lamp in fe_lists:
+        fe_names.append(lamp[0][5:])
 
     # Default values for special commands if none are given these dont change #   
     overwrite = False # dont give imcombine permision to overwrite files # 
@@ -56,21 +60,19 @@ if __name__ == "__main__":
     method = 'median' # method used to combine images 
     
     # If overwrite special comand is given # 
-    if nargs >= 5:
-        overwrite = args[4]
+    if nargs >= 6:
+        overwrite = args[5]
         warnings.filterwarnings('ignore', category=UserWarning, append=True)
     # If low_sigma and high_sigma values are given # 
-    if nargs >= 7: 
-        lo_sig = float(args[5])
-        hi_sig = float(args[6]) 
+    if nargs >= 8: 
+        lo_sig = float(args[6])
+        hi_sig = float(args[7]) 
     # If method is given #  
-    if nargs >= 8:
-        method = args[7]
+    if nargs >= 9:
+        method = args[8]
         
         
     # The rest of the code runs the reduction procces up to apall #  =========
-    
-
     # Combine Zeros # 
     comb_zero = rt.imcombine(zero_lists[0], zero_names[0], 'average', lo_sig= lo_sig, 
                         hi_sig= hi_sig, overwrite= overwrite)
@@ -123,6 +125,7 @@ if __name__ == "__main__":
     i= 0 
     comb_fb_spec = []
     while i < nsp:
+        rt.checkspec(fb_spec_list[i])
         comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], 'average', 
                         lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
         i= i+1
@@ -134,6 +137,26 @@ if __name__ == "__main__":
         i= i+1
                         
     print "\n====================\n"
+
+    #########################################
+    # Combine Fe lamps # 
+    print "Combining and trimming Fe lamps."
+    nf = len(fe_lists) #number of fe lamps
+    i = 0
+    comb_lamp = []
+    while i < nf:
+        comb_lamp.append( rt.imcombine(fe_lists[i], fe_names[i], 'average', lo_sig= lo_sig, 
+                        hi_sig= hi_sig, overwrite= overwrite) )
+        i = i+1
+
+    # Trim lamps # 
+    i= 0
+    while i < nf:
+        rt.Trim_Spec(comb_lamp[i]); 
+        i= i+1
+ 
+    ########################################
+
     print "Done. Ready for Apeture Extraction.\n"
     
 # ===========================================================================
