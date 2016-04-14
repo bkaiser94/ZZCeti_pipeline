@@ -56,7 +56,7 @@ if len(sys.argv) == 2:
         lamp = 'no'
 
 
-script, specfile = sys.argv
+#script, specfile = sys.argv
 #specfile = 'tnb.0526.WD1422p095_930_blue.fits'
 
 
@@ -227,6 +227,7 @@ if lamp != 'no':
     #Save the 1D lamp
     lampheader = st.readheader(lamp)
     lampheader.set('BANDID2','Raw Extracted Spectrum')
+    lampheader.set('REF',newname,'Reference Star used for trace')
 
     Ni = 1. #We are writing just 1 1D spectrum
     Ny = len(lampspec[:,0])
