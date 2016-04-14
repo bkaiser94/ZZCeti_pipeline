@@ -520,10 +520,10 @@ def imcombine(im_list, output_name, method,
         img_block[ np.isnan(img_block) ] = 0
         
     # If Zero Additive Scale Images # 
-    if im_list[0].__contains__("Zero"):
+    if im_list[0].lower().__contains__("zero"):
         img_block, Scale= Add_Scale(img_block)
     # If Flats Multiplicative Scale Images # 
-    elif im_list[0].__contains__("Flat"):
+    elif im_list[0].lower().__contains__("flat"):
         img_block, Scale= Mult_Scale(img_block)
     # If Not, Dont Scale # 
     else: 
