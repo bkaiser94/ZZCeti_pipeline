@@ -12,10 +12,105 @@ Created on Sun Aug 23 20:48:10 2015
 
 import numpy as np
 import pyfits as pf
+import mpfit
 
 # ===========================================================================
 # Lesser Functions Used by Main Functions ===================================
 # ===========================================================================
+
+def gauss(x,p): #single gaussian
+    return p[0] +  p[1]*np.exp(-(((x-p[2])/(np.sqrt(2)*p[3])))**2.)
+
+def fitgauss(p,fjac=None,x=None,y=None,err=None):
+    #Parameter values are passed in p
+    #fjac = None just means partial derivatives will not be computed
+    model = gauss(x,p)
+    status = 0
+    return([status,(y-model)/err])
+
+def checkspec(listcheck):
+    #Calculates the FWHM and profile postion for two points on each spectrum
+    #If these values deviate by more than given values, prints warning.
+    #Saves all values in a text file.
+    listcheck = np.genfromtxt(listcheck,dtype=str)
+    print 'Now checking FWHM and center of spectral profile for stability.'
+    #Max values acceptable
+    maxcendev = 2. #Deviation from center of gaussian
+    maxfwhmdev = 0.5 #deviation of fwhm
+
+    fwhm1 = np.zeros(len(listcheck))
+    fwhm2 = np.zeros(len(listcheck))
+    center1 = np.zeros(len(listcheck))
+    center2 = np.zeros(len(listcheck))
+
+    f = open('FWHM_records.txt','a')
+    n = 0.
+    for specfile in listcheck:
+        datalist = pf.open(specfile)
+        data = datalist[0].data
+        data = data[0,:,:]
+        data = np.transpose(data)
+
+        #Fit a column of the 2D image to determine the center and FWHM 
+        forfit1 = data[550,2:] #column 550 and 1750 are good for both setups
+        guess1 = np.zeros(4)
+        guess1[0] = np.mean(forfit1)
+        guess1[1] = np.amax(forfit1)
+        guess1[2] = np.argmax(forfit1)
+        guess1[3] = 3.
+        error_fit1 = np.ones(len(forfit1))
+        xes1 = np.linspace(0,len(forfit1)-1,num=len(forfit1))
+        fa1 = {'x':xes1,'y':forfit1,'err':error_fit1}
+        fitparams1 = mpfit.mpfit(fitgauss,guess1,functkw=fa1,quiet=True)
+        fwhm1[n] = 2.*np.sqrt(2.*np.log(2.))*fitparams1.params[3]
+        center1[n] = fitparams1.params[2]
+        #print np.round(fwhm1[n],decimals=1),np.round(center1[n],decimals=1)
+        #plt.clf()
+        #plt.plot(forfit1)
+        #plt.plot(xes1,gauss(xes1,fitparams1.params))
+        #plt.show()
+
+        forfit2 = data[1750,2:] #column 550 and 1750 are good for both setups
+        guess2 = np.zeros(4)
+        guess2[0] = np.mean(forfit2)
+        guess2[1] = np.amax(forfit2)
+        guess2[2] = np.argmax(forfit2)
+        guess2[3] = 3.
+
+        error_fit2 = np.ones(len(forfit2))
+        xes2 = np.linspace(0,len(forfit2)-1,num=len(forfit2))
+        fa2 = {'x':xes2,'y':forfit2,'err':error_fit2}
+        fitparams2 = mpfit.mpfit(fitgauss,guess2,functkw=fa2,quiet=True)
+
+        fwhm2[n] = 2.*np.sqrt(2.*np.log(2.))*fitparams2.params[3]
+        center2[n] = fitparams2.params[2]
+        #print np.round(fwhm2[n],decimals=1),np.round(center2[n],decimals=1)
+        #plt.clf()
+        #plt.plot(forfit2)
+        #plt.plot(xes2,gauss(xes2,fitparams2.params))
+        #plt.show()
+
+        info = specfile + '\t' + '550' + '\t' + str(np.round(fwhm1[n],decimals=2)) + '\t' + str(np.round(center1[n],decimals=2)) + '\t' + '1750' + '\t' + str(np.round(fwhm2[n],decimals=2)) + '\t' + str(np.round(center2[n],decimals=2))
+        f.write(info+ "\n")
+
+        n += 1
+    f.close()
+
+    #Check if values deviate by more than a certain amount
+
+    if (np.max(fwhm1) - np.min(fwhm1)) > maxfwhmdev:
+        print 'WARNING!!! Left FWHM varying significantly. Values are %s' % fwhm1
+    elif (np.max(fwhm2) - np.min(fwhm2)) > maxfwhmdev:
+        print 'WARNING!!! Right FWHM varying significantly. Values are %s' % fwhm2
+    else:
+        print 'FWHM is stable.'
+
+    if (np.max(center1) - np.min(center1)) > maxcendev:
+        print 'WARNING!!! Left profile center varying significantly. Values are %s' % center1
+    elif (np.max(center2) - np.min(center2)) > maxcendev:
+        print 'WARNING!!! Right profile center varying significantly. Values are %s' % center2
+    else:
+        print 'Profile center is stable.'
 
 def Read_List( lst ):
     # This function reads a list of images and decomposes them into a python
@@ -149,17 +244,28 @@ def EffectiveAirMass(AM_st, AM_mid, AM_end):
 
 def Trim_Spec(img):
     # Trims Overscan region and final row of of image #
-    # The limits of the trim are: [:, 1:199, 9:2054]
+    # The limits of the 2x2 binned trim are: [:, 1:199, 9:2054]
+    # The limits of the 1x2 trim are: [:, 1:199, 19:4111]
     print "\n====================\n"  
     print 'Triming Image: %s\n' % img
     img_head= pf.getheader(img) 
     img_data= pf.getdata(img)    
     Fix_Header(img_head)
-    img_head.append( ('TRIM', '[:, 1:200, 9:2055]' ,'Original Pixel Indices'),
+    length = float(img_head['PARAM17'])
+    if length == 2071.:
+        img_head.append( ('TRIM', '[:, 1:200, 9:2055]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
-    NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
-    NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
-    return ('t'+img)
+        NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
+        NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
+        return ('t'+img)
+    elif length == 4142.:
+        img_head.append( ('TRIM', '[:, 1:200, 19:4111]' ,'Original Pixel Indices'),
+                   useblanks= True, bottom= True )
+        NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 19:4111], header= img_head)
+        NewHdu.writeto('t.'+img, output_verify='warn', clobber= True )
+        return ('t.'+img)
+    else:
+        print 'WARNING. Image not trimmed. \n'
 
 def Add_Scale (img_block):
     # Function to be called by Imcombine. 
@@ -414,10 +520,10 @@ def imcombine(im_list, output_name, method,
         img_block[ np.isnan(img_block) ] = 0
         
     # If Zero Additive Scale Images # 
-    if im_list[0].__contains__("Zero"):
+    if im_list[0].lower().__contains__("zero"):
         img_block, Scale= Add_Scale(img_block)
     # If Flats Multiplicative Scale Images # 
-    elif im_list[0].__contains__("Flat"):
+    elif im_list[0].lower().__contains__("flat"):
         img_block, Scale= Mult_Scale(img_block)
     # If Not, Dont Scale # 
     else: 

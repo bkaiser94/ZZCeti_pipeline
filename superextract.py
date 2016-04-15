@@ -296,6 +296,7 @@ def superExtract(*args, **kw):
 
     #Step3: Sky Subtraction
     background = 0. * frame
+    backgroundsum = np.zeros((nlam, 1), dtype=float) #This is for the mean of the background region
     #bkgrndmask = goodpixelmask
     for ii in range(nlam):
         if goodpixelmask[ii, backgroundApertures[ii]].any():
@@ -306,8 +307,11 @@ def superExtract(*args, **kw):
             #plt.plot(xxx[ii,:],np.polyval(fit,xxx[ii,:]))
             #plt.show()
             background[ii, :] = np.polyval(fit, xxx[ii])
+            thisrow = backgroundApertures[ii]
+            backgroundsum[ii] = np.mean(frame[ii, backgroundApertures[ii]])#.sum()
         else:
             background[ii] = 0.
+            backgroundsum[ii] = 0.
 
     background_at_trace = np.array([np.interp(0, xxx[j], background[j]) for j in range(nlam)])
 
@@ -617,7 +621,7 @@ def superExtract(*args, **kw):
     ret.varSpectrum = varSpectrum
     ret.trace = trace
     ret.units = 'electrons'
-    ret.background = background_at_trace
+    ret.background = backgroundsum.reshape(1, nlam) #background_at_trace #We want to save the mean of the background region, not the background at the trace.
 
     ret.function_name = 'spec.superExtract'
 
