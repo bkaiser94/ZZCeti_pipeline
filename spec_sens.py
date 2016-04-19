@@ -77,7 +77,9 @@ script, stdlist, fluxlist, speclist = sys.argv
 #Read in each standard star spectrum 
 standards = np.genfromtxt(stdlist,dtype=str)
 stdflux = np.genfromtxt(fluxlist,dtype=str)
-stdflux = np.array([stdflux]) #save stdflux explicitly as an array so you can index if only 1 element
+#print len(stdflux)
+if stdflux.size == 1:
+    stdflux = np.array([stdflux]) #save stdflux explicitly as an array so you can index if only 1 element
 #Check that the files are set up correctly to avoid mixing standards.
 #This checks that the files in liststandard have similar characters to those in listflux and the correct order. But might break if flux file doesn't match. E.G. mcd32d9927.dat is often called CD-32_9927 in our system. 
 '''
@@ -103,7 +105,7 @@ for stdspecfile in standards:
     #plt.clf()
     #plt.plot(obs_spectra.warr,obs_spectra.farr)
     #plt.show()
-    #read in the sandard file
+    #read in the standard file
     placeholder = cucumber // 2
     stdfile = stdflux[placeholder]
     std_spectra = st.readstandard(stdfile)
