@@ -33,6 +33,7 @@ from scipy.optimize import curve_fit
 # Grating Eq Parameters  
 # Parameters= [fr, fd, fl, zPnt] 
 # fr= fringe density of grating 
+# fa= grat. ang fudge
 # fd= camera angle correction factor 
 # fl = focal lenght 
 # zPnt= Zero point pixel offset
@@ -49,16 +50,16 @@ Param_930_12_24= [92.517, 0.962, 377190, 1836]
 # WaveList[0]== pixels
 # WaveList[1]== Wavelenghts
 # As close to the red setup (20_35.2) as I currently have # 
-WaveList_Fe_930_20_40= np.array([ [102.964, 142.88, 276.362, 438.35, 532.819, 
-                                631.475, 798.185, 831.719, 1062.43, 1086.89, 
+WaveList_Fe_930_20_40= np.array([ [1155.1, 102.964, 142.88, 276.362, 438.35, 532.819, 
+                                631.475, 755.5, 798.185, 831.719, 1062.43, 1086.89, 
                                 1249.02, 1316.94, 1475.64, 1566.37, 1762.42, 
                                 1910, 2053.55, 2072.75, 2168.64, 2179.14, 
                                 2271.52, 2318.23, 2347.65, 2370.04, 2417.91, 
                                 2645.82, 2672.71, 3385.8, 3562.11, 3620.55, 
                                 3765.62, 3913.77, 3935.87, 4016.2, 4034.6], 
                                 
-                                [6466.5526, 6483.0825, 6538.112, 6604.8534, 
-                                 6643.6976, 6684.2929, 6752.8335, 6766.6117, 
+                                [6043.223, 6466.5526, 6483.0825, 6538.112, 6604.8534, 
+                                 6643.6976, 5875.618, 6684.2929, 6752.8335, 6766.6117, 
                                  6861.2688, 6871.2891, 6937.6642, 6965.4307, 
                                  7030.2514, 7067.2181, 7147.0416, 7206.9804, 
                                  7265.1724, 7272.9359, 7311.7159, 7316.005, 
@@ -135,12 +136,12 @@ def PixCalc(Wavelenghts, alpha, theta, fr, fd, fl, zPnt):
 
 # ===========================================================================
 
-def Gauss(x,a,c,w):
+def Gauss(x,a,c,w,b):
         # Define a Gousian Function # 
         # x= some value
         # a= amplitude, c= center, w=  RMS width. 
         # Output= y: gausian evaluated at x 
-        y= a*np.exp( (-(x-c)**2)/(2*w**2) ) 
+        y= a*np.exp( (-(x-c)**2)/(2*w**2) ) + b
         return y   
 
 # ===========================================================================
@@ -155,7 +156,7 @@ def CrossCorr(lamp_data):
     # Calculate Cross Correlation
     print ("\nCross Correlateing")
     for i in range(0,nx):
-       G= [Gauss(X[n],1,i,3) for n in range(0,nx)]
+       G= [Gauss(X[n],1,i,3,0) for n in range(0,nx)]
        Corr= Corr+ G*lamp_data;
     return Corr
 
@@ -184,20 +185,29 @@ def PeakFind(data):
 # ===========================================================================
     
 def fit_Gauss(X,Y):
-    par, cov = curve_fit(Gauss, X, Y, p0 = [Y[0], X[0], X[-1]-X[0]] )
+    a0= np.max(Y)/2.0
+    c0= X[ np.argmax(Y) ]
+    w0= 3.0*0.42
+    b0= np.mean(Y)
+    par, cov = curve_fit(Gauss, X, Y, p0 = [a0, c0 , w0, b0], maxfev= 1000)
     return par
 
 # ===========================================================================
 
-def find_peak_centers(peak_x, lamp_data):
+def find_peak_centers(peak_w, Wavelen, Counts):
     list_centers= []
-    for x in peak_x:
-        fit_data_x= np.arange(x-7,x+7,1)
-        fit_data_y= lamp_data[x-7:x+7]
-        amp, cent, width= fit_Gauss(fit_data_x, fit_data_y)
+    for w in peak_w:
+        i= Wavelen.index(w) # index of peak_w with wavelengths list
+        fit_data_w= Wavelen[i-9:i+9]
+        fit_data_c= Counts[i-9:i+9]
+        amp, cent, width, b= fit_Gauss(fit_data_w, fit_data_c)
         list_centers.append(cent)
-        # plt.plot(fit_data_x, fit_data_y)
+        ## Plot the gaussian fit 
+        # X= np.arange(fit_data_w[0],fit_data_w[-1], (fit_data_w[-1]-fit_data_w[0])/50.0 )
+        # Y= [Gauss(x, amp, cent, width, b) for x in X]
+        # plt.plot(fit_data_w, fit_data_c)
         # plt.hold('on')
+        # plt.plot(X, Y, 'r--')
         # plt.axvline(cent)
         # plt.hold('off')
         # plt.show()
@@ -209,34 +219,34 @@ def onclick(event):
     global ix,iy
     ix, iy = event.xdata,event.ydata
     global coords
-    ax.axvline(x=ix,color='k',linewidth='3')
+    ax.axvline(x=ix,color='k',linewidth='2')
     fig.canvas.draw()
     coords.append((ix,iy))
 
 # ===========================================================================
 
-def find_near(d, in_data):
-    near= min(in_data, key=lambda x:abs(x-d))
+def find_near(p, in_data):
+    # find the index of the point in_data nearest point p. 
+    near= min(in_data, key=lambda x:abs(x-p))
     return near
     
-# ===========================================================================
+# =========================================================================== 
     
 def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     # Model # =============================================
-    # w= wavelength
-    # a= alpha
-    # t= theta
-    def Beta_Calc(w,a, Fr,TF):
-        beta = np.arcsin( ((w*Fr/1000000.0)) - np.sin(a*np.pi/180) )
+    
+    def Beta_Calc(w,a, FR, TF):
+        beta = np.arcsin( (w*FR/1000000.0) - np.sin(a*np.pi/180) )
         return beta
-    def Predict_Pixel(X, Fr,TF,ZPNT):
+    def Predict_Pixel(X, FR, TF, ZPNT):
         a, w, t = X
-        pPixel = np.tan((Beta_Calc(w,a, Fr,TF) + (a*np.pi/180)) - (TF*t*np.pi/180)) * (fl/15) + ZPNT
+        pPixel = np.tan((Beta_Calc(w,a, FR, TF) + (a*np.pi/180)) - (TF*t*np.pi/180)) * (fl/15) + ZPNT
         return pPixel
 
     # Curve Fitting # =====================================
     Alpha= np.ones(np.shape(known_wave))*alpha  
     Theta= np.ones(np.shape(known_wave))*theta
+    global fl 
     fr, fd, fl, zPnt= Param
     p0= [fr, fd, zPnt]
     xdata= [Alpha, known_wave, Theta] 
@@ -244,8 +254,8 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
 
     # Print Results # =====================================
     print '\nFitted Parameters:'
-    print 'Line Density= %s \nCam. Fudge= %s \nZero Pt. = %s'  % (Par[0], Par[1], Par[2])
-    print '\nConstants: \nFocal Length = %s' % fl
+    print '\nLine Density= %s \nCam. Fudge= %s \nZero Pt. = %s'  % (Par[0], Par[1], Par[2])
+    print '\nConstants: \nFocal Length = %s' % (fl)
     #print '\nCovarince Matrix: \n%s' % Covar
 
     # Variance of Parameters # ===============================
@@ -281,6 +291,7 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     plt.show()
     
     return Par
+    
 # ===========================================================================
 # Code ====================================================================== 
 # ===========================================================================
@@ -290,17 +301,26 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
 from sys import argv
 script, lamp = argv 
 
-print ("\n", lamp) 
+# Get Lamp Data # 
 lamp_data= pf.getdata(lamp)
+lamp_spec= lamp_data[0]
 lamp_header= pf.getheader(lamp)
+
+# plt.figure(1)
+# plt.plot(lamp_spec)
+# plt.title('Raw')
+# plt.show()
 
 # Find the pixel number offset due to trim reindexing # 
 trim_sec= lamp_header["CCDSEC"]
 trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
 
+# Find Bining # 
+bining= float( lamp_header["PARAM18"] ) 
+
 # Get Pixel Numbers # 
-nx= np.size(lamp_data[0][0])
-Pixels= 2.0*(np.arange(0,nx,1)+trim_offset)
+nx= np.size(lamp_spec)
+Pixels= bining*(np.arange(0,nx,1)+trim_offset)
 
 # Select Set of Parameters to use # 
 if lamp.__contains__('red'):
@@ -312,7 +332,7 @@ elif lamp.__contains__('blue'):
 else: 
     print "Could not detect setup!" 
 
-# Calculate Dispersion # ===================================================
+# Calculate Initial Guess Solution # ========================================
 
 alpha= float( lamp_header["GRT_TARG"] )
 theta= float( lamp_header["CAM_TARG"] )
@@ -320,12 +340,12 @@ Wavelengths= DispCalc(Pixels, alpha, theta, parm[0], parm[1], parm[2], parm[3])
 
 # Plot Dispersion # 
 plt.figure(1)
-plt.plot(Wavelengths, lamp_data[0][0])
+plt.plot(Wavelengths, lamp_spec)
 plt.hold('on')
 for line in line_list[1]:
     if (Wavelengths[0] <= line <= Wavelengths[-1]):
         plt.axvline(line, color= 'r', linestyle= '--')
-plt.title("Initial Dispersion, close to calculate offset")
+plt.title("Initial Dispersion Inspection Graph. \nClose to Calculate Offset")
 plt.xlabel("Wavelengths")
 plt.ylabel("Counts")
 plt.hold('off')
@@ -333,19 +353,20 @@ plt.show()
 
 # Ask for offset # ===========================================================
 
-print "\nWould You like to set Offset?" 
-yn= raw_input('yes or no? >>>')
+# print "\nWould You like to set Offset?" 
+# yn= raw_input('yes or no? >>>')
 
+yn= 'yes'
 if yn== 'yes':
     fig = plt.figure(1)
     ax = fig.add_subplot(111)
-    ax.plot(Wavelengths, lamp_data[0][0])
+    ax.plot(Wavelengths, lamp_spec)
     plt.hold('on')
     for line in line_list[1]:
         if (Wavelengths[0] <= line <= Wavelengths[-1]):
             plt.axvline(line, color= 'r', linestyle= '--')
-    plt.title("First click known line(red), then click coresponding peak near center\n Then Close.")
-    plt.xlabel("Wavelengths")
+    plt.title("First click known line(red), then click coresponding peak near center\n Then close graph.")
+    plt.xlabel("Wavelengths (Ang.)")
     plt.ylabel("Counts")
     plt.hold('off')
     coords= [] 
@@ -355,83 +376,182 @@ if yn== 'yes':
     k_line= find_near(coords[0][0], line_list[1]) # Nearest line to click cordinates
     k_peak= find_near(coords[1][0], Wavelengths) # Nearest Peak to click cordinates
     i_peak= Wavelengths.index(k_peak)
-    X= Wavelengths[i_peak-9:i_peak+9]
-    Y= lamp_data[0][0][i_peak-9:i_peak+9]
-    amp, center, width= fit_Gauss(X,Y)
+    X= Wavelengths[i_peak-7:i_peak+7]
+    Y= lamp_spec[i_peak-7:i_peak+7]
+    amp, center, width, b= fit_Gauss(X,Y)
     offset= (k_line-center)
     Wavelengths= [w+offset for w in Wavelengths]
 
     plt.figure(1)
-    plt.plot(Wavelengths, lamp_data[0][0])
+    plt.plot(Wavelengths, lamp_spec)
     plt.hold('on')
     for line in line_list[1]:
         if (Wavelengths[0] <= line <= Wavelengths[-1]):
             plt.axvline(line, color= 'r', linestyle= '--')
     plt.title("Offset Applied.")
-    plt.xlabel("Wavelengths")
+    plt.xlabel("Wavelengths (Ang.)")
     plt.ylabel("Counts")
     plt.hold('off')
     plt.show()
 
 # Ask Refit # ===============================================================
-print "\nWould you like to refit and recalculate dispersion?" 
-yn= raw_input('yes or no? >>>')
 
-if yn== 'yes' :
-    Corr= CrossCorr(lamp_data[0][0]) # Cross correlate with gaussian 
-    peak_x, peak_y = PeakFind(Corr) # find peaks of cross correlation 
-    centers= find_peak_centers(peak_x, Corr) # Find Centers of identified peaks 
-    centers= [2.0*(c+trim_offset) for c in centers] # Account for trim and bining
+while yn== 'yes':   
+  
+  print "\nWould you like to refit and recalculate dispersion?" 
+  yn= raw_input('yes or no? >>>')
+  
+  
+  if yn== 'yes' :
+        print "\nOffset to apply to Grating Angle?"
+        alpha_offset= float( raw_input('Offset Value? >>>') ) 
+        alpha= alpha + alpha_offset
+        
+        fig = plt.figure(1)
+        ax = fig.add_subplot(111)
+        ax.plot(Wavelengths, lamp_spec)
+        plt.hold('on')
+        lines_in_range= []
+        for line in line_list[1]:
+            if (Wavelengths[0] <= line <= Wavelengths[-1]):
+                lines_in_range.append(line)
+                plt.axvline(line, color= 'r', linestyle= '--')
+        plt.title("Click on The Peaks You Want to Use to Refit \n Then close graph.")
+        plt.xlim([np.min(lines_in_range)-50, np.max(lines_in_range)+50])
+        plt.ylim([np.min(lamp_spec)-100, np.max(lamp_spec)/2])
+        plt.xlabel("Wavelengths (Ang.)")
+        plt.ylabel("Counts")
+        plt.hold('off')
+        coords= [] 
+        cid = fig.canvas.mpl_connect('button_press_event', onclick)
+        plt.show()    
+        
+        n_pnt, n_cor= np.shape(coords)
+        coord_x= [coords[i][0] for i in range(0,n_pnt)]
     
-    plt.figure(1)
-    plt.plot(Pixels,Corr)
-    plt.hold('on')
-    plt.scatter(centers, peak_y, marker= '*')
-    plt.scatter([2.0*(x+trim_offset) for x in peak_x] , peak_y, marker= '+')
-    plt.hold('off')
-    plt.title("Identified Peak Centers" )
-    plt.show()
+        peak_x= []
+        for i in range(0,n_pnt):
+            x= find_near(coord_x[i], Wavelengths)
+            peak_x.append(x)
+        centers_in_wave= find_peak_centers(peak_x, Wavelengths, lamp_spec)
+        centers_in_wave= [w-offset for w in centers_in_wave]
+        centers_in_pix= PixCalc(centers_in_wave, alpha, theta, parm[0], parm[1], parm[2], parm[3])
     
-    # predict wavelength of centers using know parameters # 
-    predict_wave= DispCalc(centers, alpha, theta, parm[0], parm[1], parm[2], parm[3] )
+        known_waves= []
+        for i in range(0,n_pnt):
+            x= find_near(coord_x[i], line_list[1])
+            known_waves.append(x)
     
-    # find wavelength in list that is closest to predicted wave # 
-    known_pix= []
-    known_waves= []
-    id_centers= [] 
-    for i in range(0,np.size(predict_wave)):
-        pw= predict_wave[i]
-        kw= find_near(pw, line_list[1]) # Nearest Known Wave
-        if np.abs(kw-pw) <= 20.0:
-            idx= (np.abs(line_list[1] - kw)).argmin() # index of kw with the list
-            kp= line_list[0][idx]
-            id_centers.append( centers[i]) # known Id'd centers to use for fit # 
-            known_waves.append( kw )
-            known_pix.append( kp )
-            print ("%4.4f, %4.4f, %4.4f") % (centers[i], pw , kw)
+        n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
+        
+        n_Wavelengths= DispCalc(Pixels, alpha-alpha_offset, theta, n_fr, n_fd, parm[2], n_zPnt)
+        
+        
+        plt.figure(1)
+        plt.plot(n_Wavelengths, lamp_spec)
+        plt.hold('on')
+        for line in line_list[1]:
+            if (n_Wavelengths[0] <= line <= n_Wavelengths[-1]):
+                plt.axvline(line, color= 'r', linestyle= '--')
+        plt.title("Refitted Solution")
+        plt.xlabel("Wavelengths (Ang.)")
+        plt.ylabel("Counts")
+        plt.hold('off')
+        
+        '''        
+        plt.figure(2)
+        Diff= [ (Wavelengths[i]-n_Wavelengths[i]) for i in range(0,np.size(Wavelengths)) ]
+        plt.plot(Diff, '.')
+        plt.title("Diffence between old and new solution.")
+        plt.xlabel("Pixel")
+        plt.ylabel("old-new Wavelength (Ang.)")
+        '''
+        
+        plt.show()
+        
     
-    n_fr, n_fd, n_zPnt= fit_Grating_Eq(id_centers, known_waves, alpha, theta, parm)
+ # ==========================================================================
+ # is solution linear ? 
     
-    n_Wavelengths= DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[3], n_zPnt)
+        '''   
+        def line(x,m,b):
+            y= m*x+b
+            return y 
     
-    plt.figure(1)
-    plt.plot(n_Wavelengths, lamp_data[0][0])
-    plt.hold('on')
-    for line in line_list[1]:
-        if (n_Wavelengths[0] <= line <= n_Wavelengths[-1]):
-            plt.axvline(line, color= 'r', linestyle= '--')
-    plt.title("Refitted Dispersion")
-    plt.xlabel("Wavelengths")
-    plt.ylabel("Counts")
-    plt.hold('off')
-    plt.show()
-
-
-
-
+        def line_fit(X,Y):
+            m= 1.0;
+            b= 5500.0; 
+            parm, cov= curve_fit(line, X, Y, p0 = [m,b], maxfev= 1000)
+            print ("%s, %s") % (parm[0], parm[1])
+            return parm
     
-
-
-
-
+        P= np.arange(0,np.size(n_Wavelengths),1)
+        lparm= line_fit(n_Wavelengths,P)
+        Y= [line(p, lparm[0], lparm[1]) for p in P]
+        
+        plt.figure(3)
+        plt.plot(n_Wavelengths); 
+        plt.hold('on')
+        plt.title("Wavelength Vs. Pixel")
+        plt.xlabel("Pixel")
+        plt.ylabel("Wavelength (Ang.)")
+        
+        plt.plot(P,Y)
+        plt.hold('off')
+        plt.show() 
+        '''
+    
+# ==========================================================================
+        '''
+        # This is the falied cross corelation reffiting code # 
+    
+        Corr= CrossCorr(lamp_spec) # Cross correlate with gaussian 
+        peak_x, peak_y = PeakFind(Corr) # find peaks of cross correlation 
+        centers= find_peak_centers(peak_x, Corr) # Find Centers of identified peaks 
+        centers= [2.0*(c+trim_offset) for c in centers] # Account for trim and bining
+    
+        plt.figure(1)
+        plt.plot(Pixels,Corr)
+        plt.hold('on')
+        plt.scatter(centers, peak_y, marker= '*')
+        plt.scatter([2.0*(x+trim_offset) for x in peak_x] , peak_y, marker= '+')
+        plt.hold('off')
+        plt.title("Identified Peak Centers" )
+        plt.show()
+    
+        # predict wavelength of centers using know parameters # 
+        predict_wave= DispCalc(centers, alpha, theta, parm[0], parm[1], parm[2], parm[3] )
+    
+        # find wavelength in list that is closest to predicted wave # 
+        known_pix= []
+        known_waves= []
+        id_centers= [] 
+        for i in range(0,np.size(predict_wave)):
+            pw= predict_wave[i]
+            kw= find_near(pw, line_list[1]) # Nearest Known Wave
+            if np.abs(kw-pw) <= 20.0:
+                idx= (np.abs(line_list[1] - kw)).argmin() # index of kw with the list
+                kp= line_list[0][idx]
+                id_centers.append( centers[i]) # known Id'd centers to use for fit # 
+                known_waves.append( kw )
+                known_pix.append( kp )
+        print ("%4.4f, %4.4f, %4.4f") % (centers[i], pw , kw)
+    
+        n_fr, n_fd, n_zPnt= fit_Grating_Eq(id_centers, known_waves, alpha, theta, parm)
+    
+        n_Wavelengths= DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[3], n_zPnt)
+    
+        plt.figure(1)
+        plt.plot(n_Wavelengths, lamp_spec)
+        plt.hold('on')
+        for line in line_list[1]:
+            if (n_Wavelengths[0] <= line <= n_Wavelengths[-1]):
+                plt.axvline(line, color= 'r', linestyle= '--')
+        plt.title("Refitted Dispersion")
+        plt.xlabel("Wavelengths")
+        plt.ylabel("Counts")
+        plt.hold('off')
+        plt.show()
+    
+        '''
 
