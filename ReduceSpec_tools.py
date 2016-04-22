@@ -13,6 +13,7 @@ Created on Sun Aug 23 20:48:10 2015
 import numpy as np
 import pyfits as pf
 import mpfit
+import os
 
 # ===========================================================================
 # Lesser Functions Used by Main Functions ===================================
@@ -111,6 +112,8 @@ def checkspec(listcheck):
         print 'WARNING!!! Right profile center varying significantly. Values are %s' % center2
     else:
         print 'Profile center is stable.'
+        
+# ============================================================================
 
 def Read_List( lst ):
     # This function reads a list of images and decomposes them into a python
@@ -139,6 +142,23 @@ def List_Combe(img_list):
         i= i+1 # image counter
     sub_lists.append(sl) # append the last sublist to the list of sublist 
     return sub_lists # return the list of sub_list of images
+    
+def check_file_exist(name):
+    # This function is to be called before wirting a file. 
+    # This function checks if the file name already exist.
+    # If it does it appends a number to the begining until 
+    # the name no longer matches the files in the directory. 
+    
+    # List of files in directory
+    listDirFiles = [f for f in os.listdir('.') if f.endswith('.fits')]
+    # If "name" is in the derectory append a number i until it doent match 
+    # If name is not in directory then we simply return name
+    if listDirFiles.__contains__(name):
+        i= 2
+        while listDirFiles.__contains__(name):
+            name= str(i) + name
+            i= i+1
+    return name
 
 def Fix_Header( header ):
     # This function deletes the header cards that contain the badly coded 
@@ -256,14 +276,16 @@ def Trim_Spec(img):
         img_head.append( ('TRIM', '[:, 1:200, 9:2055]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
         NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
-        NewHdu.writeto('t'+img, output_verify='warn', clobber= True )
-        return ('t'+img)
+        new_file_name= check_file_exist('t'+img)
+        NewHdu.writeto(new_file_name, output_verify='warn', clobber= True )
+        return (new_file_name)
     elif length == 4142.:
         img_head.append( ('TRIM', '[:, 1:200, 19:4111]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
         NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 19:4111], header= img_head)
-        NewHdu.writeto('t.'+img, output_verify='warn', clobber= True )
-        return ('t.'+img)
+        new_file_name= check_file_exist('t'+img)
+        NewHdu.writeto(new_file_name, output_verify='warn', clobber= True )
+        return (new_file_name)
     else:
         print 'WARNING. Image not trimmed. \n'
 
@@ -304,6 +326,7 @@ def Mult_Scale (img_block):
         Sval.append( Cavg[0]/Cavg[i] )
         img_block[i]= img_block[i]*Sval[i]     
     return img_block, Sval
+        
     
 # ===========================================================================
 # Main Functions ============================================================
@@ -312,7 +335,7 @@ def Mult_Scale (img_block):
 def Bias_Subtract( img_list, zero_img ):
     # This function takes in a list of images and a bias image 'zero_img'
     # and performs a pixel by pixel subtration using numpy.
-    # The function writes the bias subtracted images as 'bImg_Name.fits'.
+    # The function writes the bias subtracted images as 'b.Img_Name.fits'.
     # The output is a list of names for the bias subtrated images. 
     print "\n====================\n"  
     print 'Bias Subtracting Images: \n' 
@@ -329,8 +352,9 @@ def Bias_Subtract( img_list, zero_img ):
         hdu.append( ('BIASSUB', zero_img ,'Image Used to Bias Subtract.'),
                    useblanks= True, bottom= True )
         NewHdu = pf.PrimaryHDU(b_img_data, hdu)
-        NewHdu.writeto('b.'+img, output_verify='warn', clobber= True)
-        bias_sub_list.append( 'b.'+img )
+        bias_sub_name= check_file_exist('b.'+img)
+        NewHdu.writeto(bias_sub_name, output_verify='warn', clobber= True)
+        bias_sub_list.append( bias_sub_name )
     return bias_sub_list
 
 # ===========================================================================
@@ -353,10 +377,11 @@ def Norm_Flat_Avg( flat ):
     hdu.append( ('NORMFLAT', avg_flat,'Average Used to Normalize the Flat.'), 
                useblanks= True, bottom= True )
     NewHdu = pf.PrimaryHDU(data= norm_flat_data, header= hdu)
-    NewHdu.writeto('n'+flat, output_verify='warn', clobber= True )
+    norm_flat_name= check_file_exist('n'+flat)
+    NewHdu.writeto(norm_flat_name, output_verify='warn', clobber= True )
     
-    print 'Flat: %s Mean: %.3f StDiv: %.3f' % ('n'+flat, np.mean(norm_flat_data), np.std(norm_flat_data)) 
-    return ('n'+flat)
+    print 'Flat: %s Mean: %.3f StDiv: %.3f' % (norm_flat_name, np.mean(norm_flat_data), np.std(norm_flat_data)) 
+    return (norm_flat_name)
 
 # ============================================================================    
 
@@ -401,10 +426,11 @@ def Norm_Flat_Poly( flat ):
     hdu.append( ('NORMCOEF ', coeff_str,'Flat Polynomial Coefficients'), 
                useblanks= True, bottom= True )
     NewHdu = pf.PrimaryHDU(data= flat_data, header= hdu)
-    NewHdu.writeto('n'+flat, output_verify='warn', clobber= True )
+    norm_flat_name= check_file_exist('n'+flat)
+    NewHdu.writeto(norm_flat_name, output_verify='warn', clobber= True )
     
-    print '\nFlat: %s Mean: %.3f StDiv: %.3f' % ('n'+flat, np.mean(flat_data), np.std(flat_data))
-    return ('n'+flat)
+    print '\nFlat: %s Mean: %.3f StDiv: %.3f' % (norm_flat_name, np.mean(flat_data), np.std(flat_data))
+    return (norm_flat_name)
     
 # ===========================================================================    
     
@@ -428,8 +454,9 @@ def Flat_Field( spec_list, flat ):
         hdu.append( ('FLATFLD', flat,'Image used to Flat Field.'), 
                useblanks= True, bottom= True )    
         NewHdu = pf.PrimaryHDU(data= f_spec_data, header= hdu)
-        NewHdu.writeto('f'+spec, output_verify='warn', clobber= True)
-        f_spec_list.append('f'+spec)
+        new_file_name= check_file_exist('f'+spec)
+        NewHdu.writeto(new_file_name, output_verify='warn', clobber= True)
+        f_spec_list.append(new_file_name)
     return f_spec_list
 
 # ===========================================================================
@@ -662,20 +689,23 @@ def imcombine(im_list, output_name, method,
         key = 'IMCMB'+num
         hdu.header.append( (key, im_list[i]), useblanks= True, bottom= True )
     hdu.header.append( ('NCOMBINE', N), useblanks= True, bottom = True )
+    hdu.header.append( ('COMBTYPE', method,'Operation Used to Combine'),
+                      useblanks= True, bottom= True )
     
     # Make sure header BITPIX reflects data encodeing as float 32 ie: -32 
     hdu.header['BITPIX'] = -32
     
     # Write header to new fits file  
-    hdu.writeto(output_name, output_verify='warn', clobber= True)
+    new_file_name= check_file_exist(output_name)
+    hdu.writeto(new_file_name, output_verify='warn', clobber= True)
     
     # write combined data to new fits file  # 
     pf.update(output_name, data= comb_img, header= hdu.header, 
                 output_verify='warn')
                          
     print ( "\nCombined Image: %s Mean: %.3f StDiv: %.3f" 
-            % (output_name, np.mean(comb_img), np.std(comb_img)) ) 
-    return output_name             
+            % (new_file_name, np.mean(comb_img), np.std(comb_img)) ) 
+    return new_file_name           
 
 # ===========================================================================
 # ===========================================================================            
