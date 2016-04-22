@@ -20,6 +20,7 @@ Use:
 # Imports # ================================================================
 # ==========================================================================
 
+import ReduceSpec_tools as rt 
 import numpy as np
 import pyfits as pf
 import scipy.signal as sg
@@ -301,10 +302,19 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
 from sys import argv
 script, lamp = argv 
 
-# Get Lamp Data # 
+# Read Lamp Data and Header # 
 lamp_data= pf.getdata(lamp)
-lamp_spec= lamp_data[0]
 lamp_header= pf.getheader(lamp)
+
+# Check number of image slices, and select the spectra # 
+if lamp_header["NAXIS"]== 2:
+    lamp_spec= lamp_data[0]
+elif lamp_header["NAXIS"]== 3:
+    lamp_spec= lamp_data[0][0]
+else:
+    print ("\nDont know which data to unpack.")
+    print ("Check the array dimensions\n")
+
 
 # plt.figure(1)
 # plt.plot(lamp_spec)
@@ -401,7 +411,6 @@ while yn== 'yes':
   print "\nWould you like to refit and recalculate dispersion?" 
   yn= raw_input('yes or no? >>>')
   
-  
   if yn== 'yes' :
         print "\nOffset to apply to Grating Angle?"
         alpha_offset= float( raw_input('Offset Value? >>>') ) 
@@ -466,14 +475,30 @@ while yn== 'yes':
         plt.xlabel("Pixel")
         plt.ylabel("old-new Wavelength (Ang.)")
         '''
-        
+
         plt.show()
         
+# Save parameters in header and write file # 
+print "\nWrite solution to header?"
+yn= raw_input("yes or no? >>>")
+if yn== "yes":    
+    rt.Fix_Header(lamp_header)
+    lamp_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
+                       useblanks= True, bottom= True )
+    lamp_header.append( ('CAMFUD', n_fd,'Camera Angle Correction Factor for Grat. Eq.'), 
+                       useblanks= True, bottom= True )
+    lamp_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
+                       useblanks= True, bottom= True )
+    lamp_header.append( ('ZPOINT', n_zPnt,'Zero Point Pixel for Grat Eq.'), 
+                       useblanks= True, bottom= True )        
+    NewHdu = pf.PrimaryHDU(data= lamp_data, header= lamp_header)
+    NewHdu.writeto('w'+lamp, output_verify='warn', clobber= True)
+
     
  # ==========================================================================
  # is solution linear ? 
     
-        '''   
+    '''   
         def line(x,m,b):
             y= m*x+b
             return y 
@@ -499,10 +524,12 @@ while yn== 'yes':
         plt.plot(P,Y)
         plt.hold('off')
         plt.show() 
-        '''
+        
+    '''
     
 # ==========================================================================
-        '''
+    
+    '''
         # This is the falied cross corelation reffiting code # 
     
         Corr= CrossCorr(lamp_spec) # Cross correlate with gaussian 
@@ -552,6 +579,6 @@ while yn== 'yes':
         plt.ylabel("Counts")
         plt.hold('off')
         plt.show()
-    
-        '''
+        
+    '''
 
