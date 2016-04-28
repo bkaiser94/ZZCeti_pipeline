@@ -25,7 +25,7 @@ import numpy as np
 import pyfits as pf
 import scipy.signal as sg
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, fsolve
 
 # ==========================================================================
 # Data # ===================================================================
@@ -204,14 +204,14 @@ def find_peak_centers(peak_w, Wavelen, Counts):
         amp, cent, width, b= fit_Gauss(fit_data_w, fit_data_c)
         list_centers.append(cent)
         ## Plot the gaussian fit 
-        # X= np.arange(fit_data_w[0],fit_data_w[-1], (fit_data_w[-1]-fit_data_w[0])/50.0 )
-        # Y= [Gauss(x, amp, cent, width, b) for x in X]
-        # plt.plot(fit_data_w, fit_data_c)
-        # plt.hold('on')
-        # plt.plot(X, Y, 'r--')
-        # plt.axvline(cent)
-        # plt.hold('off')
-        # plt.show()
+        X= np.arange(fit_data_w[0],fit_data_w[-1], (fit_data_w[-1]-fit_data_w[0])/50.0 )
+        Y= [Gauss(x, amp, cent, width, b) for x in X]
+        plt.plot(fit_data_w, fit_data_c)
+        plt.hold('on')
+        plt.plot(X, Y, 'r--')
+        plt.axvline(cent)
+        plt.hold('off')
+        plt.show()
     return list_centers
 
 # ===========================================================================
@@ -293,6 +293,88 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     
     return Par
     
+# =========================================================================== 
+    
+def newzeropoint(x):
+    beta = np.arctan( (bestpixel-x)*15./parm[2] ) + (n_fd*theta*np.pi/180.) - (alpha*np.pi/180.)
+    out = newlambda - (10**6.)*( np.sin(beta) + np.sin(alpha*np.pi/180.) )/n_fr
+    return out
+    
+# =========================================================================== 
+    
+def WaveShift(specname):
+    #Calculates a new zero point for a spectrum based on a skyline
+    spec_data= pf.getdata(specname)
+    dataval = spec_data[2,0,:]
+    spec_header= pf.getheader(specname)
+    alpha= float( spec_header["GRT_TARG"] )
+    theta= float( spec_header["CAM_TARG"] )
+    
+    trim_sec= spec_header["CCDSEC"]
+    trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
+    bining= float( spec_header["PARAM18"] ) 
+    nx= np.size(spec_data[0])
+    Pixels= bining*(np.arange(0,nx,1)+trim_offset)
+    WDwave = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], n_zPnt)
+    
+
+    pix = range(len(dataval)) #This sets up an array of pixel numbers
+    if 'red' in specname.lower():
+        lowpix = 810 #For red setup. 6300 skyline
+        highpix = 900 #For red setup. 6300 skyline
+        skyline = 6300.304 #For red setup. 6300 skyline
+
+    if 'blue' in specname.lower():
+        #lowpix = 400 #For Ca K line
+        #highpix = 465 #For Ca K line
+        #skyline = 3933.668 #For Ca K line
+        lowpix = 455  #For Ca H line
+        highpix = 510 #For Ca H line
+        skyline = 3968.4673 #For Ca H line
+    
+    fitdata = dataval[lowpix:highpix]
+    fitpix = pix[lowpix:highpix]
+
+    if 'red' in specname.lower():
+        guessgred = np.zeros(4)
+        guessgred[3] = np.mean(fitdata) #continuum value
+        guessgred[0] = np.max(fitdata) - guessgred[0] #amplitude
+        guessgred[1] = 850. #central pixel
+        guessgred[2] = 5. #guess at sigma
+        #Intial values for gaussian to be fit for 5577 skyline
+        fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgred,maxfev=100000)
+    
+    if 'blue' in specname.lower():
+        guessgblue = np.zeros(4)
+        guessgblue[3] = np.mean(fitdata)
+        guessgblue[0] = guessgblue[0] - np.min(fitdata)
+        guessgblue[1] = 480. #central pixel
+        guessgblue[2] = 5. #guess at sigma
+        fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgblue,maxfev=100000)
+    print 'Gaussian center at pixel ',fitsg[1]
+    samp = np.arange(lowpix,highpix) # For plotting purposes
+    fitfuncg = Gauss(samp,fitsg[0],fitsg[1],fitsg[2],fitsg[3])
+    plt.hold('on')
+    plt.plot(samp,fitfuncg,'r')
+    plt.plot(fitpix,fitdata,'b')
+    plt.axvline(x=fitsg[1],color='r')
+    plt.hold('off')
+    plt.show()
+
+    #Take this fit and determine the new zero point
+    global newlambda
+    newlambda = skyline
+    global bestpixel
+    bestpixel = 2.*(fitsg[1] +trim_offset)#Need to figure out better way to take care of this 2
+    guess = n_zPnt
+    newzero = fsolve(newzeropoint,guess,xtol=1e-12)
+    newzPnt = float(newzero)
+    
+    WDwave2 = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], newzPnt)
+    plt.plot(WDwave2,spec_data[2,0,:])
+    plt.show()
+    return newzPnt
+
 # ===========================================================================
 # Code ====================================================================== 
 # ===========================================================================
@@ -493,6 +575,26 @@ if yn== "yes":
                        useblanks= True, bottom= True )        
     NewHdu = pf.PrimaryHDU(data= lamp_data, header= lamp_header)
     NewHdu.writeto('w'+lamp, output_verify='warn', clobber= True)
+
+#Save parameters to ZZ Ceti spectrum#
+print "\nWrite solution to header of another spectrum?"
+yn= raw_input("yes or no? >>>")
+if yn== "yes":
+    specname = raw_input("Filename: ")
+    newzeropoint = WaveShift(specname)
+    spec_data= pf.getdata(specname)
+    spec_header= pf.getheader(specname)
+    rt.Fix_Header(spec_header)
+    spec_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
+                       useblanks= True, bottom= True )
+    spec_header.append( ('CAMFUD', n_fd,'Camera Angle Correction Factor for Grat. Eq.'), 
+                       useblanks= True, bottom= True )
+    spec_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
+                       useblanks= True, bottom= True )
+    spec_header.append( ('ZPOINT', newzeropoint,'Zero Point Pixel for Grat Eq.'), 
+                       useblanks= True, bottom= True )        
+    NewspecHdu = pf.PrimaryHDU(data= spec_data, header= spec_header)
+    NewspecHdu.writeto('w'+specname, output_verify='warn', clobber= True)
 
     
  # ==========================================================================
