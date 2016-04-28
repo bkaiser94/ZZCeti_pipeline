@@ -87,7 +87,7 @@ fa = {'x':xes,'y':forfit,'err':error_fit}
 fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa)
 
 fwhm = 2.*np.sqrt(2.*np.log(2.))*fitparams.params[3]
-extraction_rad = 2.*np.round(fwhm,decimals=1)
+#extraction_rad = 2.*np.round(fwhm,decimals=1)
 extraction_rad = 5. * np.round(fwhm,decimals=1) #Extract up to 5 times FWHM
 
 
@@ -153,6 +153,8 @@ header.set('BANDID2','Raw Extracted Spectrum')
 header.set('BANDID3','Mean Background')
 header.set('BANDID4','Sigma Spectrum')
 header.set('DISPCOR',0) #Dispersion axis of image
+fwhmsave = np.round(fwhm,decimals=4)
+header.set('SPECFWHM',fwhmsave,'FWHM of spectrum in pixels') #FWHM of spectrum in pixels
 
 #Save the extracted image
 Ni = 4. #Number of extensions
