@@ -109,13 +109,17 @@ if __name__ == "__main__":
         i= i+1
     
     # Flat Field Individual Spectra #
+    blueindex = [i for i, s in enumerate(nb_flat) if 'blue' in s.lower()]
+    nbflatblue = nb_flat[blueindex[0]]
+    redindex = [i for i, s in enumerate(nb_flat) if 'red' in s.lower()]
+    nbflatred = nb_flat[redindex[0]]
     i= 0
     fb_spec_list = []
     while i < nsp:
         if b_spec_list[i][0].__contains__('blue') == True:
-            fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nb_flat[0]) )
+            fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nbflatblue) )
         elif b_spec_list[i][0].__contains__('red') == True:
-            fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nb_flat[1]) )
+            fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nbflatred) )
         else: 
             print ("Problem applying the Flats." )
             print ("Could not identify blue or red setup.")
