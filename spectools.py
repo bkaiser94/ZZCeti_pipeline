@@ -49,7 +49,7 @@ def readspectrum(specfile):
     #Read in header info
     airmass = spec[0].header['airmass']
     exptime = spec[0].header['exptime']
-
+    '''
     #Set up wavelengths using linear dispersion
     specwav0 = spec[0].header['crval1'] #Grab the leftmost wavelength coordinate
     specdeltawav = spec[0].header['cd1_1'] #Grab the delta coordinate
@@ -58,25 +58,29 @@ def readspectrum(specfile):
     ival = np.arange(1,len(farr))
     for i in ival:
         warr[i] = warr[i-1] + specdeltawav
-
-    #Set up wavelengths using grating equation
     '''
-    alpha = float(spec_header['GRT_TARG'])
-    theta = float(spec_header['CAM_TARG'])
-    fr = float(spec_header['LINDEN'])
-    fd = float(spec_header['CAMFUD'])
-    fl = float(spec_header['FOCLEN'])
-    zPnt = float(spec_header['ZPOINT'])
+    #Set up wavelengths using grating equation
     
-    trim_sec= spec_header["CCDSEC"]
+    alpha = float(spec[0].header['GRT_TARG'])
+    theta = float(spec[0].header['CAM_TARG'])
+    fr = float(spec[0].header['LINDEN'])
+    fd = float(spec[0].header['CAMFUD'])
+    fl = float(spec[0].header['FOCLEN'])
+    zPnt = float(spec[0].header['ZPOINT'])
+    
+    trim_sec= spec[0].header["CCDSEC"]
     trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
-    bining= float( spec_header["PARAM18"] ) 
-    nx= np.size(spec_data[0])
+    bining= float( spec[0].header["PARAM18"] ) 
+    nx= np.size(opfarr)#spec_data[0]
     Pixels= bining*(np.arange(0,nx,1)+trim_offset)
 
     WDwave = DispCalc(Pixels, alpha, theta, fr, fd, fl, zPnt)
     warr = np.asarray(WDwave)
-    '''
+    specdeltawav = np.zeros(len(warr))
+    specdeltawav[0] = warr[1] - warr[0]
+    for i in range(1,len(warr)):
+        specdeltawav[i] = warr[i] - warr[i-1]
+    
 
     result = spectrum(opfarr,farr,sky,sigma,warr)
     return result,airmass,exptime,specdeltawav
