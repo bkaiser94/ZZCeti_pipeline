@@ -420,11 +420,13 @@ def Norm_Flat_Poly( flat ):
     Fix_Header(hdu)
     hdu.append( ('NORMFLAT ', order,'Flat Polynomial Fit Order'), 
                useblanks= True, bottom= True )
-    coeff_str= str(coeff[0])
-    for i in range(1,len(coeff)):
-        coeff_str= coeff_str + " " + str(coeff[i])
-    hdu.append( ('NORMCOEF ', coeff_str,'Flat Polynomial Coefficients'), 
-               useblanks= True, bottom= True )
+    for i in range(0,len(coeff)):
+        coeff_str=  "{0:.5e}".format(coeff[i])
+        coeff_order = str(len(coeff)-i-1)
+        coeff_title = 'NCOEF%s' %coeff_order
+        coeff_expla = 'Flat Polynomial Coefficient - Term %s' %coeff_order
+        hdu.append((coeff_title,coeff_str,coeff_expla),
+                   useblanks= True, bottom= True )
     NewHdu = pf.PrimaryHDU(data= flat_data, header= hdu)
     norm_flat_name= check_file_exist('n'+flat)
     NewHdu.writeto(norm_flat_name, output_verify='warn', clobber= True )
