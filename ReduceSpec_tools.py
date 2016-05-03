@@ -273,14 +273,14 @@ def Trim_Spec(img):
     Fix_Header(img_head)
     length = float(img_head['PARAM17'])
     if length == 2071.:
-        img_head.append( ('TRIM', '[:, 1:200, 9:2055]' ,'Original Pixel Indices'),
+        img_head.append( ('CCDSEC', '[9:2055,1:200]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
         NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
         new_file_name= check_file_exist('t'+img)
         NewHdu.writeto(new_file_name, output_verify='warn', clobber= True )
         return (new_file_name)
     elif length == 4142.:
-        img_head.append( ('TRIM', '[:, 1:200, 19:4111]' ,'Original Pixel Indices'),
+        img_head.append( ('CCDSEC', '[19:4111,1:200]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
         NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 19:4111], header= img_head)
         new_file_name= check_file_exist('t'+img)
