@@ -73,7 +73,10 @@ rdnoise = datalist[0].header['RDNOISE']
 varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
 
 #Fit a column of the 2D image to determine the FWHM
-forfit = data[1200,:]
+if 'blue' in specfile.lower():
+    forfit = data[1200,:]
+elif 'red' if specfile.lower():
+    forfit = data[1000,:]
 
 guess = np.zeros(4)
 guess[0] = np.mean(forfit)

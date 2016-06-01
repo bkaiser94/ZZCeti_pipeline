@@ -40,9 +40,9 @@ from scipy.optimize import curve_fit, fsolve
 # zPnt= Zero point pixel offset
 
 # As close to the red set up as I currently have (930_20_40)
-Param_930_20_40= [92.668, 0.973, 377190, 1859]
+Param_930_20_40= [92.668, 0.973, 377190., 1859.]
 # As close to the blue  set up as I currently have (930_12_24)
-Param_930_12_24= [92.517, 0.962, 377190, 1836]
+Param_930_12_24= [92.517, 0.962, 377190., 1836.]
 
 # ==========================================================================
 
@@ -111,8 +111,8 @@ def DispCalc(Pixels, alpha, theta, fr, fd, fl, zPnt):
     # zPnt= Zero point pixel 
     Wavelengths= [] # Vector to store calculated wavelengths 
     for pix in Pixels:    
-        beta = np.arctan( (pix-zPnt)*15/fl ) + (fd*theta*np.pi/180) - (alpha*np.pi/180) 
-        wave = (10**6)*( np.sin(beta) + np.sin(alpha*np.pi/180) )/fr
+        beta = np.arctan( (pix-zPnt)*15./fl ) + (fd*theta*np.pi/180.) - (alpha*np.pi/180.) 
+        wave = (10**6.)*( np.sin(beta) + np.sin(alpha*np.pi/180.) )/fr
         Wavelengths.append(wave)
     return Wavelengths
     
@@ -130,8 +130,8 @@ def PixCalc(Wavelenghts, alpha, theta, fr, fd, fl, zPnt):
     # zPnt= Zero point pixel 
     Pixels= [] # Vector to store calculated wavelengths 
     for wave in Wavelenghts:   
-        beta = np.arcsin( ((wave*fr/1000000.0)) - np.sin(alpha*np.pi/180) )
-        pix = np.tan((beta + (alpha*np.pi/180)) - (fd*theta*np.pi/180)) * (fl/15) + zPnt
+        beta = np.arcsin( ((wave*fr/1000000.0)) - np.sin(alpha*np.pi/180.) )
+        pix = np.tan((beta + (alpha*np.pi/180.)) - (fd*theta*np.pi/180.)) * (fl/15.) + zPnt
         Pixels.append(pix)
     return Pixels
 
@@ -142,7 +142,7 @@ def Gauss(x,a,c,w,b):
         # x= some value
         # a= amplitude, c= center, w=  RMS width. 
         # Output= y: gausian evaluated at x 
-        y= a*np.exp( (-(x-c)**2)/(2*w**2) ) + b
+        y= a*np.exp( (-(x-c)**2.)/(2.*w**2.) ) + b
         return y   
 
 # ===========================================================================
@@ -157,7 +157,7 @@ def CrossCorr(lamp_data):
     # Calculate Cross Correlation
     print ("\nCross Correlateing")
     for i in range(0,nx):
-       G= [Gauss(X[n],1,i,3,0) for n in range(0,nx)]
+       G= [Gauss(X[n],1.,i,3.,0.) for n in range(0,nx)]
        Corr= Corr+ G*lamp_data;
     return Corr
 
@@ -165,7 +165,7 @@ def CrossCorr(lamp_data):
 
 def PeakFind(data):
     print "\nFinding Peaks"
-    widths= np.arange(1,5,.1)
+    widths= np.arange(1.,5.,.1)
     maybe= sg.find_peaks_cwt(data, widths)
     n= np.size(maybe)
     prob= []
@@ -206,12 +206,12 @@ def find_peak_centers(peak_w, Wavelen, Counts):
         ## Plot the gaussian fit 
         X= np.arange(fit_data_w[0],fit_data_w[-1], (fit_data_w[-1]-fit_data_w[0])/50.0 )
         Y= [Gauss(x, amp, cent, width, b) for x in X]
-        plt.plot(fit_data_w, fit_data_c)
-        plt.hold('on')
-        plt.plot(X, Y, 'r--')
-        plt.axvline(cent)
-        plt.hold('off')
-        plt.show()
+        #plt.plot(fit_data_w, fit_data_c)
+        #plt.hold('on')
+        #plt.plot(X, Y, 'r--')
+        #plt.axvline(cent)
+        #plt.hold('off')
+        #plt.show()
     return list_centers
 
 # ===========================================================================
@@ -237,11 +237,11 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     # Model # =============================================
     
     def Beta_Calc(w,a, FR, TF):
-        beta = np.arcsin( (w*FR/1000000.0) - np.sin(a*np.pi/180) )
+        beta = np.arcsin( (w*FR/1000000.0) - np.sin(a*np.pi/180.) )
         return beta
     def Predict_Pixel(X, FR, TF, ZPNT):
         a, w, t = X
-        pPixel = np.tan((Beta_Calc(w,a, FR, TF) + (a*np.pi/180)) - (TF*t*np.pi/180)) * (fl/15) + ZPNT
+        pPixel = np.tan((Beta_Calc(w,a, FR, TF) + (a*np.pi/180.)) - (TF*t*np.pi/180.)) * (fl/15.) + ZPNT
         return pPixel
 
     # Curve Fitting # =====================================
@@ -279,13 +279,13 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     pPixel = [Predict_Pixel(X[n], Par[0],Par[1],Par[2]) for n in range(0,N)]
     Res = [known_pix[n]-pPixel[n] for n in range(0,N)]
     # print '\nResiduals:\n %s' % Res
-    ChiSq = sum( [n**2 for n in Res] )
+    ChiSq = sum( [n**2. for n in Res] )
     #print '\nRaw ChiSq = %s' % ChiSq 
     print '\nReduced ChiSq = %s' % (ChiSq/(len(known_pix)-len(Par)-1))
     #print '\nMeanSqEr= %s\n' % (ChiSq/len(aPixel))
     plt.scatter(known_wave, Res, color='r', marker='+')
     plt.grid()
-    plt.ylim( min(Res)*2, max(Res)*2)
+    plt.ylim( min(Res)*2., max(Res)*2.)
     plt.title('Least Squares Fit Residuals')
     plt.ylabel('Pixels')
     plt.xlabel('Wavelength')
@@ -440,6 +440,7 @@ for line in line_list[1]:
 plt.title("Initial Dispersion Inspection Graph. \nClose to Calculate Offset")
 plt.xlabel("Wavelengths")
 plt.ylabel("Counts")
+
 plt.hold('off')
 plt.show()
 
@@ -460,6 +461,10 @@ if yn== 'yes':
     plt.title("First click known line(red), then click coresponding peak near center\n Then close graph.")
     plt.xlabel("Wavelengths (Ang.)")
     plt.ylabel("Counts")
+    if lamp.__contains__('blue'):
+        plt.xlim(4700.,4900.)
+    elif lamp.__contains__('red'):
+        plt.xlim(6830.,7170.)
     plt.hold('off')
     coords= [] 
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
@@ -494,9 +499,10 @@ while yn== 'yes':
   yn= raw_input('yes or no? >>>')
   
   if yn== 'yes' :
-        print "\nOffset to apply to Grating Angle?"
-        alpha_offset= float( raw_input('Offset Value? >>>') ) 
-        alpha= alpha + alpha_offset
+        #print "\nOffset to apply to Grating Angle?"
+        #alpha_offset= float( raw_input('Offset Value? >>>') )
+        alpha_offset = 0.
+        #alpha= alpha + alpha_offset
         
         fig = plt.figure(1)
         ax = fig.add_subplot(111)
