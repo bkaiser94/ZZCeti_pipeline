@@ -75,7 +75,7 @@ varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
 #Fit a column of the 2D image to determine the FWHM
 if 'blue' in specfile.lower():
     forfit = data[1200,:]
-elif 'red' if specfile.lower():
+elif 'red' in specfile.lower():
     forfit = data[1000,:]
 
 guess = np.zeros(4)
@@ -87,7 +87,7 @@ guess[3] = 3.
 error_fit = np.ones(len(forfit))
 xes = np.linspace(0,len(forfit)-1,num=len(forfit))
 fa = {'x':xes,'y':forfit,'err':error_fit}
-fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa)
+fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa,quiet=True)
 
 fwhm = 2.*np.sqrt(2.*np.log(2.))*fitparams.params[3]
 #extraction_rad = 2.*np.round(fwhm,decimals=1)
@@ -117,7 +117,7 @@ background_radii[1] = np.round(background_radii[1],decimals=1)
 #background_radii = [40,60]
 
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=background_radii,bsigma=3,extract_radius=extraction_rad,dispaxis=1,verbose=True,csigma=5.,polyspacing=1)
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=background_radii,bsigma=3,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1)
 #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
@@ -128,6 +128,7 @@ output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2
 #qmode: how to compute Marsh's Q-matrix. 'fast-linear' default and preferred.
 #nreject = number of outlier-pixels to reject at each iteration. Default = 100
 #polyspacing = Marsh's S: the spacing between the polynomials. This should be <= 1. Default = 1. Best to leave at 1. S/N decreases dramatically if greater than 1. If less than one, slower but final spectrum is the same. Crossfield note: A few cursory tests suggests that the extraction precision (in the high S/N case) scales as S^-2 -- but the code slows down as S^2.
+#Verbose=True if you want lots of output
 
 ###########
 # In superextract, to plot a 2D frame at any point, use the following

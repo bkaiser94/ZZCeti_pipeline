@@ -15,6 +15,11 @@ are project spesific.
 Use: 
 >>> python WaveCal.py lamp_spec.fits
 
+To do:
+- Check list of lines and pixels
+- Add method to reject lines after refitting
+- Automatically chose lines for refitting
+
 '''
 # ==========================================================================
 # Imports # ================================================================
@@ -354,12 +359,12 @@ def WaveShift(specname):
     print 'Gaussian center at pixel ',fitsg[1]
     samp = np.arange(lowpix,highpix) # For plotting purposes
     fitfuncg = Gauss(samp,fitsg[0],fitsg[1],fitsg[2],fitsg[3])
-    plt.hold('on')
-    plt.plot(samp,fitfuncg,'r')
-    plt.plot(fitpix,fitdata,'b')
-    plt.axvline(x=fitsg[1],color='r')
-    plt.hold('off')
-    plt.show()
+    #plt.hold('on')
+    #plt.plot(samp,fitfuncg,'r')
+    #plt.plot(fitpix,fitdata,'b')
+    #plt.axvline(x=fitsg[1],color='r')
+    #plt.hold('off')
+    #plt.show()
 
     #Take this fit and determine the new zero point
     global newlambda
