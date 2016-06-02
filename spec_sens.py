@@ -53,6 +53,7 @@ import datetime
 
 import matplotlib.pyplot as plt
 
+#=============================================
 #These functions are to help with excluding regions from the sensitivity function
 def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
@@ -66,10 +67,10 @@ def onclick(event):
     fig.canvas.draw()
     coords.append((ix,iy))
 
+#=============================================
 
 #Read in lists from command line
 script, stdlist, fluxlist, speclist = sys.argv
-#script, stdspecfile, stdfile, specfile = sys.argv
 #stdspecfile = 'wnb.GD50_930_blue.ms.fits'
 #stdfile = 'mgd50.dat'
 #specfile = 'wnb.WD0122p0030_930_blue.ms.fits'
@@ -77,7 +78,6 @@ script, stdlist, fluxlist, speclist = sys.argv
 #Read in each standard star spectrum 
 standards = np.genfromtxt(stdlist,dtype=str)
 stdflux = np.genfromtxt(fluxlist,dtype=str)
-#print len(stdflux)
 if stdflux.size == 1:
     stdflux = np.array([stdflux]) #save stdflux explicitly as an array so you can index if only 1 element
 #Check that the files are set up correctly to avoid mixing standards.
@@ -221,12 +221,10 @@ for stdspecfile in standards:
         residual = fluxesfit - smooth_sens
         plt.close()
         plt.ion()
-        #ax1 = plt.subplot(211)
         g, (ax1,ax2) = plt.subplots(2,sharex=True)
         ax1.plot(lambdasfit,fluxesfit,'b+')
         ax1.plot(lambdasfit,smooth_sens,'r',linewidth=2.0)
         ax1.set_ylabel('Sensitivity Function')
-        #ax2 = plt.subplot(212,sharex=ax1)
         ax2.plot(lambdasfit,residual,'k+')
         ax2.set_ylabel('Residuals')
         ax1.set_title('Current polynomial order: %s' % order)
@@ -293,11 +291,6 @@ while avocado < length:
     #plt.clf()
     #plt.plot(WD_spectra.warr,star_opflux)
     #plt.show()
-
-    #Save the wavelenghts, counts, and fluxes
-    #np.savetxt('python_counts.txt',np.transpose([std_spectra.warr,counts]))
-    #np.savetxt('python_sens.txt',np.transpose([obs_spectra.warr,sens_wave]))
-    #np.savetxt('python_flux.txt',np.transpose([WD_spectra.warr,flux]))
 
     print 'Saving the final spectrum.'
 

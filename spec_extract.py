@@ -34,6 +34,8 @@ import superextract
 from superextract_tools import lampextract
 from pylab import *
 
+#===========================================
+#Define functions for fitting gaussian
 def gauss(x,p): #single gaussian
     return p[0] +  p[1]*np.exp(-(((x-p[2])/(np.sqrt(2)*p[3])))**2.)
 
@@ -43,6 +45,8 @@ def fitgauss(p,fjac=None,x=None,y=None,err=None):
     model = gauss(x,p)
     status = 0
     return([status,(y-model)/err])
+
+#===========================================
 
 #Read in file from command line
 if len(sys.argv) == 3:
@@ -89,8 +93,8 @@ xes = np.linspace(0,len(forfit)-1,num=len(forfit))
 fa = {'x':xes,'y':forfit,'err':error_fit}
 fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa,quiet=True)
 
+#The guassian gives us sigma, convert to FWHM
 fwhm = 2.*np.sqrt(2.*np.log(2.))*fitparams.params[3]
-#extraction_rad = 2.*np.round(fwhm,decimals=1)
 extraction_rad = 5. * np.round(fwhm,decimals=1) #Extract up to 5 times FWHM
 
 
@@ -116,6 +120,8 @@ background_radii[1] = np.round(background_radii[1],decimals=1)
 #extraction_rad = 10.
 #background_radii = [40,60]
 
+
+#Extract the spectrum using superextract
 
 output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=background_radii,bsigma=3,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1)
 #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
