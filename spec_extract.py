@@ -215,7 +215,7 @@ f.close()
 #Extract a lamp spectrum using the trace from above
 ##########################
 
-#lamp = 't0025.Fe_ZZCeti_930_blue_long.fits'
+
 if lamp != 'no':
     lamplist = fits.open(lamp)
     lampdata = lamplist[0].data
@@ -253,7 +253,8 @@ if lamp != 'no':
     #Save the extracted spectra with .ms.fits in the filename
     #Ask to overwrite if file already exists or provide new name
     loc2 = lamp.find('.fits')
-    newname2 = lamp[0:loc2] + '.ms.fits'
+    loc3 = newname.find('_930')
+    newname2 = lamp[0:loc2] + '_' + newname[4:loc3]  + '.ms.fits'
     clob = False
 
     mylist = [True for f in os.listdir('.') if f == newname2]
