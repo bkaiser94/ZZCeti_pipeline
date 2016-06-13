@@ -50,16 +50,21 @@ WDwave = DispCalc(Pixels, alpha, theta, fr, fd, fl, zPnt)
 WDwave2 = np.asarray(WDwave)
 #print type(WDwave2)
 
-print 'Extension options:'
-print '0: Optimally extracted spectrum'
-print '1: Raw extracted spectrum'
-print '2: Sky spectrum'
-print '3: Sigma spectrum'
 
-plotagain = 'y'
-while plotagain == 'y':
-    extension = raw_input('Which extenstion? >> ')
+if '_fe_' in specname.lower():
     plt.clf()
-    plt.plot(WDwave,spec_data[extension,0,:])
+    plt.plot(WDwave,spec_data[0,:])
     plt.show()
-    plotagain = raw_input('Would you like to plot a different extension? (y/n)')
+else:
+    plotagain = 'y'
+    print 'Extension options:'
+    print '0: Optimally extracted spectrum'
+    print '1: Raw extracted spectrum'
+    print '2: Sky spectrum'
+    print '3: Sigma spectrum'
+    while plotagain == 'y':
+        extension = raw_input('Which extenstion? >> ')
+        plt.clf()
+        plt.plot(WDwave,spec_data[extension,0,:])
+        plt.show()
+        plotagain = raw_input('Would you like to plot a different extension? (y/n)')

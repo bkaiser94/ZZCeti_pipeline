@@ -19,6 +19,7 @@ To do:
 - Check list of lines and pixels
 - Add method to reject lines after refitting
 - Automatically chose lines for refitting
+- Add name of lamp used to header of spectrum
 
 '''
 # ==========================================================================
@@ -31,6 +32,7 @@ import pyfits as pf
 import scipy.signal as sg
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit, fsolve
+import mpfit
 
 # ==========================================================================
 # Data # ===================================================================
@@ -299,7 +301,19 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     return Par
     
 # =========================================================================== 
-    
+def gaussmpfit(x,p): #single gaussian
+    return p[3] +  p[0]*np.exp(-(((x-p[1])/(np.sqrt(2)*p[2])))**2.)
+
+
+# =========================================================================== 
+def fitgauss(p,fjac=None,x=None,y=None,err=None):
+    #Parameter values are passed in p
+    #fjac = None just means partial derivatives will not be computed
+    model = gaussmpfit(x,p)
+    status = 0
+    return([status,(y-model)/err])
+
+#===========================================    
 def newzeropoint(x):
     beta = np.arctan( (bestpixel-x)*15./parm[2] ) + (n_fd*theta*np.pi/180.) - (alpha*np.pi/180.)
     out = newlambda - (10**6.)*( np.sin(beta) + np.sin(alpha*np.pi/180.) )/n_fr
@@ -339,38 +353,48 @@ def WaveShift(specname):
     
     fitdata = dataval[lowpix:highpix]
     fitpix = pix[lowpix:highpix]
+    fiterror = np.sqrt(fitdata)
 
     if 'red' in specname.lower():
         guessgred = np.zeros(4)
         guessgred[3] = np.mean(fitdata) #continuum value
         guessgred[0] = np.max(fitdata) - guessgred[0] #amplitude
-        guessgred[1] = 850. #central pixel
+        guessgred[1] = fitpix[fitdata.argmax()] #central pixel
         guessgred[2] = 5. #guess at sigma
-        #Intial values for gaussian to be fit for 5577 skyline
-        fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgred,maxfev=100000)
+        paraminfo = [{'limits':[0,0],'limited':[0,0]} for i in range(4)]
+        paraminfo[0]['limited'] = [1,0]
+        paraminfo[0]['limits'] = [0.,0]
+        fa = {'x':fitpix,'y':fitdata,'err':fiterror}
+        fitsg = mpfit.mpfit(fitgauss,guessgred,functkw=fa,parinfo=paraminfo,quiet=True)
+        #fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgred,maxfev=100000)
     
     if 'blue' in specname.lower():
         guessgblue = np.zeros(4)
         guessgblue[3] = np.mean(fitdata)
         guessgblue[0] = guessgblue[0] - np.min(fitdata)
-        guessgblue[1] = 480. #central pixel
+        guessgblue[1] = fitpix[fitdata.argmin()] #minimum pixel
         guessgblue[2] = 5. #guess at sigma
-        fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgblue,maxfev=100000)
-    print 'Gaussian center at pixel ',fitsg[1]
+        paraminfo = [{'limits':[0,0],'limited':[0,0]} for i in range(4)]
+        paraminfo[0]['limited'] = [0,1]
+        paraminfo[0]['limits'] = [0,0.]
+        fa = {'x':fitpix,'y':fitdata,'err':fiterror}
+        fitsg = mpfit.mpfit(fitgauss,guessgblue,functkw=fa,parinfo=paraminfo,quiet=True)
+        #fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgblue,maxfev=100000)
+    print 'Gaussian center at pixel ',fitsg.params[1]
     samp = np.arange(lowpix,highpix) # For plotting purposes
-    fitfuncg = Gauss(samp,fitsg[0],fitsg[1],fitsg[2],fitsg[3])
-    #plt.hold('on')
-    #plt.plot(samp,fitfuncg,'r')
-    #plt.plot(fitpix,fitdata,'b')
-    #plt.axvline(x=fitsg[1],color='r')
-    #plt.hold('off')
-    #plt.show()
+    fitfuncg = Gauss(samp,fitsg.params[0],fitsg.params[1],fitsg.params[2],fitsg.params[3])
+    plt.hold('on')
+    plt.plot(samp,fitfuncg,'r')
+    plt.plot(fitpix,fitdata,'b')
+    plt.axvline(x=fitsg.params[1],color='r')
+    plt.hold('off')
+    plt.show()
 
     #Take this fit and determine the new zero point
     global newlambda
     newlambda = skyline
     global bestpixel
-    bestpixel = 2.*(fitsg[1] +trim_offset)#Need to figure out better way to take care of this 2
+    bestpixel = 2.*(fitsg.params[1] +trim_offset)#Need to figure out better way to take care of this 2
     guess = n_zPnt
     newzero = fsolve(newzeropoint,guess,xtol=1e-12)
     newzPnt = float(newzero)
