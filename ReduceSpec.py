@@ -112,7 +112,8 @@ if __name__ == "__main__":
     blueindex = [i for i, s in enumerate(nb_flat) if 'blue' in s.lower()]
     nbflatblue = nb_flat[blueindex[0]]
     redindex = [i for i, s in enumerate(nb_flat) if 'red' in s.lower()]
-    nbflatred = nb_flat[redindex[0]]
+    if len(redindex) > 0:
+        nbflatred = nb_flat[redindex[0]]
     i= 0
     fb_spec_list = []
     while i < nsp:

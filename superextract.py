@@ -602,17 +602,17 @@ def superExtract(*args, **kw):
         fixSkysubFrame = bfixpix(skysubFrame, True-goodpixelmask, n=8, retdat=True)
         spectrum = np.zeros((nlam, 1), dtype=float)
         varSpectrum = np.zeros((nlam, 1), dtype=float)
-        goodprof =  profile.transpose() * goodpixelmask
+        goodprof =  profile.transpose() * goodpixelmask #Horne: M*P
        
         for ii in range(nlam):
             thisrow_good = extractionApertures[ii]
-            denom = (goodprof[ii, thisrow_good] * profile.transpose()[ii, thisrow_good] / variance0[ii, thisrow_good]).sum()
+            denom = (goodprof[ii, thisrow_good] * profile.transpose()[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() #Horne: sum(M*P**2/V)
             if denom==0:
                 spectrum[ii] = 0.
                 varSpectrum[ii] = 9e9
             else:
-                spectrum[ii] = (goodprof[ii, thisrow_good] * fixSkysubFrame[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom
-                varSpectrum[ii] = goodprof[ii, thisrow_good].sum() / denom
+                spectrum[ii] = (goodprof[ii, thisrow_good] * fixSkysubFrame[ii, thisrow_good] / variance0[ii, thisrow_good]).sum() / denom #Horne: sum(M*P*(D-S)/V) / sum(M*P**2/V)
+                varSpectrum[ii] = goodprof[ii, thisrow_good].sum() / denom #Horne: sum(M*P) / sum(M*P**2/V)
            
 
     ret = baseObject()

@@ -77,6 +77,8 @@ script, stdlist, fluxlist, speclist = sys.argv
 
 #Read in each standard star spectrum 
 standards = np.genfromtxt(stdlist,dtype=str)
+if standards.size ==1:
+    standards = np.array([standards])
 stdflux = np.genfromtxt(fluxlist,dtype=str)
 if stdflux.size == 1:
     stdflux = np.array([stdflux]) #save stdflux explicitly as an array so you can index if only 1 element
@@ -247,21 +249,32 @@ for stdspecfile in standards:
 #save files and write to sensitivity_params.txt
 
 specfile = np.genfromtxt(speclist,dtype=str)
+if specfile.size ==1:
+    specfile = np.array([specfile])
 length = len(specfile)
 airwd = np.zeros([length])
+if length == 1:
+    redfile = False
+else:
+    redfile = True
 
 avocado = 0
 while avocado < length:
     #Read in the blue and red spectra we want to flux calibrate. Save the airmass
     WD_spectra1,airmass1,exptime1,dispersion1 = st.readspectrum(specfile[avocado])
-    WD_spectra2,airmass2,exptime2,dispersion2 = st.readspectrum(specfile[avocado+1])
+    if redfile:
+        WD_spectra2,airmass2,exptime2,dispersion2 = st.readspectrum(specfile[avocado+1])
 
     airwd[avocado] = airmass1
-    airwd[avocado+1] = airmass2
+    if redfile:
+        airwd[avocado+1] = airmass2
     #Compare the airmasses to determine the best standard star
     tomato = 0
     while tomato < len(airstd):
-        diff = np.absolute(np.mean([airwd[avocado],airwd[avocado+1]]) - np.mean([airstd[tomato],airstd[tomato+1]]))
+        if redfile:
+            diff = np.absolute(np.mean([airwd[avocado],airwd[avocado+1]]) - np.mean([airstd[tomato],airstd[tomato+1]]))
+        else:
+            diff = np.absolute(airwd[avocado] - airstd[tomato])
         if tomato == 0:
             difference = diff
             choice = tomato
@@ -274,7 +287,8 @@ while avocado < length:
     #Flux = counts / (Exptime * dispersion * 10**(sens/2.5))
     #Get the sensitivity function at the correct wavelength spacing
     sens_wave1 = senspolys[choice](WD_spectra1.warr)
-    sens_wave2 = senspolys[choice+1](WD_spectra2.warr)
+    if redfile:
+        sens_wave2 = senspolys[choice+1](WD_spectra2.warr)
 
     #Perform the flux calibration. We do this on the optimal extraction, non-variance weighted aperture, the sky spectrum, and the sigma spectrum.
     print 'Doing the final flux calibration.'
@@ -283,10 +297,11 @@ while avocado < length:
     sky_flux1 = st.cal_spec(WD_spectra1.sky,sens_wave1,exptime1,dispersion1)
     sigma_flux1 = st.cal_spec(WD_spectra1.sigma,sens_wave1,exptime1,dispersion1)
 
-    star_opflux2 = st.cal_spec(WD_spectra2.opfarr,sens_wave2,exptime2,dispersion2)
-    star_flux2 = st.cal_spec(WD_spectra2.farr,sens_wave2,exptime2,dispersion2)
-    sky_flux2 = st.cal_spec(WD_spectra2.sky,sens_wave2,exptime2,dispersion2)
-    sigma_flux2 = st.cal_spec(WD_spectra2.sigma,sens_wave2,exptime2,dispersion2)
+    if redfile:
+        star_opflux2 = st.cal_spec(WD_spectra2.opfarr,sens_wave2,exptime2,dispersion2)
+        star_flux2 = st.cal_spec(WD_spectra2.farr,sens_wave2,exptime2,dispersion2)
+        sky_flux2 = st.cal_spec(WD_spectra2.sky,sens_wave2,exptime2,dispersion2)
+        sigma_flux2 = st.cal_spec(WD_spectra2.sigma,sens_wave2,exptime2,dispersion2)
 
     #plt.clf()
     #plt.plot(WD_spectra.warr,star_opflux)
@@ -301,16 +316,18 @@ while avocado < length:
     header1.set('BUNIT','erg/cm2/s/A') #physical units of the array value
     header1.set('STANDARD',str(standards[choice]),'Flux standard used') #flux standard used for flux-calibration
 
-    header2 = st.readheader(specfile[avocado+1])
-    header2.set('EX-FLAG',-1) #Extiction correction? 0=yes, -1=no
-    header2.set('CA-FLAG',0) #Calibrated to flux scale? 0=yes, -1=no
-    header2.set('BUNIT','erg/cm2/s/A') #physical units of the array value
-    header2.set('STANDARD',str(standards[choice+1]),'Flux standard used') #flux standard used for flux-calibration
+    if redfile:
+        header2 = st.readheader(specfile[avocado+1])
+        header2.set('EX-FLAG',-1) #Extiction correction? 0=yes, -1=no
+        header2.set('CA-FLAG',0) #Calibrated to flux scale? 0=yes, -1=no
+        header2.set('BUNIT','erg/cm2/s/A') #physical units of the array value
+        header2.set('STANDARD',str(standards[choice+1]),'Flux standard used') #flux standard used for flux-calibration
 
     #Set up size of new fits image
     Ni = 4. #Number of extensions
     Nx1 = len(star_flux1)
-    Nx2 = len(star_flux2)
+    if redfile:
+        Nx2 = len(star_flux2)
     Ny = 1. #All 1D spectra
 
     data1 = np.empty(shape = (Ni,Ny,Nx1))
@@ -319,11 +336,12 @@ while avocado < length:
     data1[2,:,:] = sky_flux1
     data1[3,:,:] = sigma_flux1
     
-    data2 = np.empty(shape = (Ni,Ny,Nx2))
-    data2[0,:,:] = star_opflux2
-    data2[1,:,:] = star_flux2
-    data2[2,:,:] = sky_flux2
-    data2[3,:,:] = sigma_flux2
+    if redfile:
+        data2 = np.empty(shape = (Ni,Ny,Nx2))
+        data2[0,:,:] = star_opflux2
+        data2[1,:,:] = star_flux2
+        data2[2,:,:] = sky_flux2
+        data2[3,:,:] = sigma_flux2
 
     #Add '_flux' to the end of the filename
     loc1 = specfile[avocado].find('.ms.fits')
@@ -347,38 +365,44 @@ while avocado < length:
     newim1 = pf.PrimaryHDU(data=data1,header=header1)
     newim1.writeto(newname1,clobber=clob)
 
-    loc2 = specfile[avocado+1].find('.ms.fits')
-    newname2 = specfile[avocado+1][0:loc2] + '_flux.ms.fits'
-    clob = False
-    mylist = [True for f in os.listdir('.') if f == newname2]
-    exists = bool(mylist)
+    if redfile:
+        loc2 = specfile[avocado+1].find('.ms.fits')
+        newname2 = specfile[avocado+1][0:loc2] + '_flux.ms.fits'
+        clob = False
+        mylist = [True for f in os.listdir('.') if f == newname2]
+        exists = bool(mylist)
 
-    if exists:
-        print 'File %s already exists.' % newname2
-        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
-        if nextstep == 'overwrite':
-            clob = True
-            exists = False
-        elif nextstep == 'new':
-            newname2 = raw_input('New file name: ')
-            exists = False
-        else:
-            exists = False
+        if exists:
+            print 'File %s already exists.' % newname2
+            nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+            if nextstep == 'overwrite':
+                clob = True
+                exists = False
+            elif nextstep == 'new':
+                newname2 = raw_input('New file name: ')
+                exists = False
+            else:
+                exists = False
 
-    newim2 = pf.PrimaryHDU(data=data2,header=header2)
-    newim2.writeto(newname2,clobber=clob)
+        newim2 = pf.PrimaryHDU(data=data2,header=header2)
+        newim2.writeto(newname2,clobber=clob)
 
     #Finally, save all the used parameters into a file for future reference.
     # specfile,current date, stdspecfile,stdfile,order,size,newname
     f = open('sensitivity_params.txt','a')
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
     newinfo1 = specfile[avocado] + '\t' + now + '\t' + standards[choice] + '\t' + stdflux[choice//2] + '\t' + str(allexcluded[choice]) + '\t' + str(orderused[choice]) + '\t' + str(size) + '\t' + newname1
-    newinfo2 = specfile[avocado+1] + '\t' + now + '\t' + standards[choice+1] + '\t' + stdflux[choice//2] + '\t' + str(allexcluded[choice+1]) + '\t' + str(orderused[choice+1]) + '\t' + str(size) + '\t' + newname2
-    f.write(newinfo1 + "\n" + newinfo2 + "\n")
+    if redfile:
+        newinfo2 = specfile[avocado+1] + '\t' + now + '\t' + standards[choice+1] + '\t' + stdflux[choice//2] + '\t' + str(allexcluded[choice+1]) + '\t' + str(orderused[choice+1]) + '\t' + str(size) + '\t' + newname2
+        f.write(newinfo1 + "\n" + newinfo2 + "\n")
+    else:
+        f.write(newinfo1 + "\n")
     f.close()
 
-
-    avocado += 2
+    if redfile:
+        avocado += 2
+    else:
+        avocado += 1
 
 print 'Done flux calibrating the spectra.'
 
