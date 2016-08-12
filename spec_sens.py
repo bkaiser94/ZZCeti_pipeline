@@ -239,8 +239,26 @@ for stdspecfile in standards:
 
     orderused[cucumber] = order
     senspolys.append(f)
+
+    #Save arrays for diagnostic plots
+    if cucumber == 0:
+        bigarray = np.zeros([len(lambdasfit),4.*len(standards)])
+        artichoke = 0
+    bigarray[0:len(lambdasfit),artichoke] = lambdasfit
+    bigarray[0:len(fluxesfit),artichoke+1] = fluxesfit
+    bigarray[0:len(smooth_sens),artichoke+2] = smooth_sens
+    bigarray[0:len(residual),artichoke+3] = residual
+    artichoke += 4
+                   
     cucumber += 1
 
+#Save fit and residuals into text file for diagnostic plotting later.
+#Need to save lambdasfit,fluxesfit,smooth_sens,residual for each standard
+#List of standards is found as standards
+now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+with open('sens_fits_' + now + '.txt','a') as handle:
+    header = str(standards) + '\n Set of four columns correspond to wavelength, observed flux, polynomial fit, \n and residuals for each standard listed above. \n You will probably need to strip zeros from the bottoms of some columns.'
+    np.savetxt(handle,bigarray,fmt='%f',header = header)
 
 #Outline for next steps:
 #Read in both red and blue files

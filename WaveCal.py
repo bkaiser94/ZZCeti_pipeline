@@ -33,6 +33,7 @@ import scipy.signal as sg
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit, fsolve
 import mpfit
+import datetime
 
 # ==========================================================================
 # Data # ===================================================================
@@ -297,6 +298,9 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     plt.ylabel('Pixels')
     plt.xlabel('Wavelength')
     plt.show()
+
+    savearray[0:len(known_wave),0] = known_wave
+    savearray[0:len(Res),1] = Res
     
     return Par
     
@@ -390,6 +394,10 @@ def WaveShift(specname):
     plt.hold('off')
     plt.show()
 
+    savearray[0:len(samp),5] = samp
+    savearray[0:len(samp),6] = fitdata
+    savearray[0:len(samp),7] = fitfuncg
+
     #Take this fit and determine the new zero point
     global newlambda
     newlambda = skyline
@@ -400,8 +408,8 @@ def WaveShift(specname):
     newzPnt = float(newzero)
     
     WDwave2 = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], newzPnt)
-    plt.plot(WDwave2,spec_data[2,0,:])
-    plt.show()
+    #plt.plot(WDwave2,spec_data[2,0,:])
+    #plt.show()
     return newzPnt
 
 # ===========================================================================
@@ -567,9 +575,11 @@ while yn== 'yes':
         for i in range(0,n_pnt):
             x= find_near(coord_x[i], line_list[1])
             known_waves.append(x)
-    
+
+        #Create array to save data for diagnostic purposes
+        global savearray
+        savearray = np.zeros([len(Wavelengths),8])
         n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
-        
         n_Wavelengths= DispCalc(Pixels, alpha-alpha_offset, theta, n_fr, n_fd, parm[2], n_zPnt)
         
         
@@ -584,6 +594,11 @@ while yn== 'yes':
         plt.ylabel("Counts")
         plt.hold('off')
         
+        savearray[0:len(n_Wavelengths),2] = n_Wavelengths
+        savearray[0:len(lamp_spec),3] = lamp_spec
+        savearray[0:len(np.array(line_list[1])),4] = np.array(line_list[1])
+        
+
         '''        
         plt.figure(2)
         Diff= [ (Wavelengths[i]-n_Wavelengths[i]) for i in range(0,np.size(Wavelengths)) ]
@@ -631,6 +646,12 @@ if yn== "yes":
     NewspecHdu = pf.PrimaryHDU(data= spec_data, header= spec_header)
     NewspecHdu.writeto('w'+specname, output_verify='warn', clobber= True)
 
+#Save arrays for diagnostics
+now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+endpoint = '_930'
+with open('wavecal_' + specname[4:specname.find(endpoint)] + '_' + now + '.txt','a') as handle:
+    header = lamp + ',' + specname + '\n First 2 columns: fitted wavelengths, residuals \n Next 3 columns: wavelengths, flux, lambdas fit \n Final 3 columns: wavelengths, sky flux, fit to line for recentering'
+    np.savetxt(handle,savearray,fmt='%f',header = header)
     
  # ==========================================================================
  # is solution linear ? 

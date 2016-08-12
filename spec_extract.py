@@ -11,8 +11,15 @@ To run:
 python spec_extract.py filename_of_2d_spectrum
 python spec_extract.py tnb.0526.WD1422p095_930_blue.fits
 
-Inputs:
-spectral filename, lamp file (?)
+:INPUTS:
+    spectral filename : string
+        Name of file you want to extract.
+
+:OPTIONS:
+    lamp file : string, optional
+        You will be prompted for this. If you want to extract a lamp using the same trace as the spectral filename, provide this. 
+
+
 extract_radius and  bkg_radii computed automatically. FWHM used for extract_radius
 output file name and lamp output filename done automatically
 

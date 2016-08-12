@@ -71,12 +71,14 @@ if __name__ == "__main__":
     if nargs >= 9:
         method = args[8]
         
-        
+    #Set up array to save for diagnostics. This is defined in rt.init()
+    rt.init()
+    
     # The rest of the code runs the reduction procces up to apall #  =========
     # Combine Zeros # 
     comb_zero = rt.imcombine(zero_lists[0], zero_names[0], 'average', lo_sig= lo_sig, 
                         hi_sig= hi_sig, overwrite= overwrite)
-                        
+    
     # Bias Subtract Flats # 
     nf= len(flat_lists) # number of flats
     b_flat_lists= []
@@ -92,7 +94,7 @@ if __name__ == "__main__":
         comb_flat.append( rt.imcombine(b_flat_lists[i], 'b.'+flat_names[i], 'median', 
                         lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
         i= i+1
-                        
+    
     # Normalize Flat (divide by average of counts) # 
     i= 0
     nb_flat= []

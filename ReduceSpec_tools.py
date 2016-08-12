@@ -14,10 +14,14 @@ import numpy as np
 import pyfits as pf
 import mpfit
 import os
-
+import datetime
 # ===========================================================================
 # Lesser Functions Used by Main Functions ===================================
 # ===========================================================================
+
+def init():
+    global diagnostic
+    diagnostic = np.zeros([2071,17])
 
 def gauss(x,p): #single gaussian
     return p[0] +  p[1]*np.exp(-(((x-p[2])/(np.sqrt(2)*p[3])))**2.)
@@ -43,8 +47,13 @@ def checkspec(listcheck):
     fwhm2 = np.zeros(len(listcheck))
     center1 = np.zeros(len(listcheck))
     center2 = np.zeros(len(listcheck))
-
-    f = open('FWHM_records.txt','a')
+    newfilename = 'FWHM_records_' + now + '.txt'
+    mylist = [True for f in os.listdir('.') if f == newfilename]
+    exists = bool(mylist)
+    f = open('FWHM_records_' + now + '.txt','a')
+    if not exists:
+        header = 'Columns: filename, Column of 2D image checked, FWHM of Gaussian fit to that column, Center position of Gaussian fit to that column, Second column checked, FWHM of second column, Center position of second column.'
+        f.write(header+ "\n")
     n = 0.
     for specfile in listcheck:
         datalist = pf.open(specfile)
@@ -305,10 +314,11 @@ def Add_Scale (img_block):
     for i in range(0,ni):
         Cavg.append( np.mean(img_block[i, 25:75, 1700:1800]) )
         Sval.append( Cavg[0]-Cavg[i] )
-        img_block[i]= img_block[i] + Sval[i]     
+        img_block[i]= img_block[i] + Sval[i]
+    diagnostic[0:len(Cavg),0] = np.array(Cavg)
     return img_block, Sval
     
-def Mult_Scale (img_block):
+def Mult_Scale (img_block,index):
     # Function to be called by Imcombine. 
     # The function is meant to multiplicative sclae a set of images, (flats in particular). 
     # The input is a numpy block of pixel values (see imcombine). 
@@ -320,11 +330,19 @@ def Mult_Scale (img_block):
     print("Scaling Counts Multiplicatively.\n")
     ni, ny, nx = np.shape(img_block)
     Cavg= [] # Average Counts 
+    Cstd = [] #Standard deviation 
     Sval= []  # Scale Values
     for i in range(0,ni):
         Cavg.append( np.mean(img_block[i, 25:75, 1700:1800]) )
+        Cstd.append( np.std(img_block[i,25:75,1700:1800]))
         Sval.append( Cavg[0]/Cavg[i] )
-        img_block[i]= img_block[i]*Sval[i]     
+        img_block[i]= img_block[i]*Sval[i]    
+    if index == 1:
+        diagnostic[0:len(Cavg),3] = np.array(Cavg)
+        diagnostic[0:len(Cstd),4] = np.array(Cstd)
+    elif index == 2:
+        diagnostic[0:len(Cavg),7] = np.array(Cavg)
+        diagnostic[0:len(Cstd),8] = np.array(Cstd)
     return img_block, Sval
         
     
@@ -408,6 +426,21 @@ def Norm_Flat_Poly( flat ):
     # Calculate Fit # 
     coeff= np.polyfit(X[lo:hi], fit_data[lo:hi], order ) # coefficents of polynomial fit # 
     profile= np.poly1d(coeff)(X) # Profile Along Dispersion axis # 
+    #Save values for diagnostics
+    if flat.__contains__("blue"):
+        diagnostic[0:len(X[lo:hi]),11] = X[lo:hi]
+        diagnostic[0:len(fit_data[lo:hi]),12] = fit_data[lo:hi]
+        diagnostic[0:len(profile),13] = profile
+    if flat.__contains__("red"):
+        diagnostic[0:len(X[lo:hi]),14] = X[lo:hi]
+        diagnostic[0:len(fit_data[lo:hi]),15] = fit_data[lo:hi]
+        diagnostic[0:len(profile),16] = profile
+        global now
+        now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+        header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat'
+        with open('reduction_' + now + '.txt','a') as handle:
+            np.savetxt(handle,diagnostic,fmt='%f',header=header)
+
     # Divide each Row by the Profile # 
     for row in flat_data[0]:
         i= 0; 
@@ -523,7 +556,6 @@ def imcombine(im_list, output_name, method,
 #   After succefully combining, calculateing airmass, and writing to fits file, 
 #   The return of this function is the name of the combined 
 #   image (Output_name).
-              
     print "\n====================\n" 
     print "Combining Images:"
     print "Using %s of count values." % method 
@@ -553,7 +585,12 @@ def imcombine(im_list, output_name, method,
         img_block, Scale= Add_Scale(img_block)
     # If Flats Multiplicative Scale Images # 
     elif im_list[0].lower().__contains__("flat"):
-        img_block, Scale= Mult_Scale(img_block)
+        if im_list[0].lower().__contains__("blue"):
+            index = 1.
+            img_block, Scale= Mult_Scale(img_block,index)
+        elif im_list[0].lower().__contains__("red"):
+            index = 2.
+            img_block, Scale= Mult_Scale(img_block,index)
     # If Not, Dont Scale # 
     else: 
         print "Did Not Scale Images.\n" 
@@ -561,11 +598,26 @@ def imcombine(im_list, output_name, method,
         Scale[:]= np.NaN
     
     # Print Name and Statistics of Each image % 
+    avgarr,stdarr = np.zeros(Ni), np.zeros(Ni)
     for i in range(0,Ni):
         Avg= np.mean(img_block[i,25:75,1700:1800])
         Std= np.std(img_block[i,25:75,1700:1800])
+        avgarr[i] = Avg
+        stdarr[i] = Std
         print ( "%02d: %s ScaleValue:% .3f Mean: %.3f StDiv: %.3f" 
                 % (i, im_list[i], Scale[i], Avg, Std) )
+    
+    #Save Values to diagnostic array
+    if im_list[0].lower().__contains__("zero"):
+        diagnostic[0:len(avgarr),1] = avgarr
+        diagnostic[0:len(stdarr),2] = stdarr
+    if im_list[0].lower().__contains__("flat"):
+        if im_list[0].lower().__contains__("blue"):
+            diagnostic[0:len(avgarr),5] = avgarr
+            diagnostic[0:len(stdarr),6] = stdarr
+        elif im_list[0].lower().__contains__("red"):
+            diagnostic[0:len(avgarr),9] = avgarr
+            diagnostic[0:len(stdarr),10] = stdarr
     
     ## Combine the images acording to input "method" using SigmaClip() above ## 
     comb_img = np.ndarray( shape= (1,Ny,Nx), dtype='float32')
