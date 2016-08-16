@@ -83,7 +83,40 @@ rdnoise = datalist[0].header['RDNOISE']
 #Calculate the variance of each pixel in ADU
 varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
 
-#Fit a column of the 2D image to determine the FWHM
+#Fit a Gaussian every 10 pixels to determine FWHM for convolving in the model fitting.
+fitpixel = np.arange(5,len(data[:,100]),10)
+allfwhm = np.zeros(len(fitpixel))
+for x in fitpixel:
+    forfit = data[x,2:]
+    guess = np.zeros(4)
+    guess[0] = np.mean(forfit)
+    guess[1] = np.amax(forfit)
+    guess[2] = np.argmax(forfit)
+    guess[3] = 3.
+    error_fit = np.ones(len(forfit))
+    xes = np.linspace(0,len(forfit)-1,num=len(forfit))
+    fa = {'x':xes,'y':forfit,'err':error_fit}
+    fitparams = mpfit.mpfit(fitgauss,guess,functkw=fa,quiet=True)
+    allfwhm[np.argwhere(fitpixel == x)] = 2.*np.sqrt(2.*np.log(2.))*fitparams.params[3]
+    #plt.clf()
+    #plt.plot(forfit)
+    #plt.plot(xes,gauss(xes,fitparams.params))
+    #plt.show()
+
+fwhmpolyvalues = np.polyfit(fitpixel,allfwhm,deg=1)
+allpixel = np.arange(0,len(data[:,100]),1)
+fwhmpoly = np.poly1d(fwhmpolyvalues)
+
+locfwhm = specfile.find('.fits')
+np.save(specfile[0:locfwhm] + '_poly',fwhmpoly(allpixel))
+
+#plt.clf()
+#plt.plot(fitpixel,allfwhm,'^')
+#plt.plot(allpixel,fwhmpoly(allpixel),'g')
+#plt.show()
+
+exit()
+#Fit a column of the 2D image to determine the FWHM in pixels
 if 'blue' in specfile.lower():
     forfit = data[1200,:]
 elif 'red' in specfile.lower():
