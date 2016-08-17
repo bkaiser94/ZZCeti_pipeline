@@ -115,7 +115,6 @@ np.save(specfile[0:locfwhm] + '_poly',fwhmpoly(allpixel))
 #plt.plot(allpixel,fwhmpoly(allpixel),'g')
 #plt.show()
 
-exit()
 #Fit a column of the 2D image to determine the FWHM in pixels
 if 'blue' in specfile.lower():
     forfit = data[1200,:]

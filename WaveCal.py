@@ -483,10 +483,10 @@ plt.show()
 
 # Ask for offset # ===========================================================
 
-# print "\nWould You like to set Offset?" 
-# yn= raw_input('yes or no? >>>')
+print "\nWould You like to set Offset?" 
+yn= raw_input('yes or no? >>>')
 
-yn= 'yes'
+#yn= 'yes'
 if yn== 'yes':
     fig = plt.figure(1)
     ax = fig.add_subplot(111)
@@ -529,7 +529,7 @@ if yn== 'yes':
     plt.show()
 
 # Ask Refit # ===============================================================
-
+yn= 'yes'
 while yn== 'yes':   
   
   print "\nWould you like to refit and recalculate dispersion?" 
