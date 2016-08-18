@@ -59,6 +59,8 @@ Param_930_12_24= [92.517, 0.962, 377190., 1836.]
 # WaveList[0]== pixels
 # WaveList[1]== Wavelenghts
 # As close to the red setup (20_35.2) as I currently have # 
+'''
+These are the original lists. Below we have selected the lines that can consistently be fit by a Gaussian. These are kept for archival purposes.
 WaveList_Fe_930_20_40= np.array([ [1155.1, 102.964, 142.88, 276.362, 438.35, 532.819, 
                                 631.475, 755.5, 798.185, 831.719, 1062.43, 1086.89, 
                                 1249.02, 1316.94, 1475.64, 1566.37, 1762.42, 
@@ -78,6 +80,7 @@ WaveList_Fe_930_20_40= np.array([ [1155.1, 102.964, 142.88, 276.362, 438.35, 532
                                  8014.7857, 8046.1169, 8053.3085] ])
 
 # As close to the blue setup (12_24) as I currently have # 
+
 WaveList_Fe_930_12_24= np.array([ [34.6852, 431.795, 451.264, 942.966, 1057.76, 
                                    1174.6, 1194.97, 1315.35, 1381.1, 1444.58, 
                                    1457.81, 1538.65, 1544.11, 1630.61, 1682.99, 
@@ -102,6 +105,37 @@ WaveList_Fe_930_12_24= np.array([ [34.6852, 431.795, 451.264, 942.966, 1057.76,
                                     4847.8095, 4879.8635, 4889.0422, 4965.0795, 
                                     5017.1628, 5062.0371, 5141.7827, 5162.2846, 
                                     5187.7462] ]) 
+'''
+WaveList_Fe_930_12_24= np.array([ [431.795, 1057.76, 1194.97, 1315.35, 
+                                   1381.1, 1444.58, 1457.81, 1630.61, 
+                                   1682.99, 1713.34, 1726.03, 1779.61, 
+                                   1893.19, 2018.27, 2132.53, 2210.85, 
+                                   2279.64, 2361.34, 2443.06, 2468.22, 
+                                   2515.14, 2630.53, 2795.45, 2886.45, 
+                                   2985.15, 3085.52, 3162.56, 3184.41, 
+                                   3367.86, 3602.21, 3795.76, 3845.65, 
+                                   3907.57], 
+                                   
+                                   [3729.3087, 3994.7918, 4052.9208, 4103.9121, 
+                                    4131.7235, 4158.5905, 4164.1795, 4237.2198, 
+                                    4259.3619, 4271.7593, 4277.5282, 4300.1008, 
+                                    4348.064, 4400.9863, 4448.8792, 4481.8107, 
+                                    4510.7332, 4545.0519, 4579.3495, 4589.8978, 
+                                    4609.5673, 4657.9012, 4726.8683, 4764.8646, 
+                                    4806.0205, 4847.8095, 4879.8635, 4889.0422, 
+                                    4965.0795, 5062.0371, 5141.7827, 5162.2846, 
+                                    5187.7462] ]) 
+
+WaveList_Fe_930_20_40= np.array([ [1155.1, 102.964, 142.88, 276.362, 438.35, 
+                                   532.819, 631.475, 755.5, 798.185, 831.719, 
+                                   1062.43, 1086.89, 1249.02, 1316.94, 
+                                   1475.64, 1762.42, 1910.0], 
+                                
+                                [6043.223, 6466.5526, 6483.0825, 6538.112, 6604.8534, 
+                                 6643.6976, 5875.618, 6684.2929, 6752.8335, 6766.6117, 
+                                 6861.2688, 6871.2891, 6937.6642, 6965.4307, 
+                                 7030.2514, 7147.0416, 7206.9804] ])
+
 
 # ==========================================================================
 # Functions # ==============================================================
@@ -219,6 +253,7 @@ def find_peak_centers(peak_w, Wavelen, Counts):
         #plt.plot(X, Y, 'r--')
         #plt.axvline(cent)
         #plt.hold('off')
+        #print cent
         #plt.show()
     return list_centers
 
@@ -484,7 +519,7 @@ plt.show()
 # Ask for offset # ===========================================================
 
 print "\nWould You like to set Offset?" 
-yn= raw_input('yes or no? >>>')
+yn= raw_input('yes or no? >>> ')
 
 #yn= 'yes'
 if yn== 'yes':
@@ -501,7 +536,7 @@ if yn== 'yes':
     if lamp.__contains__('blue'):
         plt.xlim(4700.,4900.)
     elif lamp.__contains__('red'):
-        plt.xlim(6830.,7170.)
+        plt.xlim(6920.,7170.)
     plt.hold('off')
     coords= [] 
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
@@ -533,14 +568,15 @@ yn= 'yes'
 while yn== 'yes':   
   
   print "\nWould you like to refit and recalculate dispersion?" 
-  yn= raw_input('yes or no? >>>')
+  yn= raw_input('yes or no? >>> ')
   
   if yn== 'yes' :
         #print "\nOffset to apply to Grating Angle?"
         #alpha_offset= float( raw_input('Offset Value? >>>') )
         alpha_offset = 0.
         #alpha= alpha + alpha_offset
-        
+        '''
+        #Uncomment this part if you would like to select lines to use by hand. Otherwise, all lines in the above line lists are used.
         fig = plt.figure(1)
         ax = fig.add_subplot(111)
         ax.plot(Wavelengths, lamp_spec)
@@ -559,9 +595,11 @@ while yn== 'yes':
         coords= [] 
         cid = fig.canvas.mpl_connect('button_press_event', onclick)
         plt.show()    
-        
-        n_pnt, n_cor= np.shape(coords)
-        coord_x= [coords[i][0] for i in range(0,n_pnt)]
+        '''
+        ###n_pnt, n_cor= np.shape(coords)
+        ###coord_x= [coords[i][0] for i in range(0,n_pnt)]
+        coord_x = line_list[1] #Use all lines in the line lists for the refitting.
+        n_pnt = len(coord_x)
     
         peak_x= []
         for i in range(0,n_pnt):
