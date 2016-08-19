@@ -13,13 +13,24 @@ The function depend on some hard coded data, "WaveList" and "Parameters" which
 are project spesific. 
 
 Use: 
->>> python WaveCal.py lamp_spec.fits
+>>> python WaveCal.py lamp_spec.ms.fits
+
+:INPUTS:
+       lamp_spec.ms.fits: string, 1D Fe lamp spectrum 
+
+:OPTIONAL:
+       ZZCeti_spectrum.ms.fits: string, parameters written to header of this image if supplied when prompted
+
+:OUTPUTS:
+       wtFe*fits: lamp spectrum with wavelength calibration parameters written to header
+
+       w*fits: ZZ Ceti spectrum with wavelength calibration parameters written to header
+
+       wavecal_ZZCETINAME_DATE.txt: saved parameters for diagnostics. ZZCETINAME is name of the ZZ Ceti spectrum supplied. DATE is the current date and time. Columns are: fitted wavelengths, residuals, wavelengths, flux, lambdas fit,  wavelengths, sky flux, fit to line for recentering
 
 To do:
-- Check list of lines and pixels
 - Add method to reject lines after refitting
-- Automatically chose lines for refitting
-- Add name of lamp used to header of spectrum
+
 
 '''
 # ==========================================================================
@@ -691,37 +702,6 @@ with open('wavecal_' + specname[4:specname.find(endpoint)] + '_' + now + '.txt',
     header = lamp + ',' + specname + '\n First 2 columns: fitted wavelengths, residuals \n Next 3 columns: wavelengths, flux, lambdas fit \n Final 3 columns: wavelengths, sky flux, fit to line for recentering'
     np.savetxt(handle,savearray,fmt='%f',header = header)
     
- # ==========================================================================
- # is solution linear ? 
-    
-    '''   
-        def line(x,m,b):
-            y= m*x+b
-            return y 
-    
-        def line_fit(X,Y):
-            m= 1.0;
-            b= 5500.0; 
-            parm, cov= curve_fit(line, X, Y, p0 = [m,b], maxfev= 1000)
-            print ("%s, %s") % (parm[0], parm[1])
-            return parm
-    
-        P= np.arange(0,np.size(n_Wavelengths),1)
-        lparm= line_fit(n_Wavelengths,P)
-        Y= [line(p, lparm[0], lparm[1]) for p in P]
-        
-        plt.figure(3)
-        plt.plot(n_Wavelengths); 
-        plt.hold('on')
-        plt.title("Wavelength Vs. Pixel")
-        plt.xlabel("Pixel")
-        plt.ylabel("Wavelength (Ang.)")
-        
-        plt.plot(P,Y)
-        plt.hold('off')
-        plt.show() 
-        
-    '''
     
 # ==========================================================================
     

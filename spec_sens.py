@@ -34,12 +34,22 @@ wnb.WD0235p069_930_red.ms.fits
 
 Counting variables are fruits and vegetables.
 
-Inputs: list of 1D standard star spectra,list of filename of standard star fluxes, list of  1D spectrum of observed stars
+:INPUTS: 
+        stdlist: string, file with list of 1D standard star spectra
 
-Outputs: flux calibrated file (_flux is added to the filename), sensitivity_params.txt is updated to list all the parameters used in the flux calibration.
+        fluxlist: string, file containing standard star fluxes. These are typically m*.dat.
+
+        speclist: string, file with list of  1D spectrum of observed stars you want to flux calibrate
+
+:OUTPUTS: 
+        flux calibrated files (_flux is added to the filename). User will be prompted if file will overwrite existing file.
+
+        sensitivity_params.txt:  File is updated everytime spec_sens.py is run. Contains information used in the flux calibration. Columns are: input observed spectrum, date/time program was run, observed standard spectrum used for calibration, flux calibration file (m*dat), pixel regions excluded in fit, order of polynomial to flux standard, width in Angstroms used for rebinning, output spectrum filename
+
+        sens_fits_DATE.txt: File for diagnostics. Columns are: wavelength, observed flux, polynomial fit, and residuals for each standard listed above. There are extra zeros at the bottom of some columns. 
 
 To do:
-- Read in inputs
+
 
 """
 

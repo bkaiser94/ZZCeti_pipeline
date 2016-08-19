@@ -19,6 +19,10 @@ python spec_extract.py tnb.0526.WD1422p095_930_blue.fits
     lamp file : string, optional
         You will be prompted for this. If you want to extract a lamp using the same trace as the spectral filename, provide this. 
 
+:OUTPUTS:
+    Extracted 1D spectrum. .ms.fits is added to the end of the file. User will be prompted before overwriting existing image. Extensions in order are optimally extracted spectrum, raw extracted spectrum, background, sigma spectrum
+
+    extraction_params.txt: 
 
 extract_radius and  bkg_radii computed automatically. FWHM used for extract_radius
 output file name and lamp output filename done automatically

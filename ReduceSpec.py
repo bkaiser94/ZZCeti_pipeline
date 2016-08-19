@@ -1,7 +1,29 @@
-# -*- coding: utf-8 -*-
+'''
+Written by J Meza, updates by J Fuchs. UNC - Chapel Hill
 
-# This is my first attempt at combining images. 
-# it works on laptop but not in infierno or cielo. 
+:INPUTS:
+       listZero: string, file containing bias images
+
+       listFlat: string, file containing flat images
+
+       listSpec: string, file containing spectral images
+
+       listFe: string, file containing Fe lamp spectra
+
+ReduceSpec.py will automatically sort between Blue and Red ZZ Ceti setups, and will differentiate between different targets. But each observation of a target must be grouped in the file.
+
+:OUTPUTS:
+       File structure:
+         - b*fits: bias-subtracted images
+         - fb*fits: images flat-fielded after bias subtraction
+         - tfb*fits: images trimmed after flat-fielding and bias subtraction
+
+       reductions_DATE.txt: file containing info for diagnostic purposes. DATE is date and time of reduction. Zeros in a whole column typically mean blue or red setup not included. Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias, 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation, 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation, 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat
+
+       FWHM_records_DATE.txt: file containing information about the FWHM and profile locations for 2D images in listSpec. Columns are: filename, Column of 2D image checked, FWHM of Gaussian fit to that column, Center position of Gaussian fit to that column, Second column checked, FWHM of second column, Center position of second column.
+
+
+'''
 
 # ===========================================================================
 # Packages ==================================================================
