@@ -47,6 +47,7 @@ def checkspec(listcheck):
     fwhm2 = np.zeros(len(listcheck))
     center1 = np.zeros(len(listcheck))
     center2 = np.zeros(len(listcheck))
+    global now
     newfilename = 'FWHM_records_' + now + '.txt'
     mylist = [True for f in os.listdir('.') if f == newfilename]
     exists = bool(mylist)
@@ -361,6 +362,7 @@ def Bias_Subtract( img_list, zero_img ):
     zero_data = pf.getdata(zero_img)
     bias_sub_list = []
     for img in img_list:
+        print img
         hdu = pf.getheader(img)
         Fix_Header(hdu) 
         img_data = pf.getdata(img)
@@ -436,10 +438,10 @@ def Norm_Flat_Poly( flat ):
         diagnostic[0:len(fit_data[lo:hi]),15] = fit_data[lo:hi]
         diagnostic[0:len(profile),16] = profile
         global now
-        now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-        header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat'
-        with open('reduction_' + now + '.txt','a') as handle:
-            np.savetxt(handle,diagnostic,fmt='%f',header=header)
+    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+    header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat'
+    with open('reduction_' + now + '.txt','a') as handle:
+        np.savetxt(handle,diagnostic,fmt='%f',header=header)
 
     # Divide each Row by the Profile # 
     for row in flat_data[0]:
