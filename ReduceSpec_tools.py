@@ -437,7 +437,7 @@ def Norm_Flat_Poly( flat ):
         diagnostic[0:len(X[lo:hi]),14] = X[lo:hi]
         diagnostic[0:len(fit_data[lo:hi]),15] = fit_data[lo:hi]
         diagnostic[0:len(profile),16] = profile
-        global now
+    global now
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
     header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat'
     with open('reduction_' + now + '.txt','a') as handle:
