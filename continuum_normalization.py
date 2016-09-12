@@ -167,7 +167,7 @@ plt.plot(obs_spectrablue.warr,mod_fit_blue(obs_spectrablue.warr),'k--')
 plt.plot(obs_spectrablue.warr,obs_spectrablue.opfarr,'r')
 plt.plot(spec_wav_masked_blue,spec_flux_masked_blue,'g.')
 plt.plot(obs_spectrablue.warr,spec_fit_blue(obs_spectrablue.warr),'k--')
-#plt.show()
+
 
 
 #plt.clf()
@@ -216,19 +216,20 @@ if redfile:
     bigarray[:,0] = obs_spectrablue.warr
     bigarray[:,1] = obs_spectrablue.opfarr
     bigarray[:,2] = spec_fit_blue(obs_spectrablue.warr)
-    bigarray[:,3] = cflux2blue
+    bigarray[:,3] = cflux2blue/(10**13.6)
     bigarray[:,4] = mod_fit_blue(obs_spectrablue.warr)
     bigarray[:,5] = wd_response_blue
     bigarray[:,6] = fcorr_wd_blue_opfarr
     bigarray[:,7] = obs_spectrared.warr
     bigarray[:,8] = obs_spectrared.opfarr
     bigarray[:,9] = spec_fit_red(obs_spectrared.warr)
-    bigarray[:,10] = cflux2red
+    bigarray[:,10] = cflux2red/(10**13.6)
     bigarray[:,11] = mod_fit_red(obs_spectrared.warr)
     bigarray[:,12] = wd_response_red
     bigarray[:,13] = fcorr_wd_red_opfarr
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-    with open('continuum_normalization_' + now + '.txt','a') as handle:
+    endpoint = '_930'
+    with open('continuum_normalization_' + filenameblue[5:filenameblue.find(endpoint)] + '_' + now + '.txt','a') as handle:
         header = str(filenameblue) + ',' + str(filenamered) + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: wavelengths, optimized spectra, polynomial fit to data, \n model fluxes, polynomial fit to model, response, continuum normalized spectrum.'
         np.savetxt(handle,bigarray,fmt='%f',header=header)
 if not redfile:
@@ -236,12 +237,12 @@ if not redfile:
     bigarray[:,0] = obs_spectrablue.warr
     bigarray[:,1] = obs_spectrablue.opfarr
     bigarray[:,2] = spec_fit_blue(obs_spectrablue.warr)
-    bigarray[:,3] = cflux2blue
+    bigarray[:,3] = cflux2blue/(10**13.6)
     bigarray[:,4] = mod_fit_blue(obs_spectrablue.warr)
     bigarray[:,5] = wd_response_blue
     bigarray[:,6] = fcorr_wd_blue_opfarr
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-    with open('continuum_normalization_' + now + '.txt','a') as handle:
+    with open('continuum_normalization_' + filenameblue[5:filenameblue.find(endpoint)] + '_' + now + '.txt','a') as handle:
         header = str(filenameblue) + ',' + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: wavelengths, optimized spectra, polynomial fit to data, \n model fluxes, polynomial fit to model, response, continuum normalized spectrum.'
         np.savetxt(handle,bigarray,fmt='%f',header=header)
     
