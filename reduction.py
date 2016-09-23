@@ -1,10 +1,11 @@
+
 '''
 Written by JT Fuchs, UNC, September 2016.
 
 This program mimics ReduceSpec.py, but allows the user to select which functions to perform on which images.
 
 Outline:
-prompt user for task (subtract, divide, combine, trim)
+prompt user for task (subtract, divide, combine, trim, apply wavelength solution)
 complete task
 
 '''
@@ -12,9 +13,10 @@ complete task
 import numpy as np
 import pyfits as pf
 import ReduceSpec_tools as rt
+import spectools as st
 import warnings
 
-task = raw_input('What would you like to do? (bias, flatfield, combine, trim) ')
+task = raw_input('What would you like to do? (bias, flatfield, combine, trim, wavelength) ')
 
 if task == 'combine':
     files = raw_input('Name of file containing images to combine: ')
@@ -30,3 +32,12 @@ if task == 'combine':
 if task == 'trim':
     files = raw_input('Name of file to trim: ')
     rt.Trim_Spec(files)
+
+if task == 'wavelength':
+    Wavefile = raw_input('Name of file with wavelength solution: ')
+    files = raw_input('Name of file to apply wavelength solution to: ')
+    outputfile = raw_input('Output name of file: ')
+
+    st.applywavelengths(Wavefile,files,outputfile)
+
+    

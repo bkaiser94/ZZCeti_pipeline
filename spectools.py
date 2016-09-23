@@ -8,10 +8,11 @@ Based on pySALT
 """
 
 import pyfits as fits
+import ReduceSpec_tools as rt
 import numpy as np
 import scipy
 from scipy.interpolate import InterpolatedUnivariateSpline as interpo
-
+import os
 
 class spectrum(object):
 
@@ -129,7 +130,46 @@ def readstandard(stdfile):
     return result
 
 # ===========================================================================
+def applywavelengths(wavefile,applyfile,newname):
+    #Read in file with wavelength solution and get header info
+    wave = fits.open(wavefile)
+    n_fr = float(wave[0].header['LINDEN'])
+    n_fd = float(wave[0].header['CAMFUD'])
+    fl = float(wave[0].header['FOCLEN'])
+    zPnt = float(wave[0].header['ZPOINT'])
 
+    #Read in file to apply wavelength solution and update header
+    spec_data= fits.getdata(applyfile)
+    spec_header= fits.getheader(applyfile)
+    rt.Fix_Header(spec_header)
+    spec_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
+                       useblanks= True, bottom= True )
+    spec_header.append( ('CAMFUD', n_fd,'Camera Angle Correction Factor for Grat. Eq.'), 
+                       useblanks= True, bottom= True )
+    spec_header.append( ('FOCLEN', fl,'Focal Length for Grat Eq.'), 
+                       useblanks= True, bottom= True )
+    spec_header.append( ('ZPOINT', zPnt,'Zero Point Pixel for Grat Eq.'), 
+                       useblanks= True, bottom= True )        
+    NewspecHdu = fits.PrimaryHDU(data= spec_data, header= spec_header)
+
+    #See if new file already exists
+    mylist = [True for f in os.listdir('.') if f == newname]
+    exists = bool(mylist)
+    clob = False
+    if exists:
+        print 'File %s already exists.' % newname
+        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+        if nextstep == 'overwrite':
+            clob = True
+            exists = False
+        elif nextstep == 'new':
+            newname = raw_input('New file name: ')
+            exists = False
+        else:
+            exists = False
+    NewspecHdu.writeto(newname, output_verify='warn', clobber= clob)
+
+# ===========================================================================
 
 def magtoflux(marr, fzero):
     """Convert from magnitude to flux
