@@ -5,7 +5,7 @@ The input should just be the name of a comparison lamp, taken from argv.
 The function depend on some hard coded data, "WaveList" and "Parameters" which 
 are project spesific. 
 
-Written by Jesus Meza, UNC. March 2016. Minor updates by Josh Fuchs.
+Written by Jesus Meza, UNC. March 2016. Upgrades by Josh Fuchs.
 
 Use: 
 >>> python WaveCal.py lamp_spec.ms.fits
@@ -40,6 +40,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit, fsolve
 import mpfit
 import datetime
+import os
 
 # ==========================================================================
 # Data # ===================================================================
@@ -359,7 +360,24 @@ def fitgauss(p,fjac=None,x=None,y=None,err=None):
     status = 0
     return([status,(y-model)/err])
 
-#===========================================    
+#=========================================== 
+
+#Single pseudogaussian plus cubic for continuum
+def pseudogausscubic(x,p):
+    #The model function with parameters p
+    return p[0]*1. + p[1]*x + p[2]*x**2. + p[7]*x**3. + p[3]*np.exp(-(np.abs(x-p[4])/(np.sqrt(2.)*p[5]))**p[6])
+
+
+def fitpseudogausscubic(p,fjac=None,x=None, y=None, err=None):
+    #Parameter values are passed in p
+    #fjac=None just means partial derivatives will not be computed.
+    model = pseudogausscubic(x,p)
+    status = 0
+    return([status,(y-model)/err])
+
+# ===========================================================================
+
+   
 def newzeropoint(x):
     beta = np.arctan( (bestpixel-x)*15./parm[2] ) + (n_fd*theta*np.pi/180.) - (alpha*np.pi/180.)
     out = newlambda - (10**6.)*( np.sin(beta) + np.sin(alpha*np.pi/180.) )/n_fr
@@ -370,7 +388,8 @@ def newzeropoint(x):
 def WaveShift(specname):
     #Calculates a new zero point for a spectrum based on a skyline
     spec_data= pf.getdata(specname)
-    dataval = spec_data[2,0,:]
+    dataval = spec_data[0,0,:]
+    sigmaval = spec_data[3,0,:]
     spec_header= pf.getheader(specname)
     alpha= float( spec_header["GRT_TARG"] )
     theta= float( spec_header["CAM_TARG"] )
@@ -384,6 +403,74 @@ def WaveShift(specname):
     
 
     pix = range(len(dataval)) #This sets up an array of pixel numbers
+    if 'blue' in specname.lower():
+        #Recenter the observed data to match the models by fitting beta and gamma
+        bfitlow = 1300 #4680
+        bfithi = 1750 #5040
+    
+        fitpixels = np.asarray(pix[bfitlow:bfithi+1])
+        fitsigmas = sigmaval[bfitlow:bfithi+1]
+        fitval = dataval[bfitlow:bfithi+1]
+        
+        best = np.zeros(8)
+        xes = np.array([pix[bfitlow],pix[bfitlow+10],pix[bfitlow+20],pix[bfithi-10],pix[bfithi]])
+        yes = np.array([dataval[bfitlow],dataval[bfitlow+10],dataval[bfitlow+20],dataval[bfithi-10],dataval[bfithi]])
+        bp = np.polyfit(xes,yes,3)
+        bpp = np.poly1d(bp)
+        best[0] = bp[3]
+        best[1] = bp[2]
+        best[2] = bp[1]
+        best[7] = bp[0]
+        best[4] = pix[np.min(np.where(fitval == fitval.min()))] + bfitlow
+        best[3] = np.min(dataval[bfitlow:bfithi+1]) - bpp(best[4]) #depth of line relative to continuum
+        bhalfmax = bpp(best[4]) + best[3]/2.5
+        bdiff = np.abs(fitval-bhalfmax)
+        blowidx = bdiff[np.where(fitpixels < best[4])].argmin()
+        bhighidx = bdiff[np.where(fitpixels > best[4])].argmin() + len(bdiff[np.where(fitpixels < best[4])])
+        best[5] = (fitpixels[bhighidx] - fitpixels[blowidx]) / (2.*np.sqrt(2.*np.log(2.))) #convert FWHM to sigma
+        best[6] = 1.0 #how much of a pseudo-gaussian
+        
+        bfa = {'x':fitpixels, 'y':fitval, 'err':fitsigmas}
+        bparams = mpfit.mpfit(fitpseudogausscubic,best,functkw=bfa,maxiter=3000,ftol=1e-16,xtol=1e-10,quiet=True)
+        line_center = bparams.params[4]
+        line_fit = pseudogausscubic(fitpixels,bparams.params)
+        known_wavelength = 4862.0
+
+    if 'red' in specname.lower():
+        #Recenter the observed data to match the models by fitting beta and gamma
+        rfitlow = 940 #6380
+        rfithi = 1400 #6760
+    
+        fitpixels = np.asarray(pix[rfitlow:rfithi+1])
+        fitsigmas = sigmaval[rfitlow:rfithi+1]
+        fitval = dataval[rfitlow:rfithi+1]
+        
+        rest = np.zeros(8)
+        xes = np.array([pix[rfitlow],pix[rfitlow+10],pix[rfitlow+20],pix[rfithi-10],pix[rfithi]])
+        yes = np.array([dataval[rfitlow],dataval[rfitlow+10],dataval[rfitlow+20],dataval[rfithi-10],dataval[rfithi]])
+        rp = np.polyfit(xes,yes,3)
+        rpp = np.poly1d(rp)
+        rest[0] = rp[3]
+        rest[1] = rp[2]
+        rest[2] = rp[1]
+        rest[7] = rp[0]
+        rest[4] = pix[np.min(np.where(fitval == fitval.min()))] + rfitlow
+        rest[3] = np.min(dataval[rfitlow:rfithi+1]) - rpp(rest[4]) #depth of line relative to continuum
+        rhalfmax = rpp(rest[4]) + rest[3]/3.
+        rdiff = np.abs(fitval-rhalfmax)
+        rlowidx = rdiff[np.where(fitpixels < rest[4])].argmin()
+        rhighidx = rdiff[np.where(fitpixels > rest[4])].argmin() + len(rdiff[np.where(fitpixels < rest[4])])
+        rest[5] = (fitpixels[rhighidx] - fitpixels[rlowidx]) / (2.*np.sqrt(2.*np.log(2.))) #convert FWHM to sigma
+        rest[6] = 1.0 #how much of a pseudo-gaussian
+        
+        rfa = {'x':fitpixels, 'y':fitval, 'err':fitsigmas}
+        rparams = mpfit.mpfit(fitpseudogausscubic,rest,functkw=rfa,maxiter=3000,ftol=1e-16,xtol=1e-10,quiet=True)
+        line_center = rparams.params[4]
+        line_fit = pseudogausscubic(fitpixels,rparams.params)
+        known_wavelength = 6564.6
+
+
+    '''
     if 'red' in specname.lower():
         lowpix = 810 #For red setup. 6300 skyline
         highpix = 900 #For red setup. 6300 skyline
@@ -426,25 +513,24 @@ def WaveShift(specname):
         fa = {'x':fitpix,'y':fitdata,'err':fiterror}
         fitsg = mpfit.mpfit(fitgauss,guessgblue,functkw=fa,parinfo=paraminfo,quiet=True)
         #fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgblue,maxfev=100000)
-    print 'Gaussian center at pixel ',fitsg.params[1]
-    samp = np.arange(lowpix,highpix) # For plotting purposes
-    fitfuncg = Gauss(samp,fitsg.params[0],fitsg.params[1],fitsg.params[2],fitsg.params[3])
+    '''
+    print 'Gaussian center at pixel ',line_center
     plt.hold('on')
-    plt.plot(samp,fitfuncg,'r')
-    plt.plot(fitpix,fitdata,'b')
-    plt.axvline(x=fitsg.params[1],color='r')
+    plt.plot(fitpixels,line_fit,'r')
+    plt.plot(fitpixels,fitval,'b')
+    plt.axvline(x=line_center,color='r')
     plt.hold('off')
     plt.show()
 
-    savearray[0:len(samp),5] = samp
-    savearray[0:len(samp),6] = fitdata
-    savearray[0:len(samp),7] = fitfuncg
+    savearray[0:len(fitpixels),5] = fitpixels
+    savearray[0:len(fitval),6] = fitval
+    savearray[0:len(line_fit),7] = line_fit
 
     #Take this fit and determine the new zero point
     global newlambda
-    newlambda = skyline
+    newlambda = known_wavelength
     global bestpixel
-    bestpixel = 2.*(fitsg.params[1] +trim_offset)#Need to figure out better way to take care of this 2
+    bestpixel = bining*(line_center +trim_offset)
     guess = n_zPnt
     newzero = fsolve(newzeropoint,guess,xtol=1e-12)
     newzPnt = float(newzero)
@@ -658,7 +744,23 @@ while yn== 'yes':
 # Save parameters in header and write file # 
 print "\nWrite solution to header?"
 yn= raw_input("yes or no? >>>")
-if yn== "yes":    
+if yn== "yes":
+    newname = 'w'+lamp
+    mylist = [True for f in os.listdir('.') if f == newname]
+    exists = bool(mylist)
+    clob = False
+    if exists:
+        print 'File %s already exists.' % newname
+        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+        if nextstep == 'overwrite':
+            clob = True
+            exists = False
+        elif nextstep == 'new':
+            newname = raw_input('New file name: ')
+            exists = False
+        else:
+            exists = False
+    
     rt.Fix_Header(lamp_header)
     lamp_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
                        useblanks= True, bottom= True )
@@ -669,7 +771,7 @@ if yn== "yes":
     lamp_header.append( ('ZPOINT', n_zPnt,'Zero Point Pixel for Grat Eq.'), 
                        useblanks= True, bottom= True )        
     NewHdu = pf.PrimaryHDU(data= lamp_data, header= lamp_header)
-    NewHdu.writeto('w'+lamp, output_verify='warn', clobber= True)
+    NewHdu.writeto(newname, output_verify='warn', clobber= clob)
 
 #Save parameters to ZZ Ceti spectrum#
 print "\nWrite solution to header of another spectrum?"
@@ -677,6 +779,7 @@ yn= raw_input("yes or no? >>>")
 if yn== "yes":
     specname = raw_input("Filename: ")
     newzeropoint = WaveShift(specname)
+    #newzeropoint = n_zPnt
     spec_data= pf.getdata(specname)
     spec_header= pf.getheader(specname)
     rt.Fix_Header(spec_header)
@@ -689,7 +792,23 @@ if yn== "yes":
     spec_header.append( ('ZPOINT', newzeropoint,'Zero Point Pixel for Grat Eq.'), 
                        useblanks= True, bottom= True )        
     NewspecHdu = pf.PrimaryHDU(data= spec_data, header= spec_header)
-    NewspecHdu.writeto('w'+specname, output_verify='warn', clobber= True)
+
+    newname = 'w'+specname
+    mylist = [True for f in os.listdir('.') if f == newname]
+    exists = bool(mylist)
+    clob = False
+    if exists:
+        print 'File %s already exists.' % newname
+        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+        if nextstep == 'overwrite':
+            clob = True
+            exists = False
+        elif nextstep == 'new':
+            newname = raw_input('New file name: ')
+            exists = False
+        else:
+            exists = False
+    NewspecHdu.writeto(newname, output_verify='warn', clobber= clob)
 
 #Save arrays for diagnostics
 now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")

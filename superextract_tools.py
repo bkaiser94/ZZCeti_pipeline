@@ -313,7 +313,7 @@ def traceorders(filename,g,rn, pord=5, dispaxis=0, nord=1, verbose=False, ordloc
 
     orderCoefs = np.zeros((nord, pord+1), float)
     position_SNRs = []
-    xyfits = []
+    #xyfits = np.zeros([len(xPositions),2])
     if not autopick:
 
         ordlocs = np.zeros((nord, 2),float)
@@ -425,17 +425,18 @@ def traceorders(filename,g,rn, pord=5, dispaxis=0, nord=1, verbose=False, ordloc
         if retsnr:
             position_SNRs.append(yPositions / err_yPositions)
         if retfits:
-            xyfits.append((xPositions, yPositions))
+            xyfits = np.array([xPositions,yPositions])
+            #xyfits.append((xPositions, yPositions))
     
     # Prepare for exit and return:
     ret = (orderCoefs,)
     if retsnr:
         ret = ret + (position_SNRs,)
-    if retfits:
-        ret = ret + (xyfits,)
+    #if retfits:
+    #    ret = ret + (xyfits,)
     if len(ret)==1:
         ret = ret[0]
-    return  ret
+    return  ret, xyfits
 
 # ===========================================================================
 
@@ -928,8 +929,9 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
         ii = ii + 1
         nrej = len(residual) - len(xx2)
         if plotall:
+            allx = np.arange(x[0],x[-1],1)
             figure()
-            plot(x,y, '.', xx2,yy2, 'x', x, np.polyval(p, x), '--')
+            plot(x,y, '.', xx2,yy2, 'x', allx, np.polyval(p, allx), '--')
             legend(['data', 'fit data', 'fit'])
             title('Iter. #' + str(ii) + ' -- Close all windows to continue....')
             plt.show()
@@ -939,7 +941,7 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
 
     if (plotfit or plotall):
         figure()
-        plot(x,y, '.', xx2,yy2, 'x', x, np.polyval(p, x), '--')
+        plot(x,y, '.', xx2,yy2, 'x', allx, np.polyval(p, allx), '--')
         legend(['data', 'fit data', 'fit'])
         title('Close window to continue....')
 

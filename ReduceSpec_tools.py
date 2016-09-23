@@ -212,8 +212,10 @@ def SigClip(data_set, lo_sig, hi_sig):
     # along with low and high sigma factors. 
     # Output is a list containg only the data that is with the sigma factors.
     # Only a single rejection iteration is made. 
-    Avg = np.mean(data_set)
-    St_Div = np.std(data_set)
+    Avg = np.median(data_set)
+    remove_max = np.delete(data_set,data_set.argmax())
+    St_Div = np.std(remove_max)
+    #St_Div = np.std(data_set)
     min_val = Avg-lo_sig*St_Div
     max_val = Avg+hi_sig*St_Div
     cliped_data = []

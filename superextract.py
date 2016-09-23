@@ -277,7 +277,7 @@ def superExtract(*args, **kw):
     if not hasattr(trace, '__iter__'):
         #if verbose: print "Tracing not fully tested; dispaxis may need adjustment."
         #pdb.set_trace()
-        tracecoef = traceorders(frame, pord=trace, nord=1, verbose=verbose, plotalot=verbose-1, g=gain, rn=readnoise, badpixelmask=True-goodpixelmask, dispaxis=dispaxis, fitwidth=min(fitwidth, 80))
+        tracecoef, xyfits = traceorders(frame, pord=trace, nord=1, verbose=verbose, plotalot=verbose-1, g=gain, rn=readnoise, badpixelmask=True-goodpixelmask, dispaxis=dispaxis, fitwidth=min(fitwidth, 80),retfits=True)
         trace = np.polyval(tracecoef.ravel(), np.arange(nlam))
 
     
@@ -296,7 +296,6 @@ def superExtract(*args, **kw):
 
     #Step3: Sky Subtraction
     background = 0. * frame
-    backgroundsum = np.zeros((nlam, 1), dtype=float) #This is for the mean of the background region
     #bkgrndmask = goodpixelmask
     for ii in range(nlam):
         if goodpixelmask[ii, backgroundApertures[ii]].any():
@@ -308,13 +307,11 @@ def superExtract(*args, **kw):
             #plt.show()
             background[ii, :] = np.polyval(fit, xxx[ii])
             thisrow = backgroundApertures[ii]
-            backgroundsum[ii] = np.mean(frame[ii, backgroundApertures[ii]])#.sum()
         else:
             background[ii] = 0.
-            backgroundsum[ii] = 0.
 
     background_at_trace = np.array([np.interp(0, xxx[j], background[j]) for j in range(nlam)])
-
+    
     # (my 3a: mask any bad values)
     badBackground = True - np.isfinite(background)
     background[badBackground] = 0.
@@ -322,7 +319,6 @@ def superExtract(*args, **kw):
         print "Found bad background values at: ", badBackground.nonzero()
     #Subtract the background here
     skysubFrame = frame - background
-
 
     # Interpolate and fix bad pixels for extraction of standard
     # spectrum -- otherwise there can be 'holes' in the spectrum from
@@ -620,8 +616,9 @@ def superExtract(*args, **kw):
     ret.raw = standardSpectrum
     ret.varSpectrum = varSpectrum
     ret.trace = trace
+    ret.tracepos = xyfits
     ret.units = 'electrons'
-    ret.background = backgroundsum.reshape(1, nlam) #background_at_trace #We want to save the mean of the background region, not the background at the trace.
+    ret.background = background_at_trace #background_at_trace 
 
     ret.function_name = 'spec.superExtract'
 

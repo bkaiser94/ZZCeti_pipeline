@@ -5,7 +5,7 @@ superextract is based on optimal spectral extraction as detailed by Marsh (1989)
 Crossfield's version can be found at www.lpl.arizona.edu/!ianc/python/index.html
 Dependencies: superextract.py and superextrac_tools.py
 
-For best results, first bias-subract, flat-field, and trim the 2D image before running this. It is also best to set the extract_radius to be approximately the FWHM. This maximizes the S/N.
+For best results, first bias-subract, flat-field, and trim the 2D image before running this.
 
 To run:
 python spec_extract.py filename_of_2d_spectrum
@@ -22,7 +22,9 @@ python spec_extract.py tnb.0526.WD1422p095_930_blue.fits
 :OUTPUTS:
     Extracted 1D spectrum. .ms.fits is added to the end of the file. User will be prompted before overwriting existing image. Extensions in order are optimally extracted spectrum, raw extracted spectrum, background, sigma spectrum
 
-    extraction_params.txt: 
+    extraction_params.txt: text file containing date/time of extraction, extraction radius, background radius, and new filename
+
+    extraction_ZZCETINAME_DATE.txt: File for diagnostics. ZZCETINAME is name of the ZZ Ceti spectrum supplied. DATE is the current date and time. Columns are: Measured FWHM, pixel value of each FWHM, fit to FWHM measurements, all pixel values, profile pixels, profile position, fit profile positions
 
 extract_radius and  bkg_radii computed automatically. FWHM used for extract_radius
 output file name and lamp output filename done automatically
@@ -43,6 +45,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 import spectools as st
 import superextract
 from superextract_tools import lampextract
+#from ReduceSpec_tools import SigClip
 from pylab import *
 
 #===========================================
@@ -58,6 +61,27 @@ def fitgauss(p,fjac=None,x=None,y=None,err=None):
     return([status,(y-model)/err])
 
 #===========================================
+def SigClip(data_set, lo_sig, hi_sig):
+    # Sigma Cliping Function  #
+    # Input is set of counts for a particular pixel, 
+    # along with low and high sigma factors. 
+    # Output is a list containg only the data that is with the sigma factors.
+    # Only a single rejection iteration is made. 
+    Avg = np.mean(data_set)
+    St_Div = np.std(data_set)
+    min_val = Avg-lo_sig*St_Div
+    max_val = Avg+hi_sig*St_Div
+    cliped_data = []
+    for val in data_set:
+        if min_val <= val <= max_val:
+            cliped_data.append( val )
+        else:
+            try:
+                cliped_data.append(cliped_data[-1])
+            except:
+                cliped_data.append(data_set[1])
+    return cliped_data  
+
 
 #Read in file from command line
 if len(sys.argv) == 3:
@@ -107,17 +131,25 @@ for x in fitpixel:
     #plt.plot(xes,gauss(xes,fitparams.params))
     #plt.show()
 
-fwhmpolyvalues = np.polyfit(fitpixel,allfwhm,deg=1)
+fwhmclipped = SigClip(allfwhm,3,3)
+
+fwhmpolyvalues = np.polyfit(fitpixel,fwhmclipped,deg=1)
 allpixel = np.arange(0,len(data[:,100]),1)
 fwhmpoly = np.poly1d(fwhmpolyvalues)
 
 locfwhm = specfile.find('.fits')
 np.save(specfile[0:locfwhm] + '_poly',fwhmpoly(allpixel))
+diagnostics = np.zeros([len(data[:,100]),7])
+diagnostics[0:len(allfwhm),0] = fwhmclipped
+diagnostics[0:len(fitpixel),1] = fitpixel
+diagnostics[0:len(allpixel),2] = fwhmpoly(allpixel)
+diagnostics[0:len(allpixel),3] = allpixel
 
-#plt.clf()
-#plt.plot(fitpixel,allfwhm,'^')
-#plt.plot(allpixel,fwhmpoly(allpixel),'g')
-#plt.show()
+
+plt.clf()
+plt.plot(fitpixel,fwhmclipped,'^')
+plt.plot(allpixel,fwhmpoly(allpixel),'g')
+plt.show()
 
 #Fit a column of the 2D image to determine the FWHM in pixels
 if 'blue' in specfile.lower():
@@ -168,13 +200,13 @@ background_radii[1] = np.round(background_radii[1],decimals=1)
 
 #Extract the spectrum using superextract
 
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=background_radii,bsigma=3,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1)
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
 #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
 #bkg_radii = inner and outer radii to use in computing background. Goes on both sides of aperture.  
 #bsigma = sigma-clipping thresholf for computing background
-#extract_radius: radius for spectral extraction. Want this value to be around the FWHM as this will optimize the S/N of the 1D spectrum.
+#extract_radius: radius for spectral extraction. Setting this to be 5*FWHM
 #csigma = sigma-clipping threshold for cleaning & cosmic-ray rejection. Default = 5.
 #qmode: how to compute Marsh's Q-matrix. 'fast-linear' default and preferred.
 #nreject = number of outlier-pixels to reject at each iteration. Default = 100
@@ -198,8 +230,26 @@ sigSpectrum = np.sqrt(output_spec.varSpectrum)
 #plt.plot(output_spec.varSpectrum,'r')
 #plt.plot(sigSpectrum,'r')
 #plt.plot(output_spec.trace,'m')
+#plt.plot(output_spec.tracepos[0],output_spec.tracepos[1],'b^')
 #plt.plot(output_spec.background,'k')
+#plt.plot(output_spec.profile_map,'b')
 #plt.show()
+#plt.clf()
+#plt.plot(output_spec.extractionApertures)
+#plt.show()
+#plt.clf()
+#plt.plot(output_spec.background_map)
+#plt.show()
+
+#Save diagnostic info
+diagnostics[0:len(output_spec.tracepos[0]),4] = output_spec.tracepos[0]
+diagnostics[0:len(output_spec.tracepos[1]),5] = output_spec.tracepos[1]
+diagnostics[0:len(output_spec.trace),6] = output_spec.trace
+now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+endpoint = '.fits'
+with open('extraction_' + specfile[4:specfile.find(endpoint)] + '_' + now + '.txt','a') as handle:
+    header = 'Columns are: 1) Measured FWHM, 2) pixel value of each FWHM, 3) fit to FWHM measurements, 4) all pixel values, 5) profile pixels, 6) profile position, 7) fit profile positions'
+    np.savetxt(handle,diagnostics,fmt='%f',header=header)
 
 #Get the image header and add keywords
 header = st.readheader(specfile)
@@ -267,7 +317,7 @@ if lamp != 'no':
     lampdata = lampdata[0,:,:]
     lampdata = np.transpose(lampdata)
 
-    #extraction radius will be the same as the star
+    #extraction radius will be the FWHM the star
     #But since the Fe lamps are taken binned by 1 in spectral direction, we need to adjust the trace to match.
     #We do that by expanding out the trace to match the length of the Fe lamps, then interpolate and read off values for every pixel.
     bin2size = np.arange(1,len(output_spec.trace)+1)
@@ -278,7 +328,8 @@ if lamp != 'no':
     newtrace = interpolates(bin1size)
 
     #Do the extraction here.
-    lampspec = lampextract(lampdata,newtrace,extraction_rad)
+    lamp_radius = fwhm
+    lampspec = lampextract(lampdata,newtrace,lamp_radius)
 
 
     #Save the 1D lamp
