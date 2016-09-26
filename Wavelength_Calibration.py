@@ -271,6 +271,7 @@ def onclick(event):
     global ix,iy
     ix, iy = event.xdata,event.ydata
     global coords
+    global ax
     ax.axvline(x=ix,color='k',linewidth='2')
     fig.canvas.draw()
     coords.append((ix,iy))
@@ -330,10 +331,8 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     pPixel = [Predict_Pixel(X[n], Par[0],Par[1],Par[2]) for n in range(0,N)]
     Res = [known_pix[n]-pPixel[n] for n in range(0,N)]
     # print '\nResiduals:\n %s' % Res
-    ChiSq = sum( [n**2. for n in Res] )
-    #print '\nRaw ChiSq = %s' % ChiSq 
-    print '\nReduced ChiSq = %s' % (ChiSq/(len(known_pix)-len(Par)-1))
-    #print '\nMeanSqEr= %s\n' % (ChiSq/len(aPixel))
+    rmsfit = np.sqrt(np.mean([n**2. for n in Res]))
+    print '\nRMS = %s' % rmsfit
     plt.scatter(known_wave, Res, color='r', marker='+')
     plt.grid()
     plt.ylim( min(Res)*2., max(Res)*2.)
@@ -401,119 +400,106 @@ def WaveShift(specname):
     Pixels= bining*(np.arange(0,nx,1)+trim_offset)
     WDwave = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], n_zPnt)
     
-
+    #Select whether to fit a Balmer line or choose a different line
+    selectline = raw_input('Would you like to fit a Balmer line or select your own? (balmer, own): ')
     pix = range(len(dataval)) #This sets up an array of pixel numbers
-    if 'blue' in specname.lower():
-        #Recenter the observed data to match the models by fitting beta and gamma
-        bfitlow = 1300 #4680
-        bfithi = 1750 #5040
-    
-        fitpixels = np.asarray(pix[bfitlow:bfithi+1])
-        fitsigmas = sigmaval[bfitlow:bfithi+1]
-        fitval = dataval[bfitlow:bfithi+1]
+    if selectline == 'balmer':
+        if 'blue' in specname.lower():
+            #Recenter the observed data to match the models by fitting beta and gamma
+            bfitlow = 1300 #4680
+            bfithi = 1750 #5040
+            
+            fitpixels = np.asarray(pix[bfitlow:bfithi+1])
+            fitsigmas = sigmaval[bfitlow:bfithi+1]
+            fitval = dataval[bfitlow:bfithi+1]
+            
+            best = np.zeros(8)
+            xes = np.array([pix[bfitlow],pix[bfitlow+10],pix[bfitlow+20],pix[bfithi-10],pix[bfithi]])
+            yes = np.array([dataval[bfitlow],dataval[bfitlow+10],dataval[bfitlow+20],dataval[bfithi-10],dataval[bfithi]])
+            bp = np.polyfit(xes,yes,3)
+            bpp = np.poly1d(bp)
+            best[0] = bp[3]
+            best[1] = bp[2]
+            best[2] = bp[1]
+            best[7] = bp[0]
+            best[4] = pix[np.min(np.where(fitval == fitval.min()))] + bfitlow
+            best[3] = np.min(dataval[bfitlow:bfithi+1]) - bpp(best[4]) #depth of line relative to continuum
+            bhalfmax = bpp(best[4]) + best[3]/2.5
+            bdiff = np.abs(fitval-bhalfmax)
+            blowidx = bdiff[np.where(fitpixels < best[4])].argmin()
+            bhighidx = bdiff[np.where(fitpixels > best[4])].argmin() + len(bdiff[np.where(fitpixels < best[4])])
+            best[5] = (fitpixels[bhighidx] - fitpixels[blowidx]) / (2.*np.sqrt(2.*np.log(2.))) #convert FWHM to sigma
+            best[6] = 1.0 #how much of a pseudo-gaussian
+            
+            bfa = {'x':fitpixels, 'y':fitval, 'err':fitsigmas}
+            bparams = mpfit.mpfit(fitpseudogausscubic,best,functkw=bfa,maxiter=3000,ftol=1e-16,xtol=1e-10,quiet=True)
+            line_center = bparams.params[4]
+            line_fit = pseudogausscubic(fitpixels,bparams.params)
+            known_wavelength = 4862.0
+            
+        if 'red' in specname.lower():
+            #Recenter the observed data to match the models by fitting beta and gamma
+            rfitlow = 940 #6380
+            rfithi = 1400 #6760
+            
+            fitpixels = np.asarray(pix[rfitlow:rfithi+1])
+            fitsigmas = sigmaval[rfitlow:rfithi+1]
+            fitval = dataval[rfitlow:rfithi+1]
+            
+            rest = np.zeros(8)
+            xes = np.array([pix[rfitlow],pix[rfitlow+10],pix[rfitlow+20],pix[rfithi-10],pix[rfithi]])
+            yes = np.array([dataval[rfitlow],dataval[rfitlow+10],dataval[rfitlow+20],dataval[rfithi-10],dataval[rfithi]])
+            rp = np.polyfit(xes,yes,3)
+            rpp = np.poly1d(rp)
+            rest[0] = rp[3]
+            rest[1] = rp[2]
+            rest[2] = rp[1]
+            rest[7] = rp[0]
+            rest[4] = pix[np.min(np.where(fitval == fitval.min()))] + rfitlow
+            rest[3] = np.min(dataval[rfitlow:rfithi+1]) - rpp(rest[4]) #depth of line relative to continuum
+            rhalfmax = rpp(rest[4]) + rest[3]/3.
+            rdiff = np.abs(fitval-rhalfmax)
+            rlowidx = rdiff[np.where(fitpixels < rest[4])].argmin()
+            rhighidx = rdiff[np.where(fitpixels > rest[4])].argmin() + len(rdiff[np.where(fitpixels < rest[4])])
+            rest[5] = (fitpixels[rhighidx] - fitpixels[rlowidx]) / (2.*np.sqrt(2.*np.log(2.))) #convert FWHM to sigma
+            rest[6] = 1.0 #how much of a pseudo-gaussian
+            
+            rfa = {'x':fitpixels, 'y':fitval, 'err':fitsigmas}
+            rparams = mpfit.mpfit(fitpseudogausscubic,rest,functkw=rfa,maxiter=3000,ftol=1e-16,xtol=1e-10,quiet=True)
+            line_center = rparams.params[4]
+            line_fit = pseudogausscubic(fitpixels,rparams.params)
+            known_wavelength = 6564.6
+    elif selectline == 'own':
+        #Plot the spectrum and allow user to set fit width
+        global ax, fig, coords
+        fig = plt.figure(1)
+        ax = fig.add_subplot(111)
+        ax.plot(pix,dataval)
+        coords= [] 
+        cid = fig.canvas.mpl_connect('button_press_event', onclick)
+        plt.xlabel('Pixels')
+        plt.title('Click on both sides of line you want to fit')
+        plt.show()
         
-        best = np.zeros(8)
-        xes = np.array([pix[bfitlow],pix[bfitlow+10],pix[bfitlow+20],pix[bfithi-10],pix[bfithi]])
-        yes = np.array([dataval[bfitlow],dataval[bfitlow+10],dataval[bfitlow+20],dataval[bfithi-10],dataval[bfithi]])
-        bp = np.polyfit(xes,yes,3)
-        bpp = np.poly1d(bp)
-        best[0] = bp[3]
-        best[1] = bp[2]
-        best[2] = bp[1]
-        best[7] = bp[0]
-        best[4] = pix[np.min(np.where(fitval == fitval.min()))] + bfitlow
-        best[3] = np.min(dataval[bfitlow:bfithi+1]) - bpp(best[4]) #depth of line relative to continuum
-        bhalfmax = bpp(best[4]) + best[3]/2.5
-        bdiff = np.abs(fitval-bhalfmax)
-        blowidx = bdiff[np.where(fitpixels < best[4])].argmin()
-        bhighidx = bdiff[np.where(fitpixels > best[4])].argmin() + len(bdiff[np.where(fitpixels < best[4])])
-        best[5] = (fitpixels[bhighidx] - fitpixels[blowidx]) / (2.*np.sqrt(2.*np.log(2.))) #convert FWHM to sigma
-        best[6] = 1.0 #how much of a pseudo-gaussian
+        fitlow= find_near(coords[0][0], pix) # Nearest pixel to click cordinates
+        fithi= find_near(coords[1][0], pix) # Nearest pixel to click cordinates
+        fitpixels = np.asarray(pix[fitlow:fithi+1])
+        fitsigmas = sigmaval[fitlow:fithi+1]
+        fitval = dataval[fitlow:fithi+1]
+
+        guess = np.zeros(4)
+        guess[3] = np.mean(fitval) #continuum
+        guess[0] = guess[3] - np.min(fitval) #amplitude
+        guess[1] = fitpixels[fitval.argmin()] #central pixel
+        guess[2] = 4. #guess at sigma
+
+        fa = {'x':fitpixels, 'y':fitval, 'err':fitsigmas}
+        lineparams = mpfit.mpfit(fitgauss,guess,functkw=fa,quiet=True)
+        line_center = lineparams.params[1]
+        line_fit = gaussmpfit(fitpixels,lineparams.params)
+
+        known_wavelength = float(raw_input('Wavelength of line: '))
         
-        bfa = {'x':fitpixels, 'y':fitval, 'err':fitsigmas}
-        bparams = mpfit.mpfit(fitpseudogausscubic,best,functkw=bfa,maxiter=3000,ftol=1e-16,xtol=1e-10,quiet=True)
-        line_center = bparams.params[4]
-        line_fit = pseudogausscubic(fitpixels,bparams.params)
-        known_wavelength = 4862.0
-
-    if 'red' in specname.lower():
-        #Recenter the observed data to match the models by fitting beta and gamma
-        rfitlow = 940 #6380
-        rfithi = 1400 #6760
-    
-        fitpixels = np.asarray(pix[rfitlow:rfithi+1])
-        fitsigmas = sigmaval[rfitlow:rfithi+1]
-        fitval = dataval[rfitlow:rfithi+1]
-        
-        rest = np.zeros(8)
-        xes = np.array([pix[rfitlow],pix[rfitlow+10],pix[rfitlow+20],pix[rfithi-10],pix[rfithi]])
-        yes = np.array([dataval[rfitlow],dataval[rfitlow+10],dataval[rfitlow+20],dataval[rfithi-10],dataval[rfithi]])
-        rp = np.polyfit(xes,yes,3)
-        rpp = np.poly1d(rp)
-        rest[0] = rp[3]
-        rest[1] = rp[2]
-        rest[2] = rp[1]
-        rest[7] = rp[0]
-        rest[4] = pix[np.min(np.where(fitval == fitval.min()))] + rfitlow
-        rest[3] = np.min(dataval[rfitlow:rfithi+1]) - rpp(rest[4]) #depth of line relative to continuum
-        rhalfmax = rpp(rest[4]) + rest[3]/3.
-        rdiff = np.abs(fitval-rhalfmax)
-        rlowidx = rdiff[np.where(fitpixels < rest[4])].argmin()
-        rhighidx = rdiff[np.where(fitpixels > rest[4])].argmin() + len(rdiff[np.where(fitpixels < rest[4])])
-        rest[5] = (fitpixels[rhighidx] - fitpixels[rlowidx]) / (2.*np.sqrt(2.*np.log(2.))) #convert FWHM to sigma
-        rest[6] = 1.0 #how much of a pseudo-gaussian
-        
-        rfa = {'x':fitpixels, 'y':fitval, 'err':fitsigmas}
-        rparams = mpfit.mpfit(fitpseudogausscubic,rest,functkw=rfa,maxiter=3000,ftol=1e-16,xtol=1e-10,quiet=True)
-        line_center = rparams.params[4]
-        line_fit = pseudogausscubic(fitpixels,rparams.params)
-        known_wavelength = 6564.6
-
-
-    '''
-    if 'red' in specname.lower():
-        lowpix = 810 #For red setup. 6300 skyline
-        highpix = 900 #For red setup. 6300 skyline
-        skyline = 6300.304 #For red setup. 6300 skyline
-
-    if 'blue' in specname.lower():
-        #lowpix = 400 #For Ca K line
-        #highpix = 465 #For Ca K line
-        #skyline = 3933.668 #For Ca K line
-        lowpix = 455  #For Ca H line
-        highpix = 510 #For Ca H line
-        skyline = 3968.4673 #For Ca H line
-    
-    fitdata = dataval[lowpix:highpix]
-    fitpix = pix[lowpix:highpix]
-    fiterror = np.sqrt(fitdata)
-
-    if 'red' in specname.lower():
-        guessgred = np.zeros(4)
-        guessgred[3] = np.mean(fitdata) #continuum value
-        guessgred[0] = np.max(fitdata) - guessgred[0] #amplitude
-        guessgred[1] = fitpix[fitdata.argmax()] #central pixel
-        guessgred[2] = 5. #guess at sigma
-        paraminfo = [{'limits':[0,0],'limited':[0,0]} for i in range(4)]
-        paraminfo[0]['limited'] = [1,0]
-        paraminfo[0]['limits'] = [0.,0]
-        fa = {'x':fitpix,'y':fitdata,'err':fiterror}
-        fitsg = mpfit.mpfit(fitgauss,guessgred,functkw=fa,parinfo=paraminfo,quiet=True)
-        #fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgred,maxfev=100000)
-    
-    if 'blue' in specname.lower():
-        guessgblue = np.zeros(4)
-        guessgblue[3] = np.mean(fitdata)
-        guessgblue[0] = guessgblue[0] - np.min(fitdata)
-        guessgblue[1] = fitpix[fitdata.argmin()] #minimum pixel
-        guessgblue[2] = 5. #guess at sigma
-        paraminfo = [{'limits':[0,0],'limited':[0,0]} for i in range(4)]
-        paraminfo[0]['limited'] = [0,1]
-        paraminfo[0]['limits'] = [0,0.]
-        fa = {'x':fitpix,'y':fitdata,'err':fiterror}
-        fitsg = mpfit.mpfit(fitgauss,guessgblue,functkw=fa,parinfo=paraminfo,quiet=True)
-        #fitsg, fitsg_cov=curve_fit(Gauss,fitpix,fitdata,guessgblue,maxfev=100000)
-    '''
     print 'Gaussian center at pixel ',line_center
     plt.hold('on')
     plt.plot(fitpixels,line_fit,'r')
@@ -655,6 +641,8 @@ if yn== 'yes':
     plt.ylabel("Counts")
     plt.hold('off')
     plt.show()
+else:
+    offset = 0.
 
 # Ask Refit # ===============================================================
 yn= 'yes'
@@ -778,8 +766,11 @@ print "\nWrite solution to header of another spectrum?"
 yn= raw_input("yes or no? >>>")
 if yn== "yes":
     specname = raw_input("Filename: ")
-    newzeropoint = WaveShift(specname)
-    #newzeropoint = n_zPnt
+    fitspectrum = raw_input('Would you like to fit a new zero point using a spectral line? ')
+    if fitspectrum == 'yes':
+        newzeropoint = WaveShift(specname)
+    else:
+        newzeropoint = n_zPnt
     spec_data= pf.getdata(specname)
     spec_header= pf.getheader(specname)
     rt.Fix_Header(spec_header)
