@@ -15,6 +15,8 @@ python model_calibration.py wtfb.wd1401-147_930_blue.ms.fits wtfb.wd1401-147_930
 
 :OUTPUTS:
      continuum normalized spectrum: '_flux_model' added to filename. Name of model used written to header. 
+     
+     normalization_ZZCETINAME_DATE.txt: File for diagnostics. ZZCETINAME is name of the ZZ Ceti spectrum supplied. DATE is the current date and time. Columns are: blue wavelengths, blue response all data, blue masked wavelengths, blue masked response data, blue response fit, red wavelengths, red response all data, red masked wavelengths, red masked response data, red response fit
 
 '''
 
@@ -85,16 +87,16 @@ cflux2blue = interp2(obs_spectrablue.warr)
 cflux2blue /= 10**13. #Divide by 10**13 to scale
 if redfile:
     cflux2red = interp2(obs_spectrared.warr)
-    cflux2red /= 10**13. #Divide by 10**13 to scal
+    cflux2red /= 10**13. #Divide by 10**13 to scale
 
 
-plt.clf()
-plt.plot(obs_spectrablue.warr,obs_spectrablue.opfarr,'b')
-plt.plot(obs_spectrablue.warr,cflux2blue,'r')
-if redfile:
-    plt.plot(obs_spectrared.warr,obs_spectrared.opfarr,'b')
-    plt.plot(obs_spectrared.warr,cflux2red,'r')
-plt.show()
+#plt.clf()
+#plt.plot(obs_spectrablue.warr,obs_spectrablue.opfarr,'b')
+#plt.plot(obs_spectrablue.warr,cflux2blue,'r')
+#if redfile:
+#    plt.plot(obs_spectrared.warr,obs_spectrared.opfarr,'b')
+#    plt.plot(obs_spectrared.warr,cflux2red,'r')
+#plt.show()
 
 
 response_blue = obs_spectrablue.opfarr/cflux2blue
@@ -122,96 +124,40 @@ if redfile:
         indxs = np.where((obs_spectrared.warr > wavrange[0]) * (obs_spectrared.warr < wavrange[1]))
         balmer_mask_red[indxs] = False
 
-mod_wav_masked_blue = obs_spectrablue.warr[balmer_mask_blue]
-mod_spec_masked_blue = cflux2blue[balmer_mask_blue]
-
 spec_wav_masked_blue = obs_spectrablue.warr[balmer_mask_blue]
-spec_flux_masked_blue = obs_spectrablue.opfarr[balmer_mask_blue]
-weights_masked_blue = obs_spectrablue.sigma[balmer_mask_blue]
 response_masked_blue = response_blue[balmer_mask_blue]
 
-if redfile:
-    mod_wav_masked_red = obs_spectrared.warr[balmer_mask_red]
-    mod_spec_masked_red = cflux2red[balmer_mask_red]
-    
+if redfile:    
     spec_wav_masked_red = obs_spectrared.warr[balmer_mask_red]
-    spec_flux_masked_red = obs_spectrared.opfarr[balmer_mask_red]
-    weights_masked_red = obs_spectrared.sigma[balmer_mask_red]
     response_masked_red = response_red[balmer_mask_red]
 
 
-#This section uses a polynomial to fit the data and model spectra. The order of polynomial is specified first. 
-spec_poly_order_blue = 5. #5
-mod_poly_order_blue = 6. #6
-response_poly_order_blue = 5.
+#This section uses a polynomial to fit the response function. The order of polynomial is specified first. 
+response_poly_order_blue = 7.
 response_fit_blue_poly = np.polyfit(spec_wav_masked_blue,response_masked_blue,response_poly_order_blue)
 response_fit_blue = np.poly1d(response_fit_blue_poly)
-#spec_fit_blue_poly = np.polyfit(spec_wav_masked_blue,spec_flux_masked_blue,spec_poly_order_blue,w=weights_masked_blue)
-#spec_fit_blue = np.poly1d(spec_fit_blue_poly)
-#mod_fit_blue_poly = np.polyfit(mod_wav_masked_blue,mod_spec_masked_blue,mod_poly_order_blue)
-#mod_fit_blue = np.poly1d(mod_fit_blue_poly)
+
 
 if redfile:
     spec_poly_order_red = 3.
-    mod_poly_order_red = 3.
-    response_poly_order_red = 3.
     response_fit_red_poly = np.polyfit(spec_wav_masked_red,response_masked_red,response_poly_order_red)
     response_fit_red = np.poly1d(response_fit_red_poly)
-    #spec_fit_red_poly = np.polyfit(spec_wav_masked_red,spec_flux_masked_red,spec_poly_order_red,w=weights_masked_red)
-    #spec_fit_red = np.poly1d(spec_fit_red_poly)
-    #mod_fit_red_poly = np.polyfit(mod_wav_masked_red,mod_spec_masked_red,mod_poly_order_red)
-    #mod_fit_red = np.poly1d(mod_fit_red_poly)
 
 
 plt.clf()
-#plt.plot(obs_spectrablue.warr,cflux2blue/(10**13.6)/np.mean(cflux2blue/(10**13.6)),'r')
-#plt.plot(mod_wav_masked_blue,mod_spec_masked_blue/np.mean(mod_spec_masked_blue),'b.')
-#plt.plot(mod_wav_masked_blue,response_test[balmer_mask_blue],'r')
-#plt.plot(obs_spectrablue.warr,mod_fit_blue(obs_spectrablue.warr),'k--')
-#plt.plot(obs_spectrablue.warr,obs_spectrablue.opfarr,'r')
-#plt.plot(spec_wav_masked_blue,spec_flux_masked_blue,'g.')
-#plt.plot(obs_spectrablue.warr,spec_fit_blue(obs_spectrablue.warr),'k--')
 plt.plot(obs_spectrablue.warr,response_blue,'r')
 plt.plot(spec_wav_masked_blue,response_masked_blue,'g.')
 plt.plot(obs_spectrablue.warr,response_fit_blue(obs_spectrablue.warr),'k--')
 #plt.show()
 
-
 #plt.clf()
 if redfile:
-    #plt.plot(obs_spectrared.warr,cflux2red/(10**13.6),'r')
-    #plt.plot(mod_wav_masked_red,mod_spec_masked_red,'b.')
-    #plt.plot(obs_spectrared.warr,mod_fit_red(obs_spectrared.warr),'k--')
-    #plt.plot(obs_spectrared.warr,obs_spectrared.opfarr,'r')
-    #plt.plot(spec_wav_masked_red,spec_flux_masked_red,'g.')
-    #plt.plot(obs_spectrared.warr,spec_fit_red(obs_spectrared.warr),'k--')
     plt.plot(obs_spectrared.warr,response_red,'r')
     plt.plot(spec_wav_masked_red,response_masked_red,'g.')
     plt.plot(obs_spectrared.warr,response_fit_red(obs_spectrared.warr),'k--')
 plt.show()
 
-#plt.clf()
-
-#plt.plot(obs_spectrablue.warr,obs_spectrablue.opfarr/spec_fit_blue(obs_spectrablue.warr),'b')
-#plt.plot(obs_spectrablue.warr,cflux2blue/(10**13.6)/136.92,'k')
-
-#plt.plot(obs_spectrared.warr,obs_spectrared.opfarr/spec_fit_red(obs_spectrared.warr),'r')
-#plt.plot(obs_spectrared.warr,cflux2red/(10**13.6)/mod_fit_red(obs_spectrared.warr),'k')
-#plt.plot(obs_spectrablue.warr,cflux2blue/(10**13.6)/mod_fit_blue(obs_spectrablue.warr),'k')
-#plt.plot(obs_spectrared.warr,cflux2red/(10**13.6)/136.92,'k')
-#plt.show()
-#exit()
-
-#wd_response_blue = mod_fit_blue(obs_spectrablue.warr)/spec_fit_blue(obs_spectrablue.warr)
-#if redfile:
-#    wd_response_red = mod_fit_red(obs_spectrared.warr)/spec_fit_red(obs_spectrared.warr)
-
-#plt.clf()
-#plt.plot(obs_spectrablue.warr,wd_response_blue,'b')
-#if redfile:
-#    plt.plot(obs_spectrared.warr,wd_response_red,'r')
-#plt.show()
-
+#Divide by the fit to the response function to get the continuum normalized spectra
 fcorr_wd_blue_opfarr = obs_spectrablue.opfarr / response_fit_blue(obs_spectrablue.warr)
 fcorr_wd_blue_farr = obs_spectrablue.farr / response_fit_blue(obs_spectrablue.warr)
 fcorr_wd_blue_sky = obs_spectrablue.sky / response_fit_blue(obs_spectrablue.warr)
@@ -229,42 +175,37 @@ plt.plot(obs_spectrablue.warr,fcorr_wd_blue_opfarr,'b')
 if redfile:
     plt.plot(obs_spectrared.warr,fcorr_wd_red_opfarr,'r')
 plt.show()
-exit()
+#exit()
 
 #Save parameters for diagnostics
 if redfile:
-    bigarray = np.zeros([len(obs_spectrablue.warr),14])
-    bigarray[:,0] = obs_spectrablue.warr
-    bigarray[:,1] = obs_spectrablue.opfarr
-    bigarray[:,2] = spec_fit_blue(obs_spectrablue.warr)
-    bigarray[:,3] = cflux2blue
-    bigarray[:,4] = mod_fit_blue(obs_spectrablue.warr)
-    bigarray[:,5] = wd_response_blue
-    bigarray[:,6] = fcorr_wd_blue_opfarr
-    bigarray[:,7] = obs_spectrared.warr
-    bigarray[:,8] = obs_spectrared.opfarr
-    bigarray[:,9] = spec_fit_red(obs_spectrared.warr)
-    bigarray[:,10] = cflux2red
-    bigarray[:,11] = mod_fit_red(obs_spectrared.warr)
-    bigarray[:,12] = wd_response_red
-    bigarray[:,13] = fcorr_wd_red_opfarr
+    bigarray = np.zeros([len(obs_spectrablue.warr),10])
+    bigarray[0:len(obs_spectrablue.warr),0] = obs_spectrablue.warr
+    bigarray[0:len(response_blue),1] = response_blue
+    bigarray[0:len(spec_wav_masked_blue),2] = spec_wav_masked_blue
+    bigarray[0:len(response_masked_blue),3] = response_masked_blue
+    bigarray[0:len(response_fit_blue(obs_spectrablue.warr)),4] = response_fit_blue(obs_spectrablue.warr)
+    bigarray[0:len(obs_spectrared.warr),5] = obs_spectrared.warr
+    bigarray[0:len(response_red),6] = response_red
+    bigarray[0:len(spec_wav_masked_red),7] = spec_wav_masked_red
+    bigarray[0:len(response_masked_red),8] = response_masked_red
+    bigarray[0:len(response_fit_red(obs_spectrared.warr)),9] = response_fit_red(obs_spectrared.warr)
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
     endpoint = '_930'
     with open('continuum_normalization_' + filenameblue[5:filenameblue.find(endpoint)] + '_' + now + '.txt','a') as handle:
-        header = str(filenameblue) + ',' + str(filenamered) + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: wavelengths, optimized spectra, polynomial fit to data, \n model fluxes, polynomial fit to model, response, continuum normalized spectrum.'
+        header = str(filenameblue) + ',' + str(filenamered) + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: blue wavelengths, blue response all data, blue masked wavelengths, blue masked response data, blue response fit, red wavelengths, red response all data, red masked wavelengths, red masked response data, red response fit'
         np.savetxt(handle,bigarray,fmt='%f',header=header)
 if not redfile:
-    bigarray = np.zeros([len(obs_spectrablue.warr),7])
-    bigarray[:,0] = obs_spectrablue.warr
-    bigarray[:,1] = obs_spectrablue.opfarr
-    bigarray[:,2] = spec_fit_blue(obs_spectrablue.warr)
-    bigarray[:,3] = cflux2blue
-    bigarray[:,4] = mod_fit_blue(obs_spectrablue.warr)
-    bigarray[:,5] = wd_response_blue
-    bigarray[:,6] = fcorr_wd_blue_opfarr
+    bigarray = np.zeros([len(obs_spectrablue.warr),5])
+    bigarray[0:len(obs_spectrablue.warr),0] = obs_spectrablue.warr
+    bigarray[0:len(response_blue),1] = response_blue
+    bigarray[0:len(spec_wav_masked_blue),2] = spec_wav_masked_blue
+    bigarray[0:len(response_masked_blue),3] = response_masked_blue
+    bigarray[0:len(response_fit_blue(obs_spectrablue.warr)),4] = response_fit_blue(obs_spectrablue.warr)
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+    endpoint = '_930'
     with open('continuum_normalization_' + filenameblue[5:filenameblue.find(endpoint)] + '_' + now + '.txt','a') as handle:
-        header = str(filenameblue) + ',' + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: wavelengths, optimized spectra, polynomial fit to data, \n model fluxes, polynomial fit to model, response, continuum normalized spectrum.'
+        header = str(filenameblue) + ',' + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: blue wavelengths, blue response all data, blue masked wavelengths, blue masked response data, blue response fit'
         np.savetxt(handle,bigarray,fmt='%f',header=header)
     
     
@@ -278,8 +219,9 @@ Ny = 1. #All 1D spectra
 
 header1 = st.readheader(filenameblue)
 header1.set('STANDARD',dafile,'DA Model for Continuum Calibration')
-header1.set('SPECPOLY',spec_poly_order_blue,'Spectrum polynomial order for Continuum Calib.')
-header1.set('MODPOLY',mod_poly_order_blue,'Model polynomial order for Continuum Calib.')
+header1.set('RESPPOLY',response_poly_order_blue,'Polynomial order for Response Function')
+header1.set('DATENORM',datetime.datetime.now().strftime("%Y-%m-%d"),'Date of Continuum Normalization')
+
 
 data1 = np.empty(shape = (Ni,Ny,Nx1))
 data1[0,:,:] = fcorr_wd_blue_opfarr 
@@ -313,8 +255,8 @@ newim1.writeto(newname1,clobber=clob)
 if redfile:
     header2 = st.readheader(filenamered)
     header2.set('STANDARD',dafile,'DA Model for Continuum Calibration')
-    header1.set('SPECPOLY',spec_poly_order_red,'Spectrum polynomial order for Continuum Calibration')
-    header1.set('MODPOLY',mod_poly_order_red,'Model polynomial order for Continuum Calibration')
+    header2.set('RESPPOLY',response_poly_order_red,'Polynomial order for Response Function')
+    header2.set('DATENORM',datetime.datetime.now().strftime("%Y-%m-%d"),'Date of Continuum Normalization')
     data2 = np.empty(shape = (Ni,Ny,Nx2))
     data2[0,:,:] = fcorr_wd_red_opfarr 
     data2[1,:,:] = fcorr_wd_red_farr
@@ -342,8 +284,4 @@ if redfile:
     
     newim2 = pf.PrimaryHDU(data=data2,header=header2)
     newim2.writeto(newname2,clobber=clob)
-
-
-
-
 
