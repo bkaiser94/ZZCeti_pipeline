@@ -318,7 +318,10 @@ def Add_Scale (img_block):
         Cavg.append( np.mean(img_block[i, 25:75, 1700:1800]) )
         Sval.append( Cavg[0]-Cavg[i] )
         img_block[i]= img_block[i] + Sval[i]
-    diagnostic[0:len(Cavg),0] = np.array(Cavg)
+    try:
+        diagnostic[0:len(Cavg),0] = np.array(Cavg)
+    except:
+        pass
     return img_block, Sval
     
 def Mult_Scale (img_block,index):
@@ -339,13 +342,16 @@ def Mult_Scale (img_block,index):
         Cavg.append( np.mean(img_block[i, 25:75, 1700:1800]) )
         Cstd.append( np.std(img_block[i,25:75,1700:1800]))
         Sval.append( Cavg[0]/Cavg[i] )
-        img_block[i]= img_block[i]*Sval[i]    
-    if index == 1:
-        diagnostic[0:len(Cavg),3] = np.array(Cavg)
-        diagnostic[0:len(Cstd),4] = np.array(Cstd)
-    elif index == 2:
-        diagnostic[0:len(Cavg),7] = np.array(Cavg)
-        diagnostic[0:len(Cstd),8] = np.array(Cstd)
+        img_block[i]= img_block[i]*Sval[i]
+    try:
+        if index == 1:
+            diagnostic[0:len(Cavg),3] = np.array(Cavg)
+            diagnostic[0:len(Cstd),4] = np.array(Cstd)
+        elif index == 2:
+            diagnostic[0:len(Cavg),7] = np.array(Cavg)
+            diagnostic[0:len(Cstd),8] = np.array(Cstd)
+    except:
+        pass
     return img_block, Sval
         
     
@@ -371,6 +377,7 @@ def Bias_Subtract( img_list, zero_img ):
         img_data[ np.isnan(img_data) ] = 0
         b_img_data = np.subtract(img_data, zero_data)
         print 'b.'+"%s Mean: %.3f StDiv: %.3f" % (img, np.mean(b_img_data), np.std(img_data))
+        hdu.set( 'DATEBIAS', datetime.datetime.now().strftime("%Y-%m-%d"), 'Date of Bias Subtraction' )
         hdu.append( ('BIASSUB', zero_img ,'Image Used to Bias Subtract.'),
                    useblanks= True, bottom= True )
         NewHdu = pf.PrimaryHDU(b_img_data, hdu)
@@ -490,6 +497,7 @@ def Flat_Field( spec_list, flat ):
         print "f"+"%s Mean: %.3f StDiv: %.3f" % (spec, np.mean(f_spec_data), np.std(f_spec_data) ) 
         hdu = pf.getheader(spec)
         Fix_Header(hdu)
+        hdu.set('DATEFLAT', datetime.datetime.now().strftime("%Y-%m-%d"), 'Date of Flat Fielding')   
         hdu.append( ('FLATFLD', flat,'Image used to Flat Field.'), 
                useblanks= True, bottom= True )    
         NewHdu = pf.PrimaryHDU(data= f_spec_data, header= hdu)
@@ -612,17 +620,19 @@ def imcombine(im_list, output_name, method,
                 % (i, im_list[i], Scale[i], Avg, Std) )
     
     #Save Values to diagnostic array
-    if im_list[0].lower().__contains__("zero"):
-        diagnostic[0:len(avgarr),1] = avgarr
-        diagnostic[0:len(stdarr),2] = stdarr
-    if im_list[0].lower().__contains__("flat"):
-        if im_list[0].lower().__contains__("blue"):
-            diagnostic[0:len(avgarr),5] = avgarr
-            diagnostic[0:len(stdarr),6] = stdarr
-        elif im_list[0].lower().__contains__("red"):
-            diagnostic[0:len(avgarr),9] = avgarr
-            diagnostic[0:len(stdarr),10] = stdarr
-    
+    try:
+        if im_list[0].lower().__contains__("zero"):
+            diagnostic[0:len(avgarr),1] = avgarr
+            diagnostic[0:len(stdarr),2] = stdarr
+        if im_list[0].lower().__contains__("flat"):
+            if im_list[0].lower().__contains__("blue"):
+                diagnostic[0:len(avgarr),5] = avgarr
+                diagnostic[0:len(stdarr),6] = stdarr
+            elif im_list[0].lower().__contains__("red"):
+                diagnostic[0:len(avgarr),9] = avgarr
+                diagnostic[0:len(stdarr),10] = stdarr
+    except:
+        pass
     ## Combine the images acording to input "method" using SigmaClip() above ## 
     comb_img = np.ndarray( shape= (1,Ny,Nx), dtype='float32')
     while True: # Contunualy askes for method if input is wierd # 
@@ -739,6 +749,9 @@ def imcombine(im_list, output_name, method,
     
     # Write Effective Airmass into header # 
     hdu.header.set('AIRMASS',np.round(EffAM,6),'Calculated Effective Airmass')
+
+    #Write date of image combination to header #
+    hdu.header.set('DATECOMB', datetime.datetime.now().strftime("%Y-%m-%d"), 'Date of Image combination')
     
     # Write the imcombine information into header #
     N = len(im_list)

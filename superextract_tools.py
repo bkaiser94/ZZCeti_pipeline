@@ -1052,13 +1052,11 @@ class baseObject:
 
 def lampextract(frame,trace,extract_radius):
     nlam,width = frame.shape
-    
 
     #trace.reshape(nlam,1) is the center of the fitted profile of the star
     # xxx is the distance of the frame on either side of the fitted profile.
     xxx = np.arange(width) - trace.reshape(nlam,1)
     extractionApertures = np.abs(xxx) <= extract_radius
-
 
     standardSpectrum = np.zeros((nlam, 1), dtype=float)
     for ii in range(nlam):

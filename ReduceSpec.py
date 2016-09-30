@@ -98,8 +98,8 @@ if __name__ == "__main__":
     
     # The rest of the code runs the reduction procces up to apall #  =========
     # Combine Zeros # 
-    comb_zero = rt.imcombine(zero_lists[0], zero_names[0], 'average', lo_sig= lo_sig, 
-                        hi_sig= hi_sig, overwrite= overwrite)
+    comb_zero = rt.imcombine(zero_lists[0], zero_names[0], 'average', lo_sig= 10, 
+                        hi_sig= 3, overwrite= overwrite)
     
     # Bias Subtract Flats # 
     nf= len(flat_lists) # number of flats
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     comb_flat= []
     while i < nf:
         comb_flat.append( rt.imcombine(b_flat_lists[i], 'b.'+flat_names[i], 'median', 
-                        lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
+                        lo_sig= 10, hi_sig= 3, overwrite= overwrite) )
         i= i+1
     
     # Normalize Flat (divide by average of counts) # 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     while i < nsp:
         rt.checkspec(fb_spec_list[i])
         comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], 'average', 
-                        lo_sig= lo_sig, hi_sig= hi_sig, overwrite= overwrite) )
+                        lo_sig= 10, hi_sig= 7, overwrite= overwrite) )
         i= i+1
                         
     # Trim Spectra # 

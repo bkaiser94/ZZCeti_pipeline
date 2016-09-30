@@ -102,7 +102,7 @@ if len(sys.argv) == 2:
 datalist = fits.open(specfile)
 data = datalist[0].data
 data = data[0,:,:]
-data = 5.*np.transpose(data)
+data = np.transpose(data)
 
 gain = datalist[0].header['GAIN']
 rdnoise = datalist[0].header['RDNOISE']
@@ -259,6 +259,7 @@ header.set('BANDID4','Sigma Spectrum')
 header.set('DISPCOR',0) #Dispersion axis of image
 fwhmsave = np.round(fwhm,decimals=4)
 header.set('SPECFWHM',fwhmsave,'FWHM of spectrum in pixels') #FWHM of spectrum in pixels
+header.set('DATEEXTR',datetime.datetime.now().strftime("%Y-%m-%d"),'Date of Spectral Extraction')
 
 #Save the extracted image
 Ni = 4. #Number of extensions
@@ -323,32 +324,22 @@ if lamp != 'no':
     bin1size = np.arange(1,len(lampdata)+1)
     ratio = float(len(bin1size)) / float(len(bin2size))
     interpolates = InterpolatedUnivariateSpline(ratio*bin2size,output_spec.trace,k=1)
-    bin1size = np.arange(1,len(lampdata)+1)
     newtrace = interpolates(bin1size)
-    plt.clf()
-    plt.plot(bin1size,newtrace)
-    plt.show()
+    
     #Do the extraction here.
-    lamp_radius = fwhm
-    print lamp_radius
+    lamp_radius = np.ceil(fwhm) #Make sure that extraction radius is a whole number, otherwise you'll get odd structures.
     lampspec = lampextract(lampdata,newtrace,lamp_radius)
-    plt.clf()
-    plt.plot(lampspec)
-    plt.show()
 
     #Save the 1D lamp
     lampheader = st.readheader(lamp)
     lampheader.set('BANDID2','Raw Extracted Spectrum')
     lampheader.set('REF',newname,'Reference Star used for trace')
+    lampheader.set('DATEEXTR',datetime.datetime.now().strftime("%Y-%m-%d"),'Date of Spectral Extraction')
 
     Ni = 1. #We are writing just 1 1D spectrum
     Ny = len(lampspec[:,0])
     lampspectrum = np.empty(shape = (Ni,Ny))
     lampspectrum[0,:] = lampspec[:,0]
-
-    #plt.clf()
-    #plt.plot(lampspec)
-    #plt.show()
 
     #Save the extracted spectra with .ms.fits in the filename
     #Ask to overwrite if file already exists or provide new name

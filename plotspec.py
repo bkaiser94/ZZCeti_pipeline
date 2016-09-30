@@ -37,7 +37,6 @@ else:
     print 'Too many inputs. Please try again.'
     exit()
 
-#specname = 'wtfb.wd1425-811_930_red_flux.ms.fits'
 spec_data= pf.getdata(specname)
 spec_header= pf.getheader(specname)
 
@@ -58,12 +57,15 @@ try:
     
     WDwave = DispCalc(Pixels, alpha, theta, fr, fd, fl, zPnt)
 except:
-    WDwave = np.arange(len(spec_data[0,0,:]))
+    if 'fe_' in specname.lower():
+        WDwave = np.arange(len(spec_data[0,:]))
+    else:
+        WDwave = np.arange(len(spec_data[0,0,:]))
 
 #np.savetxt('OWJ1818-2434_930_blue.txt',np.transpose([WDwave2,spec_data[0,0,:],spec_data[3,0,:],spec_data[2,0,:]]),header='wavelengths, optimally extracted spectrum, sigma spectrum, sky spectrum')
 
 
-if '_fe_' in specname.lower():
+if 'fe_' in specname.lower():
     plt.clf()
     plt.plot(WDwave,spec_data[0,:])
     plt.show()

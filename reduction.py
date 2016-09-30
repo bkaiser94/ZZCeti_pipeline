@@ -22,7 +22,7 @@ if task == 'combine':
     files = raw_input('Name of file containing images to combine: ')
     filelist = rt.Read_List(files)
     output_file = raw_input('Output file name: ')
-    method = raw_input('Method to combine (median,average,cum): ')
+    method = raw_input('Method to combine (median,average,sum): ')
     low_sig = float(raw_input('Low sigma clipping threshold: '))
     low_sig = np.abs(low_sig) #Ensure that this value is positive
     high_sig = float(raw_input('High sigma clipping threshold: '))
