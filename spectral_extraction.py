@@ -45,7 +45,6 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 import spectools as st
 import superextract
 from superextract_tools import lampextract
-#from ReduceSpec_tools import SigClip
 from pylab import *
 
 #===========================================
@@ -103,7 +102,7 @@ if len(sys.argv) == 2:
 datalist = fits.open(specfile)
 data = datalist[0].data
 data = data[0,:,:]
-data = np.transpose(data)
+data = 5.*np.transpose(data)
 
 gain = datalist[0].header['GAIN']
 rdnoise = datalist[0].header['RDNOISE']
@@ -326,11 +325,16 @@ if lamp != 'no':
     interpolates = InterpolatedUnivariateSpline(ratio*bin2size,output_spec.trace,k=1)
     bin1size = np.arange(1,len(lampdata)+1)
     newtrace = interpolates(bin1size)
-
+    plt.clf()
+    plt.plot(bin1size,newtrace)
+    plt.show()
     #Do the extraction here.
     lamp_radius = fwhm
+    print lamp_radius
     lampspec = lampextract(lampdata,newtrace,lamp_radius)
-
+    plt.clf()
+    plt.plot(lampspec)
+    plt.show()
 
     #Save the 1D lamp
     lampheader = st.readheader(lamp)
