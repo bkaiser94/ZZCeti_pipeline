@@ -1,7 +1,7 @@
 '''
-Initially written by E. Dennihy, May 2015. Modified by J. Fuchs June 2016.
+Written by J. T. Fuchs, UNC, 2016. Some initial work done by E. Dennihy, UNC.
 
-Continuum normalizes a ZZ Ceti spectrum to match a DA model
+Continuum normalizes a ZZ Ceti spectrum to match a DA model. The response function is determined by dividing the observed spectrum by the model spectrum. The response function is fitted with a polynomial. The observed spectrum is then divided by this fit to deliver the continuum normalized spectrum.
 
 To run: (Red filename is optional)
 python model_calibration.py bluefilename redfilename
@@ -98,7 +98,7 @@ if redfile:
 #    plt.plot(obs_spectrared.warr,cflux2red,'r')
 #plt.show()
 
-
+#The response function is the observed spectrum divided by the model spectrum.
 response_blue = obs_spectrablue.opfarr/cflux2blue
 if redfile:
     response_red = obs_spectrared.opfarr/cflux2red
@@ -109,8 +109,8 @@ if redfile:
 #plt.plot(obs_spectrared.warr,response_red,'k')
 #plt.show()
 
-#We want to mask out the Balmer line features, the very blue end of the continuum, and the telluric line in the red spectrum. Set up the wavelength ranges to mask here.
-balmer_features_blue = [[3745,3757],[3760,3780],[3784,3812],[3816,3856],[3865,3921],[3935,4021],[4040,4191],[4223,4460],[4691,5019]]
+#We want to mask out the Balmer line features, and the telluric line in the red spectrum. Set up the wavelength ranges to mask here.
+balmer_features_blue = [[3745,3757],[3760,3780],[3784,3812],[3816,3856],[3865,3921],[3935,4021],[4040,4191],[4223,4460],[4691,5010]]
 balmer_features_red = [[6350,6780],[6835,6970]]
 
 balmer_mask_blue = obs_spectrablue.warr == obs_spectrablue.warr
@@ -132,7 +132,7 @@ if redfile:
     response_masked_red = response_red[balmer_mask_red]
 
 
-#This section uses a polynomial to fit the response function. The order of polynomial is specified first. 
+#Fit the response function with a polynomial. The order of polynomial is specified first. 
 response_poly_order_blue = 7.
 response_fit_blue_poly = np.polyfit(spec_wav_masked_blue,response_masked_blue,response_poly_order_blue)
 response_fit_blue = np.poly1d(response_fit_blue_poly)
@@ -157,7 +157,7 @@ if redfile:
     plt.plot(obs_spectrared.warr,response_fit_red(obs_spectrared.warr),'k--')
 plt.show()
 
-#Divide by the fit to the response function to get the continuum normalized spectra
+#Divide by the fit to the response function to get the continuum normalized spectra. Divide every extension by the same polynomial
 fcorr_wd_blue_opfarr = obs_spectrablue.opfarr / response_fit_blue(obs_spectrablue.warr)
 fcorr_wd_blue_farr = obs_spectrablue.farr / response_fit_blue(obs_spectrablue.warr)
 fcorr_wd_blue_sky = obs_spectrablue.sky / response_fit_blue(obs_spectrablue.warr)
@@ -209,14 +209,14 @@ if not redfile:
         np.savetxt(handle,bigarray,fmt='%f',header=header)
     
     
-
+#Save the continuum normalized spectra here.
 Ni = 4. #Number of extensions
 Nx1 = len(fcorr_wd_blue_opfarr)
 if redfile:
     Nx2 = len(fcorr_wd_red_opfarr)
 Ny = 1. #All 1D spectra
 
-
+#Update header
 header1 = st.readheader(filenameblue)
 header1.set('STANDARD',dafile,'DA Model for Continuum Calibration')
 header1.set('RESPPOLY',response_poly_order_blue,'Polynomial order for Response Function')
@@ -229,8 +229,7 @@ data1[1,:,:] = fcorr_wd_blue_farr
 data1[2,:,:] = fcorr_wd_blue_sky
 data1[3,:,:] = fcorr_wd_blue_sigma 
 
-
-
+#Check that filename does not already exist. Prompt user for input if it does.
 loc1 = filenameblue.find('.ms.fits')
 newname1 = filenameblue[0:loc1] + '_flux_model.ms.fits'
 clob = False
@@ -252,6 +251,8 @@ if exists:
 newim1 = pf.PrimaryHDU(data=data1,header=header1)
 newim1.writeto(newname1,clobber=clob)
 
+
+#Save the red file if it exists.
 if redfile:
     header2 = st.readheader(filenamered)
     header2.set('STANDARD',dafile,'DA Model for Continuum Calibration')
