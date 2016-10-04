@@ -101,11 +101,18 @@ if len(sys.argv) == 2:
 #Open file and read gain and readnoise
 datalist = fits.open(specfile)
 data = datalist[0].data
-data = data[0,:,:]
-data = np.transpose(data)
+data = np.transpose(data[0,:,:])
 
 gain = datalist[0].header['GAIN']
 rdnoise = datalist[0].header['RDNOISE']
+
+#Since we have combined multiple images, to keep our statistics correct, we need to multiply the values in ADU by the number of images
+try:
+    nimages = float(datalist[0].header['NCOMBINE'])
+except:
+    nimages = 1.
+
+data = nimages * data
 
 #Calculate the variance of each pixel in ADU
 varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
