@@ -139,7 +139,7 @@ response_fit_blue = np.poly1d(response_fit_blue_poly)
 
 
 if redfile:
-    spec_poly_order_red = 3.
+    response_poly_order_red = 3.
     response_fit_red_poly = np.polyfit(spec_wav_masked_red,response_masked_red,response_poly_order_red)
     response_fit_red = np.poly1d(response_fit_red_poly)
 

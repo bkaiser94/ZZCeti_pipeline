@@ -401,9 +401,9 @@ def WaveShift(specname):
     WDwave = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], n_zPnt)
     
     #Select whether to fit a Balmer line or choose a different line
-    selectline = raw_input('Would you like to fit a Balmer line or select your own? (balmer, own): ')
+    selectline = raw_input('Is this a ZZ Ceti? (yes, no): ')
     pix = range(len(dataval)) #This sets up an array of pixel numbers
-    if selectline == 'balmer':
+    if selectline == 'yes':
         if 'blue' in specname.lower():
             #Recenter the observed data to match the models by fitting beta and gamma
             bfitlow = 1300 #4680
@@ -469,7 +469,7 @@ def WaveShift(specname):
             line_center = rparams.params[4]
             line_fit = pseudogausscubic(fitpixels,rparams.params)
             known_wavelength = 6564.6
-    elif selectline == 'own':
+    elif selectline == 'no':
         #Plot the spectrum and allow user to set fit width
         global ax, fig, coords
         fig = plt.figure(1)
@@ -766,7 +766,7 @@ print "\nWrite solution to header of another spectrum?"
 yn= raw_input("yes or no? >>>")
 if yn== "yes":
     specname = raw_input("Filename: ")
-    fitspectrum = raw_input('Would you like to fit a new zero point using a spectral line? ')
+    fitspectrum = raw_input('Would you like to fit a new zero point using a spectral line? (yes/no) ')
     if fitspectrum == 'yes':
         newzeropoint = WaveShift(specname)
     else:
