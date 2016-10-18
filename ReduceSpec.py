@@ -123,6 +123,9 @@ if __name__ == "__main__":
     while i < nf:
         nb_flat.append( rt.Norm_Flat_Poly(comb_flat[i]) )
         i= i+1
+
+    # Save all diagnostic info
+    rt.save_diagnostic()
                         
     # Bias Subtract Spec # 
     i= 0

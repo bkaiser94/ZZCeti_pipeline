@@ -16,7 +16,7 @@ import ReduceSpec_tools as rt
 import spectools as st
 import warnings
 
-task = raw_input('What would you like to do? (bias, flatfield, combine, trim, wavelength) ')
+task = raw_input('What would you like to do? (bias, flat, normalize, combine, trim, wavelength) ')
 
 if task == 'combine':
     files = raw_input('Name of file containing images to combine: ')
@@ -39,5 +39,23 @@ if task == 'wavelength':
     outputfile = raw_input('Output name of file: ')
 
     st.applywavelengths(Wavefile,files,outputfile)
+
+if task == 'normalize':
+    files = raw_input('Name of flat file to normalize: ')
+    rt.Norm_Flat_Poly(files)
+
+if task == 'bias':
+    files = raw_input('Name of file containing images to bias-subtract: ')
+    filelist = rt.Read_List(files)
+    zerofile = raw_input('Name of Master Zero: ')
+    
+    rt.Bias_Subtract(filelist,zerofile)
+
+if task == 'flat':
+    files = raw_input('Name of file containing images to flat-field: ')
+    filelist = rt.Read_List(files)
+    flatfile = raw_input('Name of Normalized Flat: ')
+
+    rt.Flat_Field(filelist,flatfile)
 
     

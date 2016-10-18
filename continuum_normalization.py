@@ -179,33 +179,36 @@ plt.show()
 
 #Save parameters for diagnostics
 if redfile:
-    bigarray = np.zeros([len(obs_spectrablue.warr),10])
+    bigarray = np.zeros([len(obs_spectrablue.warr),12])
     bigarray[0:len(obs_spectrablue.warr),0] = obs_spectrablue.warr
     bigarray[0:len(response_blue),1] = response_blue
     bigarray[0:len(spec_wav_masked_blue),2] = spec_wav_masked_blue
     bigarray[0:len(response_masked_blue),3] = response_masked_blue
     bigarray[0:len(response_fit_blue(obs_spectrablue.warr)),4] = response_fit_blue(obs_spectrablue.warr)
-    bigarray[0:len(obs_spectrared.warr),5] = obs_spectrared.warr
-    bigarray[0:len(response_red),6] = response_red
-    bigarray[0:len(spec_wav_masked_red),7] = spec_wav_masked_red
-    bigarray[0:len(response_masked_red),8] = response_masked_red
-    bigarray[0:len(response_fit_red(obs_spectrared.warr)),9] = response_fit_red(obs_spectrared.warr)
+    bigarray[0:len(fcorr_wd_blue_opfarr),5] = fcorr_wd_blue_opfarr
+    bigarray[0:len(obs_spectrared.warr),6] = obs_spectrared.warr
+    bigarray[0:len(response_red),7] = response_red
+    bigarray[0:len(spec_wav_masked_red),8] = spec_wav_masked_red
+    bigarray[0:len(response_masked_red),9] = response_masked_red
+    bigarray[0:len(response_fit_red(obs_spectrared.warr)),10] = response_fit_red(obs_spectrared.warr)
+    bigarray[0:len(fcorr_wd_red_opfarr),5] = fcorr_wd_red_opfarr
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
     endpoint = '_930'
     with open('continuum_normalization_' + filenameblue[5:filenameblue.find(endpoint)] + '_' + now + '.txt','a') as handle:
-        header = str(filenameblue) + ',' + str(filenamered) + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: blue wavelengths, blue response all data, blue masked wavelengths, blue masked response data, blue response fit, red wavelengths, red response all data, red masked wavelengths, red masked response data, red response fit'
+        header = str(filenameblue) + ',' + str(filenamered) + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: blue wavelengths, blue response all data, blue masked wavelengths, blue masked response data, blue response fit, blue continuum-normalize flux, red wavelengths, red response all data, red masked wavelengths, red masked response data, red response fit, red continuum-normalized flux'
         np.savetxt(handle,bigarray,fmt='%f',header=header)
 if not redfile:
-    bigarray = np.zeros([len(obs_spectrablue.warr),5])
+    bigarray = np.zeros([len(obs_spectrablue.warr),6])
     bigarray[0:len(obs_spectrablue.warr),0] = obs_spectrablue.warr
     bigarray[0:len(response_blue),1] = response_blue
     bigarray[0:len(spec_wav_masked_blue),2] = spec_wav_masked_blue
     bigarray[0:len(response_masked_blue),3] = response_masked_blue
     bigarray[0:len(response_fit_blue(obs_spectrablue.warr)),4] = response_fit_blue(obs_spectrablue.warr)
+    bigarray[0:len(fcorr_wd_blue_opfarr),5] = fcorr_wd_blue_opfarr
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
     endpoint = '_930'
     with open('continuum_normalization_' + filenameblue[5:filenameblue.find(endpoint)] + '_' + now + '.txt','a') as handle:
-        header = str(filenameblue) + ',' + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: blue wavelengths, blue response all data, blue masked wavelengths, blue masked response data, blue response fit'
+        header = str(filenameblue) + ',' + ',' + dafile + '\n Columns structured as blue then red. If no red file, only blue data given. Columns are: blue wavelengths, blue response all data, blue masked wavelengths, blue masked response data, blue response fit, blue continuum-normalized flux'
         np.savetxt(handle,bigarray,fmt='%f',header=header)
     
     
