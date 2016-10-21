@@ -401,7 +401,7 @@ def WaveShift(specname):
     WDwave = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], n_zPnt)
     
     #Select whether to fit a Balmer line or choose a different line
-    selectline = raw_input('Is this a ZZ Ceti? (yes, no): ')
+    selectline = raw_input('Is this a ZZ Ceti? (yes/no): ')
     pix = range(len(dataval)) #This sets up an array of pixel numbers
     if selectline == 'yes':
         if 'blue' in specname.lower():
@@ -598,7 +598,7 @@ plt.show()
 # Ask for offset # ===========================================================
 
 print "\nWould You like to set Offset?" 
-yn= raw_input('yes or no? >>> ')
+yn= raw_input('yes/no? >>> ')
 
 #yn= 'yes'
 if yn== 'yes':
@@ -649,7 +649,7 @@ yn= 'yes'
 while yn== 'yes':   
   
   print "\nWould you like to refit and recalculate dispersion?" 
-  yn= raw_input('yes or no? >>> ')
+  yn= raw_input('yes/no? >>> ')
   
   if yn== 'yes' :
         #print "\nOffset to apply to Grating Angle?"
@@ -731,7 +731,7 @@ while yn== 'yes':
         
 # Save parameters in header and write file # 
 print "\nWrite solution to header?"
-yn= raw_input("yes or no? >>>")
+yn= raw_input("yes/no? >>>")
 if yn== "yes":
     newname = 'w'+lamp
     mylist = [True for f in os.listdir('.') if f == newname]
@@ -763,7 +763,7 @@ if yn== "yes":
 
 #Save parameters to ZZ Ceti spectrum#
 print "\nWrite solution to header of another spectrum?"
-yn= raw_input("yes or no? >>>")
+yn= raw_input("yes/no? >>>")
 if yn== "yes":
     specname = raw_input("Filename: ")
     fitspectrum = raw_input('Would you like to fit a new zero point using a spectral line? (yes/no) ')
