@@ -139,9 +139,21 @@ for x in fitpixel:
 
 fwhmclipped = SigClip(allfwhm,3,3)
 
-fwhmpolyvalues = np.polyfit(fitpixel,fwhmclipped,deg=1)
-allpixel = np.arange(0,len(data[:,100]),1)
-fwhmpoly = np.poly1d(fwhmpolyvalues)
+#Fit using a line, but give user the option to fit with a different order
+order = 1
+repeat = 'yes'
+while repeat == 'yes':
+    fwhmpolyvalues = np.polyfit(fitpixel,fwhmclipped,order)
+    allpixel = np.arange(0,len(data[:,100]),1)
+    fwhmpoly = np.poly1d(fwhmpolyvalues)
+    plt.clf()
+    plt.plot(fitpixel,fwhmclipped,'^')
+    plt.plot(allpixel,fwhmpoly(allpixel),'g')
+    plt.show()
+    repeat = raw_input('Do you want to try again (yes/no)? ')
+    if repeat == 'yes':
+        order = raw_input('New order for polynomial: ')
+
 
 locfwhm = specfile.find('.fits')
 np.save(specfile[0:locfwhm] + '_poly',fwhmpoly(allpixel))
@@ -151,11 +163,6 @@ diagnostics[0:len(fitpixel),1] = fitpixel
 diagnostics[0:len(allpixel),2] = fwhmpoly(allpixel)
 diagnostics[0:len(allpixel),3] = allpixel
 
-
-plt.clf()
-plt.plot(fitpixel,fwhmclipped,'^')
-plt.plot(allpixel,fwhmpoly(allpixel),'g')
-plt.show()
 
 #Fit a column of the 2D image to determine the FWHM in pixels
 if 'blue' in specfile.lower():
