@@ -60,7 +60,7 @@ if __name__ == "__main__":
     flat_lists = rt.List_Combe( rt.Read_List( args[2] ) )
     spec_lists = rt.List_Combe( rt.Read_List( args[3] ) )
     fe_lists = rt.List_Combe( rt.Read_List( args[4] ) )
-     
+    
     # Select names from the first image of each observation # 
     zero_names= []
     for zero in zero_lists:
@@ -144,9 +144,9 @@ if __name__ == "__main__":
     i= 0
     fb_spec_list = []
     while i < nsp:
-        if b_spec_list[i][0].__contains__('blue') == True:
+        if b_spec_list[i][0].lower().__contains__('blue') == True:
             fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nbflatblue) )
-        elif b_spec_list[i][0].__contains__('red') == True:
+        elif b_spec_list[i][0].lower().__contains__('red') == True:
             fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nbflatred) )
         else: 
             print ("Problem applying the Flats." )

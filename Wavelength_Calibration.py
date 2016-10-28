@@ -566,10 +566,10 @@ nx= np.size(lamp_spec)
 Pixels= bining*(np.arange(0,nx,1)+trim_offset)
 
 # Select Set of Parameters to use # 
-if lamp.__contains__('red'):
+if lamp.lower().__contains__('red'):
     parm= Param_930_20_40
     line_list= WaveList_Fe_930_20_40
-elif lamp.__contains__('blue'):
+elif lamp.lower().__contains__('blue'):
     parm= Param_930_12_24
     line_list= WaveList_Fe_930_12_24
 else: 
@@ -803,7 +803,7 @@ if yn== "yes":
 
 #Save arrays for diagnostics
 now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-endpoint = '_930'
+endpoint = '.ms'
 with open('wavecal_' + specname[4:specname.find(endpoint)] + '_' + now + '.txt','a') as handle:
     header = lamp + ',' + specname + '\n First 2 columns: fitted wavelengths, residuals \n Next 3 columns: wavelengths, flux, lambdas fit \n Final 3 columns: wavelengths, sky flux, fit to line for recentering'
     np.savetxt(handle,savearray,fmt='%f',header = header)

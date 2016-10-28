@@ -45,7 +45,7 @@ def checkspec(listcheck):
     #If these values deviate by more than given values, prints warning.
     #Saves all values in a text file.
     listcheck = np.genfromtxt(listcheck,dtype=str)
-    print 'Now checking FWHM and center of spectral profile for stability.'
+    print '\n \n Now checking FWHM and center of spectral profile for stability.'
     #Max values acceptable
     maxcendev = 2. #Deviation from center of gaussian
     maxfwhmdev = 0.5 #deviation of fwhm
@@ -425,9 +425,9 @@ def Norm_Flat_Poly( flat ):
     print "\n====================\n" 
     print 'Normalizing %s By Fitting Polynomial to center rows [95:105]:' % ( flat )
     # Decide Order # 
-    if flat.__contains__("blue")== True:
+    if flat.lower().__contains__("blue")== True:
         order= 4;
-    elif flat.__contains__("red")== True:
+    elif flat.lower().__contains__("red")== True:
         order= 4; 
     else:
         print ("Could not identifiy blue or red flat")
@@ -445,11 +445,11 @@ def Norm_Flat_Poly( flat ):
     coeff= np.polyfit(X[lo:hi], fit_data[lo:hi], order ) # coefficents of polynomial fit # 
     profile= np.poly1d(coeff)(X) # Profile Along Dispersion axis # 
     #Save values for diagnostics
-    if flat.__contains__("blue"):
+    if flat.lower().__contains__("blue"):
         diagnostic[0:len(X[lo:hi]),11] = X[lo:hi]
         diagnostic[0:len(fit_data[lo:hi]),12] = fit_data[lo:hi]
         diagnostic[0:len(profile),13] = profile
-    if flat.__contains__("red"):
+    if flat.lower().__contains__("red"):
         diagnostic[0:len(X[lo:hi]),14] = X[lo:hi]
         diagnostic[0:len(fit_data[lo:hi]),15] = fit_data[lo:hi]
         diagnostic[0:len(profile),16] = profile
