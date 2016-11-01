@@ -25,6 +25,7 @@ def unique_star_names(seq, idfun=None):
            seen[marker] = 1
            result.append(item)
        return result
+       
 ##### ------------------------------------------------------------------ #####
 # Calibrations function
 def diagnostic_plots_cals(file_name):
