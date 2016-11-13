@@ -137,6 +137,7 @@ def diagnostic_plots_cals(file_name):
     plt.ylabel('Value')
     plt.title('Bias - Before Scaling')
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     plt.figure()
     plt.errorbar(np.arange(len(bias_as)), bias_as, yerr=bias_std, marker="o", linestyle="None")
@@ -144,6 +145,7 @@ def diagnostic_plots_cals(file_name):
     plt.ylabel('Value')
     plt.title('Bias - After Scaling')
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     plt.figure()
     plt.errorbar(np.arange(len(flat_blue_bs)), flat_blue_bs, yerr=flat_blue_std_bs, marker="o", linestyle="None")
@@ -151,6 +153,7 @@ def diagnostic_plots_cals(file_name):
     plt.ylabel('Value')
     plt.title('Blue Flat - Before Scaling')
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     plt.figure()
     plt.errorbar(np.arange(len(flat_blue_as)), flat_blue_as, yerr=flat_blue_std_as, marker="o", linestyle="None")
@@ -158,6 +161,7 @@ def diagnostic_plots_cals(file_name):
     plt.ylabel('Value')
     plt.title('Blue Flat - After Scaling')
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     if len(flat_red_bs) > 0:
         plt.figure()
@@ -166,14 +170,16 @@ def diagnostic_plots_cals(file_name):
         plt.ylabel('Value')
         plt.title('Red Flat - Before Scaling')
         plt.savefig(pp,format='pdf')
-    
+        plt.close()
+        
         plt.figure()
         plt.errorbar(np.arange(len(flat_red_as)), flat_red_as, yerr=flat_red_std_as, ecolor='r', marker="o",markerfacecolor='r', linestyle="None")
         plt.xlabel('Number')
         plt.ylabel('Value')
         plt.title('Red Flat - After Scaling')
         plt.savefig(pp,format='pdf')
-    
+        plt.close()
+        
     plt.figure()
     plt.plot(blue_pix, blue_val,'o')
     plt.plot(np.arange(len(blue_poly)),blue_poly,'g')
@@ -181,6 +187,7 @@ def diagnostic_plots_cals(file_name):
     plt.ylabel('Value')
     plt.title('Blue Polynomial Check')
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     if len(red_val > 0):
         plt.figure()
@@ -190,11 +197,12 @@ def diagnostic_plots_cals(file_name):
         plt.ylabel('Value')
         plt.title('Red Polynomial Check')
         plt.savefig(pp,format='pdf')
-    
+        plt.close()    
+        
     pp.close()
     
 ##### ------------------------------------------------------------------ #####
-# FWHM function
+# FWHM / Profile Position function
 def diagnostic_plots_FWHM(file_name):
     pp = PdfPages('fwhm_plots.pdf')
     
@@ -218,8 +226,7 @@ def diagnostic_plots_FWHM(file_name):
     
     names, col1, fwhm1, pos1, col2, fwhm2, pos2 = [],[],[],[],[],[],[]
     for m in np.arange(len(arr)):
-        #print m
-        names.append(str(arr[m][0][8:]))
+        names.append(str(arr[m][0][8:-5]))
         col1.append(arr[m][1])
         fwhm1.append(arr[m][2])    
         pos1.append(arr[m][3])
@@ -229,42 +236,42 @@ def diagnostic_plots_FWHM(file_name):
     fwhm1 = np.array(fwhm1)
     col1 = np.array(col1)
     pos1 = np.array(pos1)
-    #unique_names = set(names)
-    #print unique_names
-    
-    only_star_names = []
-    for i in names:
-        only_star_names.append(i.split("_")[0])
-    
-    unique_names = unique_star_names(only_star_names)
+
+    no_duplicates = sorted(list(set(names)))
 
     cat_pts = []
     fwhm_pts = []
+    pos_pts = []
     for i in range(len(names)):
-        for j in range(len(unique_names)):
-            if unique_names[j] in names[i]:
+        for j in range(len(no_duplicates)):
+            if no_duplicates[j] in names[i]:
                 cat_pts.append(j)
-                fwhm_pts.append(fwhm1[i])
+                fwhm_pts.append(fwhm2[i])
+                pos_pts.append(pos2[i])
     
-    x = np.arange(len(unique_names))
+    x = np.arange(len(no_duplicates))
     jitter = 0.1*np.random.rand(len(cat_pts))
     cat_pts = cat_pts + jitter
     
     plt.figure()
-    plt.xticks(x, unique_names)
-    plt.scatter(cat_pts,fwhm1)
+    plt.xticks(x, no_duplicates, rotation=45)
+    plt.scatter(cat_pts,fwhm_pts)
     plt.xlabel('Star')
     plt.ylabel('Value')
     plt.title('FWHM')
+    plt.tight_layout()
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     plt.figure()
-    plt.xticks(x, unique_names)
-    plt.scatter(cat_pts, pos1)
+    plt.xticks(x, no_duplicates, rotation=45)
+    plt.scatter(cat_pts, pos_pts)
     plt.xlabel('Star')
     plt.ylabel('Value')
     plt.title('Profile Position')
+    plt.tight_layout()
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     pp.close()
    
@@ -275,98 +282,105 @@ def diagnostic_plots_wavecal(files):
     star_name = str(files[0][8:-21])
     pdf_name = 'wavecal_plots_' + star_name + '.pdf'
     pp = PdfPages(pdf_name)
-    
-    with open(files[0], 'r') as f:
-        first_line = f.readline()
-        if 'blue' in first_line:
-            blue_arr = np.genfromtxt(files[0],dtype=None,delimiter=' ')
-        elif 'red' in first_line:
-            red_arr = np.genfromtxt(files[0],dtype=None,delimiter=' ')
+    blue_arr = []
     red_arr = []
-    if len(files) > 1:
-        with open(files[1],'r') as f:
+    if len(files) == 1:
+        with open(files[0], 'r') as f:
             first_line = f.readline()
             if 'blue' in first_line:
-                blue_arr = np.genfromtxt(files[1],dtype=None,delimiter=' ')
+                blue_arr = np.genfromtxt(files[0],dtype=None,delimiter=' ')
             elif 'red' in first_line:
+                red_arr = np.genfromtxt(files[0],dtype=None,delimiter=' ')
+    elif len(files) > 1:
+        with open(files[0], 'r') as f:
+            first_line = f.readline()
+            if 'blue' in first_line:
+                blue_arr = np.genfromtxt(files[0],dtype=None,delimiter=' ')
                 red_arr = np.genfromtxt(files[1],dtype=None,delimiter=' ')
+            elif 'red' in first_line:
+                blue_arr = np.genfromtxt(files[1],dtype=None,delimiter=' ')
+                red_arr = np.genfromtxt(files[0],dtype=None,delimiter=' ')
 
-    wave_fit, res, wave1, flux1, lam_fit, wave2, flux2, line_fit = [],[],[],[],[],[],[],[]
-    
-    for m in np.arange(len(blue_arr)):
-    
-        wave_fit.append(blue_arr[m][0])
-        res.append(blue_arr[m][1])
+    if len(blue_arr) > 0:
+        wave_fit, res, wave1, flux1, lam_fit, wave2, flux2, line_fit = [],[],[],[],[],[],[],[]
         
-        wave1.append(blue_arr[m][2])
-        flux1.append(blue_arr[m][3])
-        lam_fit.append(blue_arr[m][4])
+        for m in np.arange(len(blue_arr)):
         
-        wave2.append(blue_arr[m][5])
-        flux2.append(blue_arr[m][6])
-        line_fit.append(blue_arr[m][7])
+            wave_fit.append(blue_arr[m][0])
+            res.append(blue_arr[m][1])
+            
+            wave1.append(blue_arr[m][2])
+            flux1.append(blue_arr[m][3])
+            lam_fit.append(blue_arr[m][4])
+            
+            wave2.append(blue_arr[m][5])
+            flux2.append(blue_arr[m][6])
+            line_fit.append(blue_arr[m][7])
+        
+        wave_fit = np.array(wave_fit)
+        wave_fit = wave_fit[wave_fit != 0.0]
+        wave_fit = np.array(wave_fit)
+        
+        res = np.array(res)
+        res = res[res != 0.0]
+        res = np.array(res)
+        
+        wave1 = np.array(wave1)
+        wave1 = wave1[wave1 != 0.0]
+        wave1 = np.array(wave1)
+        
+        lam_fit = np.array(lam_fit)
+        lam_fit = lam_fit[lam_fit != 0.0]
+        lam_fit = np.array(lam_fit)
+        
+        flux1 = np.array(flux1)
+        flux1 = flux1[flux1 != 0.0]
+        flux1 = np.array(flux1)
+        
+        wave2 = np.array(wave2)
+        wave2 = wave2[wave2 != 0.0]
+        wave2 = np.array(wave2)
+        
+        flux2 = np.array(flux2)
+        flux2 = flux2[flux2 != 0.0]
+        flux2 = np.array(flux2)
+        
+        line_fit = np.array(line_fit)
+        line_fit = line_fit[line_fit != 0.0]
+        line_fit = np.array(line_fit)
+        
+        xmin = np.min(wave_fit)-500
+        xmax = np.max(wave_fit)+500
+        x = np.linspace(xmin,xmax,1000)
+        zeros = np.zeros(len(x))
+        plt.figure()
+        plt.scatter(wave_fit,res)
+        plt.plot(x,zeros,'b--')
+        plt.xlim(xmin,xmax)
+        plt.xlabel('Wavelength')
+        plt.ylabel('Residuals (pixels)')
+        plt.title('Wavelength Fit Residuals - Blue - ' + star_name)
+        plt.savefig(pp,format='pdf')
+        plt.close()       
+        '''
+        plt.figure()
+        plt.plot(wave1,flux1)
+        plt.xlabel('Wavelength')
+        plt.ylabel('Flux')
+        plt.title('Flux - Blue - ' + star_name)
+        plt.savefig(pp,format='pdf')
+        plt.close()
+        '''
     
-    wave_fit = np.array(wave_fit)
-    wave_fit = wave_fit[wave_fit != 0.0]
-    wave_fit = np.array(wave_fit)
-    
-    res = np.array(res)
-    res = res[res != 0.0]
-    res = np.array(res)
-    
-    wave1 = np.array(wave1)
-    wave1 = wave1[wave1 != 0.0]
-    wave1 = np.array(wave1)
-    
-    lam_fit = np.array(lam_fit)
-    lam_fit = lam_fit[lam_fit != 0.0]
-    lam_fit = np.array(lam_fit)
-    
-    flux1 = np.array(flux1)
-    flux1 = flux1[flux1 != 0.0]
-    flux1 = np.array(flux1)
-    
-    wave2 = np.array(wave2)
-    wave2 = wave2[wave2 != 0.0]
-    wave2 = np.array(wave2)
-    
-    flux2 = np.array(flux2)
-    flux2 = flux2[flux2 != 0.0]
-    flux2 = np.array(flux2)
-    
-    line_fit = np.array(line_fit)
-    line_fit = line_fit[line_fit != 0.0]
-    line_fit = np.array(line_fit)
-    
-    xmin = np.min(wave_fit)-500
-    xmax = np.max(wave_fit)+500
-    x = np.linspace(xmin,xmax,1000)
-    zeros = np.zeros(len(x))
-    plt.figure()
-    plt.scatter(wave_fit,res)
-    plt.plot(x,zeros,'b--')
-    plt.xlim(xmin,xmax)
-    plt.xlabel('Wavelength')
-    plt.ylabel('Residual')
-    plt.title('Wavelength Fit Residuals - Blue - ' + star_name)
-    plt.savefig(pp,format='pdf')
-
-    plt.figure()
-    plt.plot(wave1,flux1)
-    plt.xlabel('Wavelength')
-    plt.ylabel('Flux')
-    plt.title('Flux - Blue - ' + star_name)
-    plt.savefig(pp,format='pdf')
-
-    x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
-    plt.figure()
-    plt.plot(wave2,flux2)
-    plt.plot(x_line,line_fit)
-    plt.xlabel('Wavelength')
-    plt.ylabel('Flux')
-    plt.title('Sky Flux - Blue - ' + star_name)
-    plt.savefig(pp,format='pdf')
-    
+        x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
+        plt.figure()
+        plt.plot(wave2,flux2)
+        plt.plot(x_line,line_fit)
+        plt.xlabel('Pixels')
+        plt.ylabel('Flux')
+        plt.title('Zero Point Offset - Blue - ' + star_name)
+        plt.savefig(pp,format='pdf')
+        plt.close()
     ### ---------------------------------------------------------------------- ###
     if len(red_arr) > 0:
         wave_fit, res, wave1, flux1, lam_fit, wave2, flux2, line_fit = [],[],[],[],[],[],[],[]
@@ -425,26 +439,29 @@ def diagnostic_plots_wavecal(files):
         plt.plot(x,zeros,'r--')
         plt.xlim(xmin,xmax)
         plt.xlabel('Wavelength')
-        plt.ylabel('Residual')
+        plt.ylabel('Residuals (pixels)')
         plt.title('Wavelength Fit Residuals - Red - ' + star_name)
         plt.savefig(pp,format='pdf')
-        
+        plt.close()        
+        '''
         plt.figure()
         plt.plot(wave1,flux1,'r')
         plt.xlabel('Wavelength')
         plt.ylabel('Flux')
         plt.title('Flux - Red - ' + star_name)
         plt.savefig(pp,format='pdf')
-       
+        plt.close()        
+        '''
+    
         x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
         plt.figure()
         plt.plot(wave2,flux2,'r')
         plt.plot(x_line,line_fit,'g')
-        plt.xlabel('Wavelength')
+        plt.xlabel('Pixels')
         plt.ylabel('Flux')
-        plt.title('Sky Flux - Red - ' + star_name)
+        plt.title('Zero Point Offset - Red - ' + star_name)
         plt.savefig(pp,format='pdf')
-    
+        plt.close()
     pp.close()
 
 ##### ------------------------------------------------------------------ #####
@@ -496,20 +513,20 @@ def diagnostic_plots_continuum(file_name):
 
     plt.figure()
     plt.plot(blue_lam, blue_res)
-    plt.plot(blue_masked_lam, blue_masked_res)
-    plt.plot(blue_lam, blue_res_fit)
-    
+    plt.plot(blue_masked_lam, blue_masked_res,'g.')
+    plt.plot(blue_lam, blue_res_fit,'r')
     plt.xlabel('Wavelength')
-    plt.ylabel('Response')
+    plt.ylabel('Response (observed/model)')
     plt.title('Response - Blue - ' + star_name)
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     plt.figure()
     plt.plot(blue_lam, norm_spec_blue)
     plt.xlabel('Wavelength')
-    plt.ylabel('Spectrum')
     plt.title('Continuum Normalized Spectrum - Blue')
     plt.savefig(pp,format='pdf')
+    plt.close()
      
     ### ---------------------------------------------------------------------- ###
     if len(arr[0]) > 6:    
@@ -550,26 +567,29 @@ def diagnostic_plots_continuum(file_name):
 
         plt.figure()
         plt.plot(red_lam, red_res)
-        plt.plot(red_masked_lam, red_masked_res)
-        plt.plot(red_lam, red_res_fit)
+        plt.plot(red_masked_lam, red_masked_res,'g.')
+        plt.plot(red_lam, red_res_fit,'r')
         plt.xlabel('Wavelength')
-        plt.ylabel('Response')
+        plt.ylabel('Response (observed/model)')
         plt.title('Response - Red - ' + star_name)
         plt.savefig(pp,format='pdf')
+        plt.close()
         
         plt.figure()
         plt.plot(red_lam, norm_spec_red,'r')
         plt.xlabel('Wavelength')
-        plt.ylabel('Spectrum')
         plt.title('Continuum Normalized Spectrum - Red')
         plt.savefig(pp,format='pdf')
-    
+        plt.close()   
+        
     pp.close()
   
 ##### ------------------------------------------------------------------ #####
 # Extraction function
 def diagnostic_plots_extraction(file_name):
-    pp = PdfPages('extraction_plots.pdf')
+    star_name = str(file_name)[11:-21]
+    pdf_name = 'extraction_plots_' + star_name + '.pdf'
+    pp = PdfPages(pdf_name)
 
     arr = np.genfromtxt(file_name, dtype=None, delimiter=' ')
 
@@ -619,16 +639,18 @@ def diagnostic_plots_extraction(file_name):
     plt.plot(np.arange(len(fit_FWHM)),fit_FWHM)
     plt.xlabel('Pixel')
     plt.ylabel('FWHM')
-    plt.title('Extraction FWHM')
+    plt.title('Extraction FWHM - ' + star_name)
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     plt.figure()
     plt.scatter(prof_pix,prof_pos)
     plt.plot(np.arange(len(fit_prof_pos)),fit_prof_pos)
     plt.xlabel('Pixel')
     plt.ylabel('Profile Position')
-    plt.title('Extraction Profile')
+    plt.title('Extraction Profile - ' + star_name)
     plt.savefig(pp,format='pdf')
+    plt.close()
     
     pp.close()
 
@@ -659,13 +681,13 @@ for i in range(len(wave_cal_files)):
     star_names.append(wave_cal_files[i][8:-21])
     with open(wave_cal_files[i], 'r') as f:
         first_line = f.readline()
-        #print first_line
 
 unique_names = unique_star_names(star_names)
 
 for sub in unique_names:
-    file_names = [x for x in wave_cal_files if str(sub) in x]
-    diagnostic_plots_wavecal(file_names)
+   file_names = [x for x in wave_cal_files if str(sub) in x]
+   diagnostic_plots_wavecal(file_names)
+
  
 ##### ------------------------------------------------------------------ #####
 # Model Calibrations
@@ -684,7 +706,7 @@ for sub in unique_names:
 
 ##### ------------------------------------------------------------------ #####
 # Extraction
-for i in range(len(extraction_files)): # Repeat copy of data below
+for i in range(len(extraction_files)):
     file_name = str(extraction_files[i])
     diagnostic_plots_extraction(file_name)
      
