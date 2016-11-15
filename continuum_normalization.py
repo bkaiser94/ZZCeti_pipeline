@@ -191,7 +191,7 @@ if redfile:
     bigarray[0:len(spec_wav_masked_red),8] = spec_wav_masked_red
     bigarray[0:len(response_masked_red),9] = response_masked_red
     bigarray[0:len(response_fit_red(obs_spectrared.warr)),10] = response_fit_red(obs_spectrared.warr)
-    bigarray[0:len(fcorr_wd_red_opfarr),5] = fcorr_wd_red_opfarr
+    bigarray[0:len(fcorr_wd_red_opfarr),11] = fcorr_wd_red_opfarr
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
     endpoint = '_930'
     with open('continuum_normalization_' + filenameblue[5:filenameblue.find(endpoint)] + '_' + now + '.txt','a') as handle:

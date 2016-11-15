@@ -728,7 +728,6 @@ while yn== 'yes':
         '''
 
         plt.show()
-        
 # Save parameters in header and write file # 
 print "\nWrite solution to header?"
 yn= raw_input("yes/no? >>>")
