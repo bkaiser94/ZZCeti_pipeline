@@ -254,7 +254,7 @@ def diagnostic_plots_FWHM(file_name):
     cat_pts = cat_pts + jitter
     
     plt.figure()
-    plt.xticks(x, no_duplicates, rotation=45)
+    plt.xticks(x, no_duplicates, rotation=90)
     plt.scatter(cat_pts,fwhm_pts)
     plt.xlabel('Star')
     plt.ylabel('Value')
@@ -264,7 +264,7 @@ def diagnostic_plots_FWHM(file_name):
     plt.close()
     
     plt.figure()
-    plt.xticks(x, no_duplicates, rotation=45)
+    plt.xticks(x, no_duplicates, rotation=90)
     plt.scatter(cat_pts, pos_pts)
     plt.xlabel('Star')
     plt.ylabel('Value')

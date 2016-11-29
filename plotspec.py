@@ -62,6 +62,7 @@ except:
     else:
         WDwave = np.arange(len(spec_data[0,0,:]))
 
+
 #np.savetxt('OWJ1818-2434_930_blue.txt',np.transpose([WDwave2,spec_data[0,0,:],spec_data[3,0,:],spec_data[2,0,:]]),header='wavelengths, optimally extracted spectrum, sigma spectrum, sky spectrum')
 
 

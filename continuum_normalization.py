@@ -121,7 +121,7 @@ for wavrange in balmer_features_blue:
 if redfile:
     balmer_mask_red = obs_spectrared.warr == obs_spectrared.warr
     for wavrange in balmer_features_red:
-        indxs = np.where((obs_spectrared.warr > wavrange[0]) * (obs_spectrared.warr < wavrange[1]))
+        indxs = np.where((obs_spectrared.warr > wavrange[0]) & (obs_spectrared.warr < wavrange[1]))
         balmer_mask_red[indxs] = False
 
 spec_wav_masked_blue = obs_spectrablue.warr[balmer_mask_blue]
