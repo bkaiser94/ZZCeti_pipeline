@@ -34,7 +34,7 @@ To do:
 
 import ReduceSpec_tools as rt 
 import numpy as np
-import pyfits as pf
+import pyfits as fits
 import scipy.signal as sg
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit, fsolve
@@ -386,10 +386,10 @@ def newzeropoint(x):
     
 def WaveShift(specname):
     #Calculates a new zero point for a spectrum based on a skyline
-    spec_data= pf.getdata(specname)
+    spec_data= fits.getdata(specname)
     dataval = spec_data[0,0,:]
     sigmaval = spec_data[3,0,:]
-    spec_header= pf.getheader(specname)
+    spec_header= fits.getheader(specname)
     alpha= float( spec_header["GRT_TARG"] )
     theta= float( spec_header["CAM_TARG"] )
     
@@ -536,8 +536,8 @@ from sys import argv
 script, lamp = argv 
 
 # Read Lamp Data and Header # 
-lamp_data= pf.getdata(lamp)
-lamp_header= pf.getheader(lamp)
+lamp_data= fits.getdata(lamp)
+lamp_header= fits.getheader(lamp)
 
 # Check number of image slices, and select the spectra # 
 if lamp_header["NAXIS"]== 2:
@@ -757,7 +757,7 @@ if yn== "yes":
                        useblanks= True, bottom= True )
     lamp_header.append( ('ZPOINT', n_zPnt,'Zero Point Pixel for Grat Eq.'), 
                        useblanks= True, bottom= True )        
-    NewHdu = pf.PrimaryHDU(data= lamp_data, header= lamp_header)
+    NewHdu = fits.PrimaryHDU(data= lamp_data, header= lamp_header)
     NewHdu.writeto(newname, output_verify='warn', clobber= clob)
 
 #Save parameters to ZZ Ceti spectrum#
@@ -770,8 +770,8 @@ if yn== "yes":
         newzeropoint = WaveShift(specname)
     else:
         newzeropoint = n_zPnt
-    spec_data= pf.getdata(specname)
-    spec_header= pf.getheader(specname)
+    spec_data= fits.getdata(specname)
+    spec_header= fits.getheader(specname)
     rt.Fix_Header(spec_header)
     spec_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
                        useblanks= True, bottom= True )
@@ -781,7 +781,7 @@ if yn== "yes":
                        useblanks= True, bottom= True )
     spec_header.append( ('ZPOINT', newzeropoint,'Zero Point Pixel for Grat Eq.'), 
                        useblanks= True, bottom= True )        
-    NewspecHdu = pf.PrimaryHDU(data= spec_data, header= spec_header)
+    NewspecHdu = fits.PrimaryHDU(data= spec_data, header= spec_header)
 
     newname = 'w'+specname
     mylist = [True for f in os.listdir('.') if f == newname]

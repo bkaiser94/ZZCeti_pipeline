@@ -296,20 +296,36 @@ def superExtract(*args, **kw):
 
     #Step3: Sky Subtraction
     background = 0. * frame
+    #background_rms = np.zeros(nlam)
     #bkgrndmask = goodpixelmask
     for ii in range(nlam):
         if goodpixelmask[ii, backgroundApertures[ii]].any():
-            fit = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(goodpixelmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1,plotall=False)
+            fit,fit_chisq,fit_niter = polyfitr(xxx[ii,backgroundApertures[ii]], frame[ii, backgroundApertures[ii]], bord, bsigma, w=(goodpixelmask/variance)[ii, backgroundApertures[ii]], verbose=verbose-1,plotall=False,diag=True)
             #If you want to plot the fit to the background you can use this. Or set plotall=True above
-            #plt.clf()
-            #plt.plot(xxx[ii,backgroundApertures[ii]],frame[ii, backgroundApertures[ii]],'b^')
-            #plt.plot(xxx[ii,:],np.polyval(fit,xxx[ii,:]))
-            #plt.show()
+            #if ii == 1100:
+            #print ii
+            #    plt.clf()
+            #    plt.plot(xxx[ii,:],frame[ii,:],'k^')
+            #    plt.plot(xxx[ii,backgroundApertures[ii]],frame[ii, backgroundApertures[ii]],'b^')
+            #    plt.plot(xxx[ii,:],np.polyval(fit,xxx[ii,:]))
+            #    plt.show()
             background[ii, :] = np.polyval(fit, xxx[ii])
             thisrow = backgroundApertures[ii]
+            #background_rms[ii] = fit_chisq
+            #print background_rms[ii], fit_chisq
+            #plt.show()
+            #Save values
+            if ii == 1100:
+                background_column_pixels = xxx[ii,:]
+                background_column_values = frame[ii,:]
+                background_fit_pixels = xxx[ii,backgroundApertures[ii]]
+                background_fit_values = frame[ii, backgroundApertures[ii]]
+                background_fit_polynomial = np.polyval(fit,xxx[ii,:])
         else:
             background[ii] = 0.
-
+    #plt.clf()
+    #plt.plot(range(nlam),background_rms,'b^')
+    #plt.show()
     background_at_trace = np.array([np.interp(0, xxx[j], background[j]) for j in range(nlam)])
     
     # (my 3a: mask any bad values)
@@ -569,10 +585,17 @@ def superExtract(*args, **kw):
         if verbose: print '%1.2f s to compute profile' % (time() - tic)
 
         #Plot the profile and estimated fraction. This mimics Marsh's Figure 2.
-        #plt.clf()
-        #plt.plot(profile[:,1000],'b')
-        #plt.plot(E[:,1000],'g')
-        #plt.show()
+        #print skysubFrame.shape
+        #for x in [1525,1526,1527,1528,1529,1530,1531,1532,1533,1534,1535]:
+        #    plt.clf()
+        #    plt.figure(1)
+        #    plt.plot(skysubFrame[x,:],'k')
+        #    #plt.show()
+        #    #plt.clf()
+        #    plt.figure(2)
+        #    plt.plot(profile[:,x],'b')
+        #    plt.plot(E[:,x],'g')
+        #    plt.show()
 
         #Step6: Revise variance estimates 
         modelSpectrum = spectrum * profile.transpose()
@@ -619,6 +642,11 @@ def superExtract(*args, **kw):
     ret.tracepos = xyfits
     ret.units = 'electrons'
     ret.background = background_at_trace #background_at_trace 
+    ret.backgroundcolumnpixels = background_column_pixels
+    ret.backgroundcolumnvalues = background_column_values 
+    ret.backgroundfitpixels = background_fit_pixels
+    ret.backgroundfitvalues = background_fit_values
+    ret.backgroundfitpolynomial = background_fit_polynomial
 
     ret.function_name = 'spec.superExtract'
 

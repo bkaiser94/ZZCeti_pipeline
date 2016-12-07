@@ -24,7 +24,7 @@ python model_calibration.py wtfb.wd1401-147_930_blue.ms.fits wtfb.wd1401-147_930
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as inter
-import pyfits as pf
+import pyfits as fits
 import spectools as st
 import os
 import sys
@@ -42,7 +42,7 @@ else:
 
 #Read in the observed spectrum
 obs_spectrablue,airmass,exptime,dispersion = st.readspectrum(filenameblue)
-datalistblue = pf.open(filenameblue)
+datalistblue = fits.open(filenameblue)
 
 
 if redfile:
@@ -251,7 +251,7 @@ if exists:
     else:
         exists = False
 
-newim1 = pf.PrimaryHDU(data=data1,header=header1)
+newim1 = fits.PrimaryHDU(data=data1,header=header1)
 newim1.writeto(newname1,clobber=clob)
 
 
@@ -286,6 +286,6 @@ if redfile:
         else:
             exists = False
     
-    newim2 = pf.PrimaryHDU(data=data2,header=header2)
+    newim2 = fits.PrimaryHDU(data=data2,header=header2)
     newim2.writeto(newname2,clobber=clob)
 

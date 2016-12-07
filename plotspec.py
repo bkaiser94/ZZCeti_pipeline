@@ -7,7 +7,8 @@ Written by Josh Fuchs, UNC. June 2016.
        specname: string, filename of 1D spectrum to plot. If not supplied, user will be prompted. 
 '''
 
-import pyfits as pf
+
+import astropy.io.fits as fits
 import numpy as np
 import matplotlib.pyplot as plt
 from sys import argv
@@ -37,8 +38,8 @@ else:
     print 'Too many inputs. Please try again.'
     exit()
 
-spec_data= pf.getdata(specname)
-spec_header= pf.getheader(specname)
+spec_data= fits.getdata(specname)
+spec_header= fits.getheader(specname)
 
 #See if wavelength solution exists. If so, use it. Otherwise, use pixel numbers
 try:

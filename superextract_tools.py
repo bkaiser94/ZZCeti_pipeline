@@ -946,7 +946,8 @@ def polyfitr(x, y, N, s, fev=100, w=None, diag=False, clip='both', \
         title('Close window to continue....')
 
     if diag:
-        chisq = ( (residual)**2 / yy2 ).sum()
+        #chisq = ( (residual)**2. / yy2 ).sum()
+        chisq = ( (residual)**2. ).sum()
         p = (p, chisq, ii)
 
     return p

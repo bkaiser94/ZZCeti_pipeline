@@ -30,7 +30,6 @@ ReduceSpec.py will automatically sort between Blue and Red ZZ Ceti setups, and w
 # ===========================================================================
 
 import numpy as np
-import pyfits as pf
 import ReduceSpec_tools as rt
 import warnings
 
@@ -124,9 +123,6 @@ if __name__ == "__main__":
         nb_flat.append( rt.Norm_Flat_Poly(comb_flat[i]) )
         i= i+1
 
-    # Save all diagnostic info
-    rt.save_diagnostic()
-                        
     # Bias Subtract Spec # 
     i= 0
     b_spec_list= []
@@ -152,14 +148,17 @@ if __name__ == "__main__":
             print ("Problem applying the Flats." )
             print ("Could not identify blue or red setup.")
         i= i+1
-        
+    
+    # Save all diagnostic info
+    rt.save_diagnostic()
+    
     # Combine Spectra # 
     i= 0 
     comb_fb_spec = []
     while i < nsp:
         rt.checkspec(fb_spec_list[i])
         comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], 'average', 
-                        lo_sig= 10, hi_sig= 7, overwrite= overwrite) )
+                        lo_sig= 10, hi_sig= 3, overwrite= overwrite) )
         i= i+1
                         
     # Trim Spectra # 

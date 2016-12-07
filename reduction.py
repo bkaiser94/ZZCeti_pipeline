@@ -11,7 +11,6 @@ complete task
 '''
 
 import numpy as np
-import pyfits as pf
 import ReduceSpec_tools as rt
 import spectools as st
 import warnings

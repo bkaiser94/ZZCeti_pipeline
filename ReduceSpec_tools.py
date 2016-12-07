@@ -11,22 +11,23 @@ Created on Sun Aug 23 20:48:10 2015
 # ===========================================================================
 
 import numpy as np
-import pyfits as pf
+import pyfits as fits
 import mpfit
 import os
 import datetime
+import matplotlib.pyplot as plt
 # ===========================================================================
 # Lesser Functions Used by Main Functions ===================================
 # ===========================================================================
 
 def init():
     global diagnostic
-    diagnostic = np.zeros([2071,17])
+    diagnostic = np.zeros([2071,22])
 
 def save_diagnostic():
     global now
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-    header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat'
+    header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat \n 17) Range of pixels used to find the littrow ghost, 18) Range of values used to find the littrow ghost, 19) Range of pixels used to fit the littrow ghost, 20) Gaussian fit to small number of pixels to find the center of the littrow ghost, 21) The upper and lower edges of the masked region saved to the header'
     with open('reduction_' + now + '.txt','a') as handle:
         np.savetxt(handle,diagnostic,fmt='%f',header=header)
 
@@ -37,6 +38,16 @@ def fitgauss(p,fjac=None,x=None,y=None,err=None):
     #Parameter values are passed in p
     #fjac = None just means partial derivatives will not be computed
     model = gauss(x,p)
+    status = 0
+    return([status,(y-model)/err])
+
+def gaussslope(x,p): #single gaussian
+    return p[0] +  p[1]*x + p[2]*np.exp(-(((x-p[3])/(np.sqrt(2)*p[4])))**2.)
+
+def fitgaussslope(p,fjac=None,x=None,y=None,err=None):
+    #Parameter values are passed in p
+    #fjac = None just means partial derivatives will not be computed
+    model = gaussslope(x,p)
     status = 0
     return([status,(y-model)/err])
 
@@ -54,41 +65,48 @@ def checkspec(listcheck):
     fwhm2 = np.zeros(len(listcheck))
     center1 = np.zeros(len(listcheck))
     center2 = np.zeros(len(listcheck))
+    peak1 = np.zeros(len(listcheck))
+    peak2 = np.zeros(len(listcheck))
     global now
     newfilename = 'FWHM_records_' + now + '.txt'
     mylist = [True for f in os.listdir('.') if f == newfilename]
     exists = bool(mylist)
     f = open('FWHM_records_' + now + '.txt','a')
     if not exists:
-        header = '#Columns: filename, Column of 2D image checked, FWHM of Gaussian fit to that column, Center position of Gaussian fit to that column, Second column checked, FWHM of second column, Center position of second column.'
+        header = '#Columns: filename, Column of 2D image checked, FWHM of Gaussian fit to that column, Center position of Gaussian fit to that column, Peak of Gaussian fit to that column, Second column checked, FWHM of second column, Center position of second column, peak of gaussian fit to that column.'
         f.write(header+ "\n")
     n = 0.
     for specfile in listcheck:
-        datalist = pf.open(specfile)
+        datalist = fits.open(specfile)
         data = datalist[0].data
         data = data[0,:,:]
         data = np.transpose(data)
 
         #Fit a column of the 2D image to determine the center and FWHM 
-        forfit1 = data[550,2:] #column 550 and 1750 are good for both setups
+        #forfit1 = data[550,2:] #column 550 and 1750 are good for both setups
+        forfit1 = np.mean(np.array([data[548,:],data[549,:],data[550,:],data[551,:],data[552,:]]),axis=0)
+        forfit1 = forfit1[2:] #We have not trimmed yet, so get rid of the bottom rows
         guess1 = np.zeros(4)
         guess1[0] = np.mean(forfit1)
         guess1[1] = np.amax(forfit1)
         guess1[2] = np.argmax(forfit1)
         guess1[3] = 3.
         error_fit1 = np.ones(len(forfit1))
-        xes1 = np.linspace(0,len(forfit1)-1,num=len(forfit1))
+        xes1 = np.linspace(2,len(forfit1)-1,num=len(forfit1))
         fa1 = {'x':xes1,'y':forfit1,'err':error_fit1}
         fitparams1 = mpfit.mpfit(fitgauss,guess1,functkw=fa1,quiet=True)
         fwhm1[n] = 2.*np.sqrt(2.*np.log(2.))*fitparams1.params[3]
         center1[n] = fitparams1.params[2]
-        #print np.round(fwhm1[n],decimals=1),np.round(center1[n],decimals=1)
+        peak1[n] = fitparams1.params[1]
+        #print np.round(fwhm1[n],decimals=1),np.round(center1[n],decimals=1),np.round(peak1[n],decimals=1)
         #plt.clf()
-        #plt.plot(forfit1)
+        #plt.plot(xes1,forfit1)
         #plt.plot(xes1,gauss(xes1,fitparams1.params))
         #plt.show()
 
-        forfit2 = data[1750,2:] #column 550 and 1750 are good for both setups
+        #forfit2 = data[1750,2:] #column 550 and 1750 are good for both setups
+        forfit2 = np.mean(np.array([data[1748,:],data[1749,:],data[1750,:],data[1751,:],data[1752,:]]),axis=0)
+        forfit2 = forfit2[2:]
         guess2 = np.zeros(4)
         guess2[0] = np.mean(forfit2)
         guess2[1] = np.amax(forfit2)
@@ -96,19 +114,20 @@ def checkspec(listcheck):
         guess2[3] = 3.
 
         error_fit2 = np.ones(len(forfit2))
-        xes2 = np.linspace(0,len(forfit2)-1,num=len(forfit2))
+        xes2 = np.linspace(2,len(forfit2)-1,num=len(forfit2))
         fa2 = {'x':xes2,'y':forfit2,'err':error_fit2}
         fitparams2 = mpfit.mpfit(fitgauss,guess2,functkw=fa2,quiet=True)
 
         fwhm2[n] = 2.*np.sqrt(2.*np.log(2.))*fitparams2.params[3]
         center2[n] = fitparams2.params[2]
-        #print np.round(fwhm2[n],decimals=1),np.round(center2[n],decimals=1)
+        peak2[n] = fitparams2.params[1]
+        #print np.round(fwhm2[n],decimals=1),np.round(center2[n],decimals=1),np.round(peak2[n],decimals=1)
         #plt.clf()
-        #plt.plot(forfit2)
+        #plt.plot(xes2,forfit2)
         #plt.plot(xes2,gauss(xes2,fitparams2.params))
         #plt.show()
 
-        info = specfile + '\t' + '550' + '\t' + str(np.round(fwhm1[n],decimals=2)) + '\t' + str(np.round(center1[n],decimals=2)) + '\t' + '1750' + '\t' + str(np.round(fwhm2[n],decimals=2)) + '\t' + str(np.round(center2[n],decimals=2))
+        info = specfile + '\t' + '550' + '\t' + str(np.round(fwhm1[n],decimals=2)) + '\t' + str(np.round(center1[n],decimals=2)) + '\t' + str(np.round(peak1[n],decimals=2))  + '\t' + '1750' + '\t' + str(np.round(fwhm2[n],decimals=2)) + '\t' + str(np.round(center2[n],decimals=2)) + '\t' + str(np.round(peak2[n],decimals=2))
         f.write(info+ "\n")
 
         n += 1
@@ -192,7 +211,8 @@ def decimal_dec(hdu_str):
     # Read header strings in "hh:mm:ss" or "dd:mm:ss" fromat 
     # and outputs the value as a decimal. 
     val_list = [float(n) for n in hdu_str.split(':')]
-    if val_list[0] < 0 :
+    #if val_list[0] < 0 :
+    if str(val_list[0])[0] == '-':
         sng = -1
         val_list[0] = sng*val_list[0]
     else:
@@ -220,16 +240,19 @@ def SigClip(data_set, lo_sig, hi_sig):
     # Output is a list containg only the data that is with the sigma factors.
     # Only a single rejection iteration is made. 
     Avg = np.median(data_set)
-    remove_max = np.delete(data_set,data_set.argmax())
-    St_Div = np.std(remove_max)
-    #St_Div = np.std(data_set)
-    min_val = Avg-lo_sig*St_Div
-    max_val = Avg+hi_sig*St_Div
+    #remove_max = np.delete(data_set,data_set.argmax())
+    #St_Dev = np.std(remove_max)
+    St_Dev = np.std(data_set)
+    min_val = Avg-lo_sig*St_Dev
+    max_val = Avg+hi_sig*St_Dev
     cliped_data = []
+    #masked_data = []
     for val in data_set:
         if min_val <= val <= max_val:
             cliped_data.append( val )
-    return cliped_data  
+        #else:
+        #    masked_data.append( val)
+    return cliped_data#, masked_data
         
 def RaDec2AltAz(ra, dec, lat, lst ):
     # Input: RA in decimal hours; DEC in decimal deg; 
@@ -287,21 +310,21 @@ def Trim_Spec(img):
     # The limits of the 1x2 trim are: [:, 1:199, 19:4111]
     print "\n====================\n"  
     print 'Triming Image: %s\n' % img
-    img_head= pf.getheader(img) 
-    img_data= pf.getdata(img)    
+    img_head= fits.getheader(img) 
+    img_data= fits.getdata(img)    
     Fix_Header(img_head)
     length = float(img_head['PARAM17'])
     if length == 2071.:
         img_head.append( ('CCDSEC', '[9:2055,1:200]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
-        NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
+        NewHdu = fits.PrimaryHDU(data= img_data[:, 1:200, 9:2055], header= img_head)
         new_file_name= check_file_exist('t'+img)
         NewHdu.writeto(new_file_name, output_verify='warn', clobber= True )
         return (new_file_name)
     elif length == 4142.:
         img_head.append( ('CCDSEC', '[19:4111,1:200]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
-        NewHdu = pf.PrimaryHDU(data= img_data[:, 1:200, 19:4111], header= img_head)
+        NewHdu = fits.PrimaryHDU(data= img_data[:, 1:200, 19:4111], header= img_head)
         new_file_name= check_file_exist('t'+img)
         NewHdu.writeto(new_file_name, output_verify='warn', clobber= True )
         return (new_file_name)
@@ -374,20 +397,20 @@ def Bias_Subtract( img_list, zero_img ):
     print "\n====================\n"  
     print 'Bias Subtracting Images: \n' 
         
-    zero_data = pf.getdata(zero_img)
+    zero_data = fits.getdata(zero_img)
     bias_sub_list = []
     for img in img_list:
         print img
-        hdu = pf.getheader(img)
+        hdu = fits.getheader(img)
         Fix_Header(hdu) 
-        img_data = pf.getdata(img)
+        img_data = fits.getdata(img)
         img_data[ np.isnan(img_data) ] = 0
         b_img_data = np.subtract(img_data, zero_data)
-        print 'b.'+"%s Mean: %.3f StDiv: %.3f" % (img, np.mean(b_img_data), np.std(img_data))
+        print 'b.'+"%s Mean: %.3f StDev: %.3f" % (img, np.mean(b_img_data), np.std(img_data))
         hdu.set( 'DATEBIAS', datetime.datetime.now().strftime("%Y-%m-%d"), 'Date of Bias Subtraction' )
         hdu.append( ('BIASSUB', zero_img ,'Image Used to Bias Subtract.'),
                    useblanks= True, bottom= True )
-        NewHdu = pf.PrimaryHDU(b_img_data, hdu)
+        NewHdu = fits.PrimaryHDU(b_img_data, hdu)
         bias_sub_name= check_file_exist('b.'+img)
         NewHdu.writeto(bias_sub_name, output_verify='warn', clobber= True)
         bias_sub_list.append( bias_sub_name )
@@ -401,22 +424,22 @@ def Norm_Flat_Avg( flat ):
     print "\n====================\n" 
     print 'Normalizing %s By Dividing Each Pixel By Average Value:' % ( flat )
     # Read Data, take average, and divide # 
-    flat_data = pf.getdata(flat)
+    flat_data = fits.getdata(flat)
     flat_data[ np.isnan(flat_data) ] = 0
     # Calculate Average of the flat excluding bottom row and overscan regions # 
     avg_flat = np.average( flat_data[:, 1:200, 9:2055] )
     norm_flat_data = np.divide( flat_data, float(avg_flat) )
     print 'Average Value: %s\n' % avg_flat
     # Copy Header, write changes, and write file #
-    hdu = pf.getheader(flat)
+    hdu = fits.getheader(flat)
     Fix_Header(hdu)
     hdu.append( ('NORMFLAT', avg_flat,'Average Used to Normalize the Flat.'), 
                useblanks= True, bottom= True )
-    NewHdu = pf.PrimaryHDU(data= norm_flat_data, header= hdu)
+    NewHdu = fits.PrimaryHDU(data= norm_flat_data, header= hdu)
     norm_flat_name= check_file_exist('n'+flat)
     NewHdu.writeto(norm_flat_name, output_verify='warn', clobber= True )
     
-    print 'Flat: %s Mean: %.3f StDiv: %.3f' % (norm_flat_name, np.mean(norm_flat_data), np.std(norm_flat_data)) 
+    print 'Flat: %s Mean: %.3f StDev: %.3f' % (norm_flat_name, np.mean(norm_flat_data), np.std(norm_flat_data)) 
     return (norm_flat_name)
 
 # ============================================================================    
@@ -434,7 +457,7 @@ def Norm_Flat_Poly( flat ):
         order= raw_input("Fit Order?>>>")
     print "Fit Order: %s" % order
     # Read Flat and Average Center Rows # 
-    flat_data = pf.getdata(flat)
+    flat_data = fits.getdata(flat)
     flat_data[ np.isnan(flat_data) ] = 0
     fit_data= np.median(flat_data[0][95:105], axis=0) # Median of center Rows
     X= range(0,len(fit_data)) # Column Numbers 
@@ -453,11 +476,6 @@ def Norm_Flat_Poly( flat ):
         diagnostic[0:len(X[lo:hi]),14] = X[lo:hi]
         diagnostic[0:len(fit_data[lo:hi]),15] = fit_data[lo:hi]
         diagnostic[0:len(profile),16] = profile
-    #global now
-    #now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-    #header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat'
-    #with open('reduction_' + now + '.txt','a') as handle:
-    #    np.savetxt(handle,diagnostic,fmt='%f',header=header)
     # Divide each Row by the Profile # 
     for row in flat_data[0]:
         i= 0; 
@@ -466,7 +484,7 @@ def Norm_Flat_Poly( flat ):
             i= i+1   
             
     # Copy Header, write changes, and write file #
-    hdu = pf.getheader(flat)
+    hdu = fits.getheader(flat)
     Fix_Header(hdu)
     hdu.append( ('NORMFLAT ', order,'Flat Polynomial Fit Order'), 
                useblanks= True, bottom= True )
@@ -477,11 +495,11 @@ def Norm_Flat_Poly( flat ):
         coeff_expla = 'Flat Polynomial Coefficient - Term %s' %coeff_order
         hdu.append((coeff_title,coeff_str,coeff_expla),
                    useblanks= True, bottom= True )
-    NewHdu = pf.PrimaryHDU(data= flat_data, header= hdu)
+    NewHdu = fits.PrimaryHDU(data= flat_data, header= hdu)
     norm_flat_name= check_file_exist('n'+flat)
     NewHdu.writeto(norm_flat_name, output_verify='warn', clobber= True )
     
-    print '\nFlat: %s Mean: %.3f StDiv: %.3f' % (norm_flat_name, np.mean(flat_data), np.std(flat_data))
+    print '\nFlat: %s Mean: %.3f StDev: %.3f' % (norm_flat_name, np.mean(flat_data), np.std(flat_data))
     return (norm_flat_name)
     
 # ===========================================================================    
@@ -494,19 +512,49 @@ def Flat_Field( spec_list, flat ):
     print 'Flat Fielding Images by Dividing by %s\n' % (flat) 
         
     np.seterr(divide= 'warn')
-    flat_data = pf.getdata(flat)
+    flat_data = fits.getdata(flat)
+    #If flat is a blue spectrum, find the Littro ghost and add those pixels to the header
+    if 'blue' in flat.lower():
+        fit_data = np.median(flat_data[0][75:85],axis=0)
+        low_index = 1210. #Lowest pixel to search within
+        high_index = 1650. #highest pixel to search within
+        fit_data1 = fit_data[low_index:high_index]
+        fit_pix1 = np.linspace(low_index,low_index+len(fit_data1),num=len(fit_data1))
+        max_pixel = np.argmax(fit_data1)
+        fit_data2 = fit_data1[max_pixel-30:max_pixel+30]
+        guess1 = np.zeros(5)
+        guess1[0] = np.mean(fit_data2)
+        guess1[1] = (fit_data2[-1]-fit_data2[0])/len(fit_data2)
+        guess1[2] = np.amax(fit_data2)
+        guess1[3] = np.argmax(fit_data2)
+        guess1[4] = 4.
+        error_fit1 = np.ones(len(fit_data2))
+        xes1 = np.linspace(0,len(fit_data2)-1,num=len(fit_data2))
+        fa1 = {'x':xes1,'y':fit_data2,'err':error_fit1}
+        fitparams1 = mpfit.mpfit(fitgaussslope,guess1,functkw=fa1,quiet=True)
+        center_pixel = low_index+max_pixel-30.+fitparams1.params[3]
+        littrow_ghost = [np.rint(center_pixel-9.),np.rint(center_pixel+9.)]
+        diagnostic[0:len(fit_pix1),17] = fit_pix1
+        diagnostic[0:len(fit_data1),18] = fit_data1
+        diagnostic[0:len(xes1+low_index+max_pixel-30.),19] = xes1+low_index+max_pixel-30.
+        diagnostic[0:len(gaussslope(xes1,fitparams1.params)),20] = gaussslope(xes1,fitparams1.params)
+        diagnostic[0,21] = littrow_ghost[0]
+        diagnostic[1,21] = littrow_ghost[1]
+    else:
+        littrow_ghost = 'None'
     f_spec_list = []
     for spec in spec_list:
-        spec_data = pf.getdata(spec)
+        spec_data = fits.getdata(spec)
         f_spec_data = np.divide(spec_data, flat_data)
         f_spec_data[ np.isnan(f_spec_data) ] = 0
-        print "f"+"%s Mean: %.3f StDiv: %.3f" % (spec, np.mean(f_spec_data), np.std(f_spec_data) ) 
-        hdu = pf.getheader(spec)
+        print "f"+"%s Mean: %.3f StDev: %.3f" % (spec, np.mean(f_spec_data), np.std(f_spec_data) ) 
+        hdu = fits.getheader(spec)
         Fix_Header(hdu)
-        hdu.set('DATEFLAT', datetime.datetime.now().strftime("%Y-%m-%d"), 'Date of Flat Fielding')   
+        hdu.set('DATEFLAT', datetime.datetime.now().strftime("%Y-%m-%d"), 'Date of Flat Fielding')
+        hdu.set('LITTROW',str(littrow_ghost),'Littrow Ghost location in Flat')
         hdu.append( ('FLATFLD', flat,'Image used to Flat Field.'), 
                useblanks= True, bottom= True )    
-        NewHdu = pf.PrimaryHDU(data= f_spec_data, header= hdu)
+        NewHdu = fits.PrimaryHDU(data= f_spec_data, header= hdu)
         new_file_name= check_file_exist('f'+spec)
         NewHdu.writeto(new_file_name, output_verify='warn', clobber= True)
         f_spec_list.append(new_file_name)
@@ -525,7 +573,7 @@ def SetAirMass(img, lat= -30.238, scale= 750):
     #   AMeff = effective airmass for single image
      
     # Image Info #    
-    hdulist = pf.open(img, 'update')
+    hdulist = fits.open(img, 'update')
     hdu = hdulist[0]
     
     Fix_Header(hdu.header)
@@ -588,13 +636,13 @@ def imcombine(im_list, output_name, method,
         #   axis[1] is the vertical axis of the chip.
         #   axis[2] is the horizontal axis of the chip.
         if i == 0:  
-            img_data = pf.getdata(im_list[i])
+            img_data = fits.getdata(im_list[i])
             n,Ny,Nx = np.shape(img_data)
             img_block = np.ndarray( shape= (Ni,Ny,Nx) )
             img_block[i,:,:] = img_data
         # Then go ahead and read the rest of the images into the block #   
         else: 
-            img_block[i,:,:] = pf.getdata(im_list[i])
+            img_block[i,:,:] = fits.getdata(im_list[i])
         # set nan values to zero # 
         img_block[ np.isnan(img_block) ] = 0
         
@@ -622,7 +670,7 @@ def imcombine(im_list, output_name, method,
         Std= np.std(img_block[i,25:75,1700:1800])
         avgarr[i] = Avg
         stdarr[i] = Std
-        print ( "%02d: %s ScaleValue:% .3f Mean: %.3f StDiv: %.3f" 
+        print ( "%02d: %s ScaleValue:% .3f Mean: %.3f StDev: %.3f" 
                 % (i, im_list[i], Scale[i], Avg, Std) )
     
     #Save Values to diagnostic array
@@ -641,6 +689,7 @@ def imcombine(im_list, output_name, method,
         pass
     ## Combine the images acording to input "method" using SigmaClip() above ## 
     comb_img = np.ndarray( shape= (1,Ny,Nx), dtype='float32')
+    ##mask_img = np.ndarray( shape= (1,Ny,Nx), dtype='float32')
     while True: # Contunualy askes for method if input is wierd # 
         
         if method == 'median':
@@ -655,8 +704,15 @@ def imcombine(im_list, output_name, method,
             for y in range(0,Ny):
                 for x in range(0,Nx):
                     counts = img_block[:,y,x]
+                    #counts_good, counts_bad = SigClip(counts, lo_sig, hi_sig)
                     val = np.average( SigClip(counts, lo_sig, hi_sig) )
+                    #val = np.average(counts_good)
                     comb_img[0,y,x] = np.float32(val)
+                    #mask = np.average(counts_bad)
+                    #mask_img[0,y,x] = np.float32(mask)
+            #mask_image = fits.PrimaryHDU(data=mask_img)
+            #mask_image.writeto('Mask.fits')
+                                   
             break # exit while loop
         
         elif method == 'sum':
@@ -748,7 +804,7 @@ def imcombine(im_list, output_name, method,
     ###### The following part only runs if above while loop is satisfied ######
     
     # Copy header of first image in im_list and fix degree symbol issue. 
-    hdulist = pf.open(im_list[0])
+    hdulist = fits.open(im_list[0])
     hdu = hdulist[0]
     # This checks the string and deletes the bad keywords from header. 
     Fix_Header(hdu.header)
@@ -777,10 +833,10 @@ def imcombine(im_list, output_name, method,
     hdu.writeto(new_file_name, output_verify='warn', clobber= True)
     
     # write combined data to new fits file  # 
-    pf.update(output_name, data= comb_img, header= hdu.header, 
+    fits.update(output_name, data= comb_img, header= hdu.header, 
                 output_verify='warn')
                          
-    print ( "\nCombined Image: %s Mean: %.3f StDiv: %.3f" 
+    print ( "\nCombined Image: %s Mean: %.3f StDev: %.3f" 
             % (new_file_name, np.mean(comb_img), np.std(comb_img)) ) 
     return new_file_name           
 

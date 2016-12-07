@@ -41,23 +41,14 @@ import matplotlib.pyplot as plt
 import datetime
 import mpfit
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.optimize import curve_fit
 
 import spectools as st
 import superextract
 from superextract_tools import lampextract
+from ReduceSpec_tools import gauss, fitgauss
 from pylab import *
 
-#===========================================
-#Define functions for fitting gaussian
-def gauss(x,p): #single gaussian
-    return p[0] +  p[1]*np.exp(-(((x-p[2])/(np.sqrt(2)*p[3])))**2.)
-
-def fitgauss(p,fjac=None,x=None,y=None,err=None):
-    #Parameter values are passed in p
-    #fjac = None just means partial derivatives will not be computed
-    model = gauss(x,p)
-    status = 0
-    return([status,(y-model)/err])
 
 #===========================================
 def SigClip(data_set, lo_sig, hi_sig):
@@ -79,8 +70,13 @@ def SigClip(data_set, lo_sig, hi_sig):
                 cliped_data.append(cliped_data[-1])
             except:
                 cliped_data.append(data_set[1])
-    return cliped_data  
+    return cliped_data 
 
+#===========================================
+def line(x,m,b):
+    y = m*x + b
+    return y
+#===========================================
 
 #Read in file from command line
 if len(sys.argv) == 3:
@@ -93,9 +89,6 @@ if len(sys.argv) == 2:
     else:
         lamp = 'no'
 
-
-#script, specfile = sys.argv
-#specfile = 'tnb.0526.WD1422p095_930_blue.fits'
 
 
 #Open file and read gain and readnoise
@@ -118,10 +111,11 @@ data = nimages * data
 varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
 
 #Fit a Gaussian every 10 pixels to determine FWHM for convolving in the model fitting.
-fitpixel = np.arange(5,len(data[:,100]),10)
+fitpixel = np.arange(3,len(data[:,100]),10)
 allfwhm = np.zeros(len(fitpixel))
 for x in fitpixel:
-    forfit = data[x,2:]
+    #forfit = data[x,2:]
+    forfit = np.median(np.array([data[x-2,2:],data[x-1,2:],data[x,2:],data[x+1,2:],data[x+2,2:]]),axis=0)
     guess = np.zeros(4)
     guess[0] = np.mean(forfit)
     guess[1] = np.amax(forfit)
@@ -157,7 +151,7 @@ while repeat == 'yes':
 
 locfwhm = specfile.find('.fits')
 np.save(specfile[0:locfwhm] + '_poly',fwhmpoly(allpixel))
-diagnostics = np.zeros([len(data[:,100]),7])
+diagnostics = np.zeros([len(data[:,100]),12])
 diagnostics[0:len(allfwhm),0] = fwhmclipped
 diagnostics[0:len(fitpixel),1] = fitpixel
 diagnostics[0:len(allpixel),2] = fwhmpoly(allpixel)
@@ -212,8 +206,7 @@ background_radii[1] = np.round(background_radii[1],decimals=1)
 
 
 #Extract the spectrum using superextract
-
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=2,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
+output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=1,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
 #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
@@ -258,11 +251,43 @@ sigSpectrum = np.sqrt(output_spec.varSpectrum)
 diagnostics[0:len(output_spec.tracepos[0]),4] = output_spec.tracepos[0]
 diagnostics[0:len(output_spec.tracepos[1]),5] = output_spec.tracepos[1]
 diagnostics[0:len(output_spec.trace),6] = output_spec.trace
+diagnostics[0:len(output_spec.backgroundcolumnpixels),7] = output_spec.backgroundcolumnpixels
+diagnostics[0:len(output_spec.backgroundcolumnvalues),8] = output_spec.backgroundcolumnvalues
+diagnostics[0:len(output_spec.backgroundfitpixels),9] = output_spec.backgroundfitpixels
+diagnostics[0:len(output_spec.backgroundfitvalues),10] = output_spec.backgroundfitvalues
+diagnostics[0:len(output_spec.backgroundfitpolynomial),11] = output_spec.backgroundfitpolynomial
 now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
 endpoint = '.fits'
 with open('extraction_' + specfile[4:specfile.find(endpoint)] + '_' + now + '.txt','a') as handle:
-    header = 'Columns are: 1) Measured FWHM, 2) pixel value of each FWHM, 3) fit to FWHM measurements, 4) all pixel values, 5) profile pixels, 6) profile position, 7) fit profile positions'
+    header = 'Columns are: 1) Measured FWHM, 2) pixel value of each FWHM, 3) fit to FWHM measurements, 4) all pixel values, 5) profile pixels, 6) profile position, 7) fit profile positions, 8) Pixels values of cut at pixel 1200, 9) Values along column 1200, 10) Pixels of fit to background, 11) Values used for fit, 12) polynomial fit to background'
     np.savetxt(handle,diagnostics,fmt='%f',header=header)
+
+#Compute the extracted signal to noise and save to header
+if 'blue' in specfile.lower():
+    low_pixel, high_pixel = 1125., 1175.
+elif 'red' in specfile.lower():
+    low_pixel, high_pixel = 825., 875.
+shortspec = output_spec.spectrum[:,0][low_pixel:high_pixel]
+shortsigma = sigSpectrum[:,0][low_pixel:high_pixel]
+shortpix = np.linspace(low_pixel,high_pixel,num=(high_pixel-low_pixel),endpoint=False)
+guessline = np.zeros(2)
+guessline[0] = (shortspec[-1] - shortspec[0]) / (shortpix[-1]-shortpix[0])
+guessline[1] = guessline[0]*shortspec[0]
+par, cov = curve_fit(line,shortpix,shortspec,guessline)
+bestline = line(shortpix,par[0],par[1])
+
+signal = np.mean(shortspec)
+noise = np.sqrt(np.sum((shortspec-bestline)**2.) / float(len(bestline))) #Noise from RMS
+#noise = np.mean(shortsigma) #noise from sigma spectrum
+sn_res_ele = signal/noise * np.sqrt(fwhm)
+print 'Signal to Noise is: ', sn_res_ele
+
+#plt.clf()
+#plt.plot(shortpix,shortspec,'b')
+#plt.plot(shortpix,bestline,'g')
+#plt.show()
+
+#exit()
 
 #Get the image header and add keywords
 header = st.readheader(specfile)
@@ -272,7 +297,9 @@ header.set('BANDID3','Mean Background')
 header.set('BANDID4','Sigma Spectrum')
 header.set('DISPCOR',0) #Dispersion axis of image
 fwhmsave = np.round(fwhm,decimals=4)
+snrsave = np.round(sn_res_ele,decimals=4)
 header.set('SPECFWHM',fwhmsave,'FWHM of spectrum in pixels') #FWHM of spectrum in pixels
+header.set('SNR',snrsave,'Signal to Noise per resolution element') 
 header.set('DATEEXTR',datetime.datetime.now().strftime("%Y-%m-%d"),'Date of Spectral Extraction')
 
 #Save the extracted image
