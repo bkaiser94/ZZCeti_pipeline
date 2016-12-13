@@ -38,6 +38,7 @@ def diagnostic_plots_cals(file_name):
     flat_red_bs, flat_red_std_bs, flat_red_as, flat_red_std_as = [],[],[], []
     blue_pix, blue_val, blue_poly = [],[],[]
     red_pix, red_val, red_poly = [],[],[]
+    littrow_pix, littrow_val, fit_pix_lit, fit_lit, masked_edges = [],[],[],[],[]
 
     for m in np.arange(len(arr)):
     
@@ -62,6 +63,12 @@ def diagnostic_plots_cals(file_name):
         red_pix.append(arr[m][14])
         red_val.append(arr[m][15])
         red_poly.append(arr[m][16])
+    
+        littrow_pix.append(arr[m][17])
+        littrow_val.append(arr[m][18])
+        fit_pix_lit.append(arr[m][19])
+        fit_lit.append(arr[m][20])
+        masked_edges.append(arr[m][21])
     
     bias_bs = np.array(bias_bs)
     bias_bs = bias_bs[bias_bs != 0.0]
@@ -130,6 +137,21 @@ def diagnostic_plots_cals(file_name):
     red_poly = np.array(red_poly)
     red_poly = red_poly[red_poly != 0.0]
     red_poly = np.array(red_poly)
+    
+    bias_bs = np.array(bias_bs)
+    bias_bs = bias_bs[bias_bs != 0.0]
+    bias_bs = np.array(bias_bs)
+    
+    littrow_pix = np.array(littrow_pix)
+    littrow_val = np.array(littrow_val)
+    fit_pix_lit = np.array(fit_pix_lit)
+    fit_lit = np.array(fit_lit)
+    
+    littrow_pix = littrow_pix[littrow_val != 0.0]
+    littrow_val = littrow_val[littrow_val != 0.0]
+    fit_pix_lit = fit_pix_lit[fit_lit != 0.0]
+    fit_lit = fit_lit[fit_lit != 0.0]
+
 
     plt.figure()
     plt.errorbar(np.arange(len(bias_bs)), bias_bs, yerr=bias_std, marker="o", linestyle="None")
@@ -198,7 +220,18 @@ def diagnostic_plots_cals(file_name):
         plt.title('Red Polynomial Check')
         plt.savefig(pp,format='pdf')
         plt.close()    
-        
+    
+    plt.figure()
+    plt.plot(littrow_pix, littrow_val, 'k-')
+    plt.plot(fit_pix_lit, fit_lit, 'r-')
+    plt.axvline(x=masked_edges[0])
+    plt.axvline(x=masked_edges[1])
+    plt.xlabel('Pixel')
+    plt.ylabel('Normalized Flux')
+    plt.title('Location of Littrow Ghost')
+    plt.savefig(pp, format='pdf')
+    plt.close()
+    
     pp.close()
     
 ##### ------------------------------------------------------------------ #####
@@ -224,30 +257,35 @@ def diagnostic_plots_FWHM(file_name):
     
     arr = np.genfromtxt(file_name, dtype=None,delimiter='\t')
     
-    names, col1, fwhm1, pos1, col2, fwhm2, pos2 = [],[],[],[],[],[],[]
+    names, col1, fwhm1, pos1, peak1, col2, fwhm2, pos2, peak2 = [],[],[],[],[],[],[],[],[]
     for m in np.arange(len(arr)):
         names.append(str(arr[m][0][8:-5]))
         col1.append(arr[m][1])
         fwhm1.append(arr[m][2])    
         pos1.append(arr[m][3])
-        col2.append(arr[m][4])
-        fwhm2.append(arr[m][5])   
-        pos2.append(arr[m][6])
-    fwhm1 = np.array(fwhm1)
-    col1 = np.array(col1)
-    pos1 = np.array(pos1)
+        peak1.append(arr[m][4])
+        col2.append(arr[m][5])
+        fwhm2.append(arr[m][6])   
+        pos2.append(arr[m][7])
+        peak2.append(arr[m][8])
+    fwhm2 = np.array(fwhm2)
+    col2 = np.array(col2)
+    pos2 = np.array(pos2)
+    peak2 = np.array(peak2)
 
     no_duplicates = sorted(list(set(names)))
 
     cat_pts = []
     fwhm_pts = []
     pos_pts = []
+    peak_pts = []
     for i in range(len(names)):
         for j in range(len(no_duplicates)):
             if no_duplicates[j] in names[i]:
                 cat_pts.append(j)
                 fwhm_pts.append(fwhm2[i])
                 pos_pts.append(pos2[i])
+                peak_pts.append(peak2[i])
     
     x = np.arange(len(no_duplicates))
     jitter = 0.1*np.random.rand(len(cat_pts))
@@ -269,6 +307,16 @@ def diagnostic_plots_FWHM(file_name):
     plt.xlabel('Star')
     plt.ylabel('Value')
     plt.title('Profile Position')
+    plt.tight_layout()
+    plt.savefig(pp,format='pdf')
+    plt.close()
+    
+    plt.figure()
+    plt.xticks(x, no_duplicates, rotation=90)
+    plt.scatter(cat_pts, peak_pts)
+    plt.xlabel('Star')
+    plt.ylabel('Value')
+    plt.title('Peak Value of Gaussian')
     plt.tight_layout()
     plt.savefig(pp,format='pdf')
     plt.close()
@@ -595,6 +643,7 @@ def diagnostic_plots_extraction(file_name):
 
     meas_FWHM, pix_FWHM, fit_FWHM, all_pix = [],[],[],[]
     prof_pix, prof_pos, fit_prof_pos = [],[],[]
+    pix_val_1200, val_1200, pixel_back_fit, val_fit, poly_fit_back = [],[],[],[],[]
     
     for m in np.arange(len(arr)):
         meas_FWHM.append(arr[m][0])
@@ -606,6 +655,12 @@ def diagnostic_plots_extraction(file_name):
         prof_pos.append(arr[m][5])
         fit_prof_pos.append(arr[m][6])
         
+        pix_val_1200.append(arr[m][7])
+        val_1200.append(arr[m][8])
+        pixel_back_fit.append(arr[m][9])
+        val_fit.append(arr[m][10])
+        poly_fit_back.append(arr[m][11])
+
     meas_FWHM = np.array(meas_FWHM)
     meas_FWHM = meas_FWHM[meas_FWHM != 0.0]
     meas_FWHM = np.array(meas_FWHM)
@@ -622,18 +677,30 @@ def diagnostic_plots_extraction(file_name):
     all_pix = all_pix[all_pix != 0.0]
     all_pix = np.array(all_pix)
     
-    prof_pix = np.array(prof_pix)
-    prof_pix = prof_pix[prof_pix != 0.0]
-    prof_pix = np.array(prof_pix)
+    #prof_pix = np.array(prof_pix)
+    #prof_pix = prof_pix[prof_pix != 0.0]
+    #prof_pix = np.array(prof_pix)
     
-    prof_pos = np.array(prof_pos)
-    prof_pos = prof_pos[prof_pos != 0.0]
-    prof_pos = np.array(prof_pos)
+    #prof_pos = np.array(prof_pos)
+    #prof_pos = prof_pos[prof_pos != 0.0]
+    #prof_pos = np.array(prof_pos)
     
     fit_prof_pos = np.array(fit_prof_pos)
     fit_prof_pos = fit_prof_pos[fit_prof_pos != 0.0]
     fit_prof_pos = np.array(fit_prof_pos)
     
+    pix_val_1200 = np.array(pix_val_1200)
+    val_1200 = np.array(val_1200)
+    pixel_back_fit = np.array(pixel_back_fit)
+    val_fit = np.array(val_fit)
+    poly_fit_back = np.array(poly_fit_back)
+    
+    pix_val_1200 = pix_val_1200[pix_val_1200 != 0.0]
+    val_1200 = val_1200[val_1200 != 0.0] 
+    pixel_back_fit = pixel_back_fit[pixel_back_fit != 0.0]
+    val_fit = val_fit[val_fit != 0.0] 
+    poly_fit_back = poly_fit_back[poly_fit_back != 0.0]
+
     plt.figure()
     plt.scatter(pix_FWHM,meas_FWHM)
     plt.plot(np.arange(len(fit_FWHM)),fit_FWHM)
@@ -644,11 +711,20 @@ def diagnostic_plots_extraction(file_name):
     plt.close()
     
     plt.figure()
-    plt.scatter(prof_pix,prof_pos)
+    plt.scatter(prof_pix, prof_pos)
     plt.plot(np.arange(len(fit_prof_pos)),fit_prof_pos)
     plt.xlabel('Pixel')
     plt.ylabel('Profile Position')
     plt.title('Extraction Profile - ' + star_name)
+    plt.savefig(pp,format='pdf')
+    plt.close()
+    
+    plt.figure()
+    plt.scatter(pix_val_1200, val_1200, color='k', marker='^')
+    plt.scatter(pixel_back_fit, val_fit, color='b', marker='^')
+    plt.plot(pix_val_1200, poly_fit_back, 'b-')
+    plt.xlabel('Pixel')
+    plt.title('Fit to Background at Column 1200')
     plt.savefig(pp,format='pdf')
     plt.close()
     
@@ -720,4 +796,3 @@ for f in pdfs:
     os.remove(f)
     
 outfile.write(open('diagnostic_plots.pdf', 'wb'))
-
