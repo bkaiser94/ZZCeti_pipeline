@@ -152,21 +152,47 @@ if __name__ == "__main__":
     # Save all diagnostic info
     rt.save_diagnostic()
     
+    # Trim Spectra # 
+    #print fb_spec_list
+    tfb_spec = []
+    i= 0
+    while i < nsp:
+        for x in range(0,len(fb_spec_list[i])):
+            tfb_spec.append(rt.Trim_Spec(fb_spec_list[i][x])) 
+        i= i+1
+                        
+    #LA Cosmic
+    i = 0
+    ctfb_spec = []
+    ctfb_mask = []
+    #print tfb_spec
+    #print nsp
+    while i < len(tfb_spec):
+        #print tfb_spec[i]
+        lacos_spec, lacos_mask = rt.lacosmic(tfb_spec[i])
+        ctfb_spec.append(lacos_spec)
+        ctfb_mask.append(lacos_mask)
+        #ctfb_spec.append(rt.lacosmic(tfb_spec[i]))
+        i += 1
+    
+    ctfb_spec_list = rt.List_Combe(ctfb_spec)
+    ctfb_mask_list = rt.List_Combe(ctfb_mask)
+    
     # Combine Spectra # 
     i= 0 
     comb_fb_spec = []
     while i < nsp:
-        rt.checkspec(fb_spec_list[i])
-        comb_fb_spec.append ( rt.imcombine(fb_spec_list[i], 'fb.'+spec_names[i], 'average', 
-                        lo_sig= 10, hi_sig= 3, overwrite= overwrite) )
+        rt.checkspec(ctfb_spec_list[i])
+        comb_fb_spec.append ( rt.imcombine(ctfb_spec_list[i], 'ctfb.'+spec_names[i], 'average', 
+                                           lo_sig= 10, hi_sig= 3, overwrite= overwrite,mask=ctfb_mask_list[i]) )
         i= i+1
-                        
-    # Trim Spectra # 
-    i= 0
-    while i < nsp:
-        rt.Trim_Spec(comb_fb_spec[i]); 
-        i= i+1
-                        
+
+#    # Trim Spectra # 
+#    i= 0
+#    while i < nsp:
+#        rt.Trim_Spec(comb_fb_spec[i]); 
+#        i= i+1
+#                        
     print "\n====================\n"
 
     #########################################
