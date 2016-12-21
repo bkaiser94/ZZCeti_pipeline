@@ -269,6 +269,7 @@ def superExtract(*args, **kw):
     # Define trace (Marsh's "X_j" in Eq. 9)
     if kw.has_key('trace'):
         trace = kw['trace']
+        xyfits = [np.arange(0,len(trace)),trace]
     else:
         trace = None
 
@@ -280,7 +281,6 @@ def superExtract(*args, **kw):
         tracecoef, xyfits = traceorders(frame, pord=trace, nord=1, verbose=verbose, plotalot=verbose-1, g=gain, rn=readnoise, badpixelmask=True-goodpixelmask, dispaxis=dispaxis, fitwidth=min(fitwidth, 80),retfits=True)
         trace = np.polyval(tracecoef.ravel(), np.arange(nlam))
 
-    
     #xxx = np.arange(-fitwidth/2, fitwidth/2)
     #backgroundAperture = (np.abs(xxx) > bkg_radii[0]) * (np.abs(xxx) < bkg_radii[1])
     #extractionAperture = np.abs(xxx) < extract_radius

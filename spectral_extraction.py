@@ -80,9 +80,13 @@ def line(x,m,b):
 
 #Read in file from command line
 if len(sys.argv) == 3:
-    script, specfile, lamp = sys.argv
+    script, specfile, tracefile = sys.argv
+    trace_exist = True
+    trace = np.load(tracefile)
+    lampe = 'no'
 if len(sys.argv) == 2:
     script, specfile = sys.argv
+    trace_exist = False
     lampcheck = raw_input('Do you want to extract a lamp too? (yes/no) ')
     if lampcheck == 'yes':
         lamp = raw_input('Enter lamp name: ')
@@ -206,7 +210,11 @@ background_radii[1] = np.round(background_radii[1],decimals=1)
 
 
 #Extract the spectrum using superextract
-output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=1,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
+print 'Starting extraction.'
+if trace_exist:
+    output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,trace=trace,pord=2,tord=2,bord=1,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
+else:
+    output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=1,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
 #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
 #tord = degree of spectral-trace polynomial, 1 = line
 #bord = degree of polynomial background fit
