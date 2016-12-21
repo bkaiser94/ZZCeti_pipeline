@@ -333,6 +333,7 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     # print '\nResiduals:\n %s' % Res
     rmsfit = np.sqrt(np.mean([n**2. for n in Res]))
     print '\nRMS = %s' % rmsfit
+    '''
     plt.scatter(known_wave, Res, color='r', marker='+')
     plt.grid()
     plt.ylim( min(Res)*2., max(Res)*2.)
@@ -340,7 +341,7 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     plt.ylabel('Pixels')
     plt.xlabel('Wavelength')
     plt.show()
-
+    '''
     savearray[0:len(known_wave),0] = known_wave
     savearray[0:len(Res),1] = Res
     
@@ -701,7 +702,7 @@ while yn== 'yes':
         n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
         n_Wavelengths= DispCalc(Pixels, alpha-alpha_offset, theta, n_fr, n_fd, parm[2], n_zPnt)
         
-        
+        '''
         plt.figure(1)
         plt.plot(n_Wavelengths, lamp_spec)
         plt.hold('on')
@@ -712,7 +713,7 @@ while yn== 'yes':
         plt.xlabel("Wavelengths (Ang.)")
         plt.ylabel("Counts")
         plt.hold('off')
-        
+        '''
         savearray[0:len(n_Wavelengths),2] = n_Wavelengths
         savearray[0:len(lamp_spec),3] = lamp_spec
         savearray[0:len(np.array(line_list[1])),4] = np.array(line_list[1])
@@ -727,7 +728,7 @@ while yn== 'yes':
         plt.ylabel("old-new Wavelength (Ang.)")
         '''
 
-        plt.show()
+        #plt.show()
 # Save parameters in header and write file # 
 print "\nWrite solution to header?"
 yn= raw_input("yes/no? >>>")
