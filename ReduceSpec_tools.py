@@ -16,6 +16,7 @@ import mpfit
 import os
 import datetime
 import matplotlib.pyplot as plt
+import cosmics
 # ===========================================================================
 # Lesser Functions Used by Main Functions ===================================
 # ===========================================================================
@@ -168,7 +169,7 @@ def List_Combe(img_list):
     sl.append(img_list[0]) # place first image in sublist
     i= 0; # image counter  
     while i < len(img_list)-1: # run trough all images 
-        if img_list[i+1].__contains__(img_list[i][4:]) == True:
+        if img_list[i+1].__contains__(img_list[i][10:]) == True: #Old = 4
             sl.append(img_list[i+1]) # place it in the sub_list 
         else:
             # if the images dont match: 
@@ -389,6 +390,36 @@ def Mult_Scale (img_block,index):
 # Main Functions ============================================================
 # ===========================================================================
 
+def lacosmic(img):
+    print ''
+    print 'Finding cosmic rays in ', img
+    datalist = fits.open(img)
+    data = datalist[0].data
+    data2 = data[0,:,:]
+    array = data2
+    header = fits.getheader(img)
+    Fix_Header(header) 
+    gain = datalist[0].header['GAIN']
+    rdnoise = datalist[0].header['RDNOISE']
+
+    c = cosmics.cosmicsimage(array, gain=gain, readnoise=rdnoise, sigclip = 5.0, sigfrac = 0.5, objlim = 4.0,satlevel=45000.0,verbose=True)
+    c.run(maxiter=4)
+
+    maskname = img[0:img.find('.fits')] + '_mask.fits'
+    mask_array = np.expand_dims(c.mask,axis=0)
+    mask_array = np.cast['uint8'](mask_array)
+    mask_im = fits.PrimaryHDU(data=mask_array,header=header) 
+    mask_im.writeto(maskname,clobber=True)
+    print 'Mask image: ', maskname
+
+    cleanname = 'c' + img
+    data_array = np.expand_dims(c.cleanarray,axis=0)
+    header.set('MASK',maskname,'Mask of cosmic rays')
+    clean_im = fits.PrimaryHDU(data=data_array,header=header)
+    clean_im.writeto(cleanname,clobber=True)
+    print 'Clean image: ', cleanname
+    return cleanname, maskname
+
 def Bias_Subtract( img_list, zero_img ):
     # This function takes in a list of images and a bias image 'zero_img'
     # and performs a pixel by pixel subtration using numpy.
@@ -607,7 +638,7 @@ def SetAirMass(img, lat= -30.238, scale= 750):
 # =========================================================================== 
  
 def imcombine(im_list, output_name, method,  
-              lo_sig = 10, hi_sig = 3, overwrite= False):
+              lo_sig = 10, hi_sig = 3, overwrite= False, mask=False):
 # Image Combination Script # 
 # Inputs:
 #   im_list = mist be a python list of images or "@listfile"
@@ -640,9 +671,15 @@ def imcombine(im_list, output_name, method,
             n,Ny,Nx = np.shape(img_data)
             img_block = np.ndarray( shape= (Ni,Ny,Nx) )
             img_block[i,:,:] = img_data
+            if (not mask) is False:
+                mask_data = fits.getdata(mask[i])
+                mask_block = np.ndarray(shape= (Ni,Ny,Nx) )
+                mask_block[i,:,:] = mask_data
         # Then go ahead and read the rest of the images into the block #   
         else: 
             img_block[i,:,:] = fits.getdata(im_list[i])
+            if (not mask) is False:
+                mask_block[i,:,:] = fits.getdata(mask[i])
         # set nan values to zero # 
         img_block[ np.isnan(img_block) ] = 0
         
@@ -703,10 +740,21 @@ def imcombine(im_list, output_name, method,
         elif method == 'average':
             for y in range(0,Ny):
                 for x in range(0,Nx):
-                    counts = img_block[:,y,x]
-                    #counts_good, counts_bad = SigClip(counts, lo_sig, hi_sig)
-                    val = np.average( SigClip(counts, lo_sig, hi_sig) )
-                    #val = np.average(counts_good)
+                    if (not mask) is False:
+                        counts = img_block[:,y,x]
+                        masks = mask_block[:,y,x].astype(bool)
+                        mx = np.ma.masked_array(counts,masks)
+                        val = mx.mean() #We don't want to sigma clip if already masking
+                        #if True in masks:
+                        #    print counts
+                        #    print masks
+                        #    print val
+                        #    print ''
+                    else:
+                        counts = img_block[:,y,x]
+                        #counts_good, counts_bad = SigClip(counts, lo_sig, hi_sig)
+                        val = np.average( SigClip(counts, lo_sig, hi_sig) )
+                        #val = np.average(counts_good)
                     comb_img[0,y,x] = np.float32(val)
                     #mask = np.average(counts_bad)
                     #mask_img[0,y,x] = np.float32(mask)
