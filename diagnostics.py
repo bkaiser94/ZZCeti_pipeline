@@ -259,7 +259,7 @@ def diagnostic_plots_FWHM(file_name):
     
     names, col1, fwhm1, pos1, peak1, col2, fwhm2, pos2, peak2 = [],[],[],[],[],[],[],[],[]
     for m in np.arange(len(arr)):
-        names.append(str(arr[m][0][8:-5]))
+        names.append(str(arr[m][0][9:-5]))
         col1.append(arr[m][1])
         fwhm1.append(arr[m][2])    
         pos1.append(arr[m][3])
