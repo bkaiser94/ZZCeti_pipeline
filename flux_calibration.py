@@ -242,6 +242,7 @@ for stdspecfile in standards:
         ax1.set_title('Current polynomial order: %s' % order)
         g.subplots_adjust(hspace=0)
         plt.setp([a.get_xticklabels() for a in g.axes[:-1]],visible=False)
+        #np.savetxt('flux_sensvalue.txt',np.transpose([lambdasfit,smooth_sens]))
         plt.show()
         repeat = raw_input('Do you want to try again (yes/no)? ')
         if repeat == 'yes':
@@ -311,7 +312,7 @@ while avocado < length:
             choice = tomato
         tomato += 2
     
-    #To get the flux calibration, perform the following
+    #To get the flux calibration, perfowtfb.GD108_930_red.ms.fitsrm the following
     #Flux = counts / (Exptime * dispersion * 10**(sens/2.5))
     #Get the sensitivity function at the correct wavelength spacing
     sens_wave1 = senspolys[choice](WD_spectra1.warr)
@@ -320,6 +321,7 @@ while avocado < length:
 
     #Perform the flux calibration. We do this on the optimal extraction, non-variance weighted aperture, the sky spectrum, and the sigma spectrum.
     print 'Doing the final flux calibration.'
+    np.savetxt('flux_sensvalue_gd108.txt',np.transpose([WD_spectra1.warr,(exptime1 * dispersion1 * 10.**(sens_wave1/2.5))]))
     star_opflux1 = st.cal_spec(WD_spectra1.opfarr,sens_wave1,exptime1,dispersion1)
     star_flux1 = st.cal_spec(WD_spectra1.farr,sens_wave1,exptime1,dispersion1)
     sky_flux1 = st.cal_spec(WD_spectra1.sky,sens_wave1,exptime1,dispersion1)
