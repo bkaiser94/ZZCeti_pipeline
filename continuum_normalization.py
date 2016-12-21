@@ -103,11 +103,13 @@ response_blue = obs_spectrablue.opfarr/cflux2blue
 if redfile:
     response_red = obs_spectrared.opfarr/cflux2red
 
-
-#plt.clf()
-#plt.plot(obs_spectrablue.warr,response_blue,'k')
-#plt.plot(obs_spectrared.warr,response_red,'k')
-#plt.show()
+'''
+plt.clf()
+plt.plot(obs_spectrablue.warr,response_blue,'k')
+if redfile:
+    plt.plot(obs_spectrared.warr,response_red,'k')
+plt.show()
+'''
 
 #We want to mask out the Balmer line features, and the telluric line in the red spectrum. Set up the wavelength ranges to mask here.
 balmer_features_blue = [[3745,3757],[3760,3780],[3784,3812],[3816,3856],[3865,3921],[3935,4021],[4040,4191],[4223,4460],[4691,5010]]
@@ -143,7 +145,8 @@ if redfile:
     response_fit_red_poly = np.polyfit(spec_wav_masked_red,response_masked_red,response_poly_order_red)
     response_fit_red = np.poly1d(response_fit_red_poly)
 
-
+#np.savetxt('con_sens.txt',np.transpose([obs_spectrablue.warr,response_fit_blue(obs_spectrablue.warr)]))
+#exit()
 plt.clf()
 plt.plot(obs_spectrablue.warr,response_blue,'r')
 plt.plot(spec_wav_masked_blue,response_masked_blue,'g.')
