@@ -385,12 +385,13 @@ def newzeropoint(x):
     
 # =========================================================================== 
     
-def WaveShift(specname):
+def WaveShift(specname,zzceti):
     #Calculates a new zero point for a spectrum based on a skyline
     spec_data= fits.getdata(specname)
     dataval = spec_data[0,0,:]
     sigmaval = spec_data[3,0,:]
     spec_header= fits.getheader(specname)
+    global alpha, theta
     alpha= float( spec_header["GRT_TARG"] )
     theta= float( spec_header["CAM_TARG"] )
     
@@ -402,9 +403,9 @@ def WaveShift(specname):
     WDwave = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], n_zPnt)
     
     #Select whether to fit a Balmer line or choose a different line
-    selectline = raw_input('Is this a ZZ Ceti? (yes/no): ')
+    #selectline = raw_input('Is this a ZZ Ceti? (yes/no): ')
     pix = range(len(dataval)) #This sets up an array of pixel numbers
-    if selectline == 'yes':
+    if zzceti == 'yes':
         if 'blue' in specname.lower():
             #Recenter the observed data to match the models by fitting beta and gamma
             bfitlow = 1300 #4680
@@ -470,7 +471,7 @@ def WaveShift(specname):
             line_center = rparams.params[4]
             line_fit = pseudogausscubic(fitpixels,rparams.params)
             known_wavelength = 6564.6
-    elif selectline == 'no':
+    elif zzceti == 'no':
         #Plot the spectrum and allow user to set fit width
         global ax, fig, coords
         fig = plt.figure(1)
@@ -533,283 +534,297 @@ def WaveShift(specname):
 
 #  Get Lamps # ==============================================================
 
-from sys import argv
-script, lamp = argv 
+def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti):
+    # Read Lamp Data and Header # 
+    lamp_data= fits.getdata(lamp)
+    lamp_header= fits.getheader(lamp)
+    
+    # Check number of image slices, and select the spectra # 
+    if lamp_header["NAXIS"]== 2:
+        lamp_spec= lamp_data[0]
+    elif lamp_header["NAXIS"]== 3:
+        lamp_spec= lamp_data[0][0]
+    else:
+        print ("\nDont know which data to unpack.")
+        print ("Check the array dimensions\n")
+        
+        
+    # plt.figure(1)
+    # plt.plot(lamp_spec)
+    # plt.title('Raw')
+    # plt.show()
 
-# Read Lamp Data and Header # 
-lamp_data= fits.getdata(lamp)
-lamp_header= fits.getheader(lamp)
+    # Find the pixel number offset due to trim reindexing # 
+    trim_sec= lamp_header["CCDSEC"]
+    trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
 
-# Check number of image slices, and select the spectra # 
-if lamp_header["NAXIS"]== 2:
-    lamp_spec= lamp_data[0]
-elif lamp_header["NAXIS"]== 3:
-    lamp_spec= lamp_data[0][0]
-else:
-    print ("\nDont know which data to unpack.")
-    print ("Check the array dimensions\n")
+    # Find Bining # 
+    bining= float( lamp_header["PARAM18"] ) 
 
+    # Get Pixel Numbers # 
+    nx= np.size(lamp_spec)
+    Pixels= bining*(np.arange(0,nx,1)+trim_offset)
 
-# plt.figure(1)
-# plt.plot(lamp_spec)
-# plt.title('Raw')
-# plt.show()
+    # Select Set of Parameters to use # 
+    global parm
+    if lamp.lower().__contains__('red'):
+        parm= Param_930_20_40
+        line_list= WaveList_Fe_930_20_40
+    elif lamp.lower().__contains__('blue'):
+        parm= Param_930_12_24
+        line_list= WaveList_Fe_930_12_24
+    else: 
+        print "Could not detect setup!" 
 
-# Find the pixel number offset due to trim reindexing # 
-trim_sec= lamp_header["CCDSEC"]
-trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
+    # Calculate Initial Guess Solution # ========================================
 
-# Find Bining # 
-bining= float( lamp_header["PARAM18"] ) 
+    alpha= float( lamp_header["GRT_TARG"] )
+    theta= float( lamp_header["CAM_TARG"] )
+    Wavelengths= DispCalc(Pixels, alpha, theta, parm[0], parm[1], parm[2], parm[3])
 
-# Get Pixel Numbers # 
-nx= np.size(lamp_spec)
-Pixels= bining*(np.arange(0,nx,1)+trim_offset)
-
-# Select Set of Parameters to use # 
-if lamp.lower().__contains__('red'):
-    parm= Param_930_20_40
-    line_list= WaveList_Fe_930_20_40
-elif lamp.lower().__contains__('blue'):
-    parm= Param_930_12_24
-    line_list= WaveList_Fe_930_12_24
-else: 
-    print "Could not detect setup!" 
-
-# Calculate Initial Guess Solution # ========================================
-
-alpha= float( lamp_header["GRT_TARG"] )
-theta= float( lamp_header["CAM_TARG"] )
-Wavelengths= DispCalc(Pixels, alpha, theta, parm[0], parm[1], parm[2], parm[3])
-
-# Plot Dispersion # 
-plt.figure(1)
-plt.plot(Wavelengths, lamp_spec)
-plt.hold('on')
-for line in line_list[1]:
-    if (Wavelengths[0] <= line <= Wavelengths[-1]):
-        plt.axvline(line, color= 'r', linestyle= '--')
-plt.title("Initial Dispersion Inspection Graph. \nClose to Calculate Offset")
-plt.xlabel("Wavelengths")
-plt.ylabel("Counts")
-
-plt.hold('off')
-plt.show()
-
-# Ask for offset # ===========================================================
-
-print "\nWould You like to set Offset?" 
-yn= raw_input('yes/no? >>> ')
-
-#yn= 'yes'
-if yn== 'yes':
-    fig = plt.figure(1)
-    ax = fig.add_subplot(111)
-    ax.plot(Wavelengths, lamp_spec)
-    plt.hold('on')
-    for line in line_list[1]:
-        if (Wavelengths[0] <= line <= Wavelengths[-1]):
-            plt.axvline(line, color= 'r', linestyle= '--')
-    plt.title("First click known line(red), then click coresponding peak near center\n Then close graph.")
-    plt.xlabel("Wavelengths (Ang.)")
-    plt.ylabel("Counts")
-    if lamp.__contains__('blue'):
-        plt.xlim(4700.,4900.)
-    elif lamp.__contains__('red'):
-        plt.xlim(6920.,7170.)
-    plt.hold('off')
-    coords= [] 
-    cid = fig.canvas.mpl_connect('button_press_event', onclick)
-    plt.show()
-
-    k_line= find_near(coords[0][0], line_list[1]) # Nearest line to click cordinates
-    k_peak= find_near(coords[1][0], Wavelengths) # Nearest Peak to click cordinates
-    i_peak= Wavelengths.index(k_peak)
-    X= Wavelengths[i_peak-7:i_peak+7]
-    Y= lamp_spec[i_peak-7:i_peak+7]
-    amp, center, width, b= fit_Gauss(X,Y)
-    offset= (k_line-center)
-    Wavelengths= [w+offset for w in Wavelengths]
-
+    # Plot Dispersion # 
     plt.figure(1)
     plt.plot(Wavelengths, lamp_spec)
     plt.hold('on')
     for line in line_list[1]:
         if (Wavelengths[0] <= line <= Wavelengths[-1]):
             plt.axvline(line, color= 'r', linestyle= '--')
-    plt.title("Offset Applied.")
-    plt.xlabel("Wavelengths (Ang.)")
+    plt.title("Initial Dispersion Inspection Graph. \nClose to Calculate Offset")
+    plt.xlabel("Wavelengths")
     plt.ylabel("Counts")
+
     plt.hold('off')
     plt.show()
-else:
-    offset = 0.
 
-# Ask Refit # ===============================================================
-yn= 'yes'
-while yn== 'yes':   
-  
-  print "\nWould you like to refit and recalculate dispersion?" 
-  yn= raw_input('yes/no? >>> ')
-  
-  if yn== 'yes' :
-        #print "\nOffset to apply to Grating Angle?"
-        #alpha_offset= float( raw_input('Offset Value? >>>') )
-        alpha_offset = 0.
-        #alpha= alpha + alpha_offset
-        '''
-        #Uncomment this part if you would like to select lines to use by hand. Otherwise, all lines in the above line lists are used.
+    # Ask for offset # ===========================================================
+
+    print "\nWould You like to set Offset?" 
+    yn= raw_input('yes/no? >>> ')
+    
+    #yn= 'yes'
+    if yn== 'yes':
+        global ax, fig, coords
         fig = plt.figure(1)
         ax = fig.add_subplot(111)
         ax.plot(Wavelengths, lamp_spec)
         plt.hold('on')
-        lines_in_range= []
         for line in line_list[1]:
             if (Wavelengths[0] <= line <= Wavelengths[-1]):
-                lines_in_range.append(line)
                 plt.axvline(line, color= 'r', linestyle= '--')
-        plt.title("Click on The Peaks You Want to Use to Refit \n Then close graph.")
-        plt.xlim([np.min(lines_in_range)-50, np.max(lines_in_range)+50])
-        plt.ylim([np.min(lamp_spec)-100, np.max(lamp_spec)/2])
+        plt.title("First click known line(red), then click coresponding peak near center\n Then close graph.")
         plt.xlabel("Wavelengths (Ang.)")
         plt.ylabel("Counts")
+        if lamp.__contains__('blue'):
+            plt.xlim(4700.,4900.)
+        elif lamp.__contains__('red'):
+            plt.xlim(6920.,7170.)
         plt.hold('off')
         coords= [] 
         cid = fig.canvas.mpl_connect('button_press_event', onclick)
-        plt.show()    
-        '''
-        ###n_pnt, n_cor= np.shape(coords)
-        ###coord_x= [coords[i][0] for i in range(0,n_pnt)]
-        coord_x = line_list[1] #Use all lines in the line lists for the refitting.
-        n_pnt = len(coord_x)
-    
-        peak_x= []
-        for i in range(0,n_pnt):
-            x= find_near(coord_x[i], Wavelengths)
-            peak_x.append(x)
-        centers_in_wave= find_peak_centers(peak_x, Wavelengths, lamp_spec)
-        centers_in_wave= [w-offset for w in centers_in_wave]
-        centers_in_pix= PixCalc(centers_in_wave, alpha, theta, parm[0], parm[1], parm[2], parm[3])
-    
-        known_waves= []
-        for i in range(0,n_pnt):
-            x= find_near(coord_x[i], line_list[1])
-            known_waves.append(x)
+        plt.show()
 
-        #Create array to save data for diagnostic purposes
-        global savearray
-        savearray = np.zeros([len(Wavelengths),8])
-        n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
-        n_Wavelengths= DispCalc(Pixels, alpha-alpha_offset, theta, n_fr, n_fd, parm[2], n_zPnt)
-        
-        '''
+        k_line= find_near(coords[0][0], line_list[1]) # Nearest line to click cordinates
+        k_peak= find_near(coords[1][0], Wavelengths) # Nearest Peak to click cordinates
+        i_peak= Wavelengths.index(k_peak)
+        X= Wavelengths[i_peak-7:i_peak+7]
+        Y= lamp_spec[i_peak-7:i_peak+7]
+        amp, center, width, b= fit_Gauss(X,Y)
+        offset= (k_line-center)
+        Wavelengths= [w+offset for w in Wavelengths]
+
         plt.figure(1)
-        plt.plot(n_Wavelengths, lamp_spec)
+        plt.plot(Wavelengths, lamp_spec)
         plt.hold('on')
         for line in line_list[1]:
-            if (n_Wavelengths[0] <= line <= n_Wavelengths[-1]):
+            if (Wavelengths[0] <= line <= Wavelengths[-1]):
                 plt.axvline(line, color= 'r', linestyle= '--')
-        plt.title("Refitted Solution")
+        plt.title("Offset Applied.")
         plt.xlabel("Wavelengths (Ang.)")
         plt.ylabel("Counts")
         plt.hold('off')
-        '''
-        savearray[0:len(n_Wavelengths),2] = n_Wavelengths
-        savearray[0:len(lamp_spec),3] = lamp_spec
-        savearray[0:len(np.array(line_list[1])),4] = np.array(line_list[1])
+        plt.show()
+    else:
+        offset = 0.
+
+    # Ask Refit # ===============================================================
+    yn= 'yes'
+    while yn== 'yes':   
+  
+        print "\nWould you like to refit and recalculate dispersion?" 
+        yn= raw_input('yes/no? >>> ')
+  
+        if yn== 'yes' :
+            #print "\nOffset to apply to Grating Angle?"
+            #alpha_offset= float( raw_input('Offset Value? >>>') )
+            alpha_offset = 0.
+            #alpha= alpha + alpha_offset
+            '''
+            #Uncomment this part if you would like to select lines to use by hand. Otherwise, all lines in the above line lists are used.
+            fig = plt.figure(1)
+            ax = fig.add_subplot(111)
+            ax.plot(Wavelengths, lamp_spec)
+            plt.hold('on')
+            lines_in_range= []
+            for line in line_list[1]:
+                if (Wavelengths[0] <= line <= Wavelengths[-1]):
+                    lines_in_range.append(line)
+                    plt.axvline(line, color= 'r', linestyle= '--')
+            plt.title("Click on The Peaks You Want to Use to Refit \n Then close graph.")
+            plt.xlim([np.min(lines_in_range)-50, np.max(lines_in_range)+50])
+            plt.ylim([np.min(lamp_spec)-100, np.max(lamp_spec)/2])
+            plt.xlabel("Wavelengths (Ang.)")
+            plt.ylabel("Counts")
+            plt.hold('off')
+            coords= [] 
+            cid = fig.canvas.mpl_connect('button_press_event', onclick)
+            plt.show()    
+            '''
+            ###n_pnt, n_cor= np.shape(coords)
+            ###coord_x= [coords[i][0] for i in range(0,n_pnt)]
+            coord_x = line_list[1] #Use all lines in the line lists for the refitting.
+            n_pnt = len(coord_x)
+            
+            peak_x= []
+            for i in range(0,n_pnt):
+                x= find_near(coord_x[i], Wavelengths)
+                peak_x.append(x)
+            centers_in_wave= find_peak_centers(peak_x, Wavelengths, lamp_spec)
+            centers_in_wave= [w-offset for w in centers_in_wave]
+            centers_in_pix= PixCalc(centers_in_wave, alpha, theta, parm[0], parm[1], parm[2], parm[3])
+    
+            known_waves= []
+            for i in range(0,n_pnt):
+                x= find_near(coord_x[i], line_list[1])
+                known_waves.append(x)
+
+            #Create array to save data for diagnostic purposes
+            global savearray, n_fr, n_fd, n_zPnt
+            savearray = np.zeros([len(Wavelengths),8])
+            n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
+            n_Wavelengths= DispCalc(Pixels, alpha-alpha_offset, theta, n_fr, n_fd, parm[2], n_zPnt)
+        
+            '''
+            plt.figure(1)
+            plt.plot(n_Wavelengths, lamp_spec)
+            plt.hold('on')
+            for line in line_list[1]:
+                if (n_Wavelengths[0] <= line <= n_Wavelengths[-1]):
+                    plt.axvline(line, color= 'r', linestyle= '--')
+            plt.title("Refitted Solution")
+            plt.xlabel("Wavelengths (Ang.)")
+            plt.ylabel("Counts")
+            plt.hold('off')
+            '''
+            savearray[0:len(n_Wavelengths),2] = n_Wavelengths
+            savearray[0:len(lamp_spec),3] = lamp_spec
+            savearray[0:len(np.array(line_list[1])),4] = np.array(line_list[1])
         
 
-        '''        
-        plt.figure(2)
-        Diff= [ (Wavelengths[i]-n_Wavelengths[i]) for i in range(0,np.size(Wavelengths)) ]
-        plt.plot(Diff, '.')
-        plt.title("Diffence between old and new solution.")
-        plt.xlabel("Pixel")
-        plt.ylabel("old-new Wavelength (Ang.)")
-        '''
+            '''        
+            plt.figure(2)
+            Diff= [ (Wavelengths[i]-n_Wavelengths[i]) for i in range(0,np.size(Wavelengths)) ]
+            plt.plot(Diff, '.')
+            plt.title("Diffence between old and new solution.")
+            plt.xlabel("Pixel")
+            plt.ylabel("old-new Wavelength (Ang.)")
+            '''
 
-        #plt.show()
-# Save parameters in header and write file # 
-print "\nWrite solution to header?"
-yn= raw_input("yes/no? >>>")
-if yn== "yes":
-    newname = 'w'+lamp
-    mylist = [True for f in os.listdir('.') if f == newname]
-    exists = bool(mylist)
-    clob = False
-    if exists:
-        print 'File %s already exists.' % newname
-        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
-        if nextstep == 'overwrite':
-            clob = True
-            exists = False
-        elif nextstep == 'new':
-            newname = raw_input('New file name: ')
-            exists = False
-        else:
-            exists = False
+            #plt.show()
+    # Save parameters in header and write file # 
+    print "\nWrite solution to header?"
+    yn= raw_input("yes/no? >>>")
+    if yn== "yes":
+        newname = 'w'+lamp
+        mylist = [True for f in os.listdir('.') if f == newname]
+        exists = bool(mylist)
+        clob = False
+        if exists:
+            print 'File %s already exists.' % newname
+            nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+            if nextstep == 'overwrite':
+                clob = True
+                exists = False
+            elif nextstep == 'new':
+                newname = raw_input('New file name: ')
+                exists = False
+            else:
+                exists = False
     
-    rt.Fix_Header(lamp_header)
-    lamp_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
+        rt.Fix_Header(lamp_header)
+        lamp_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
                        useblanks= True, bottom= True )
-    lamp_header.append( ('CAMFUD', n_fd,'Camera Angle Correction Factor for Grat. Eq.'), 
+        lamp_header.append( ('CAMFUD', n_fd,'Camera Angle Correction Factor for Grat. Eq.'), 
                        useblanks= True, bottom= True )
-    lamp_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
+        lamp_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
                        useblanks= True, bottom= True )
-    lamp_header.append( ('ZPOINT', n_zPnt,'Zero Point Pixel for Grat Eq.'), 
+        lamp_header.append( ('ZPOINT', n_zPnt,'Zero Point Pixel for Grat Eq.'), 
                        useblanks= True, bottom= True )        
-    NewHdu = fits.PrimaryHDU(data= lamp_data, header= lamp_header)
-    NewHdu.writeto(newname, output_verify='warn', clobber= clob)
+        NewHdu = fits.PrimaryHDU(data= lamp_data, header= lamp_header)
+        NewHdu.writeto(newname, output_verify='warn', clobber= clob)
 
-#Save parameters to ZZ Ceti spectrum#
-print "\nWrite solution to header of another spectrum?"
-yn= raw_input("yes/no? >>>")
-if yn== "yes":
-    specname = raw_input("Filename: ")
-    fitspectrum = raw_input('Would you like to fit a new zero point using a spectral line? (yes/no) ')
-    if fitspectrum == 'yes':
-        newzeropoint = WaveShift(specname)
-    else:
-        newzeropoint = n_zPnt
-    spec_data= fits.getdata(specname)
-    spec_header= fits.getheader(specname)
-    rt.Fix_Header(spec_header)
-    spec_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
-                       useblanks= True, bottom= True )
-    spec_header.append( ('CAMFUD', n_fd,'Camera Angle Correction Factor for Grat. Eq.'), 
-                       useblanks= True, bottom= True )
-    spec_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
-                       useblanks= True, bottom= True )
-    spec_header.append( ('ZPOINT', newzeropoint,'Zero Point Pixel for Grat Eq.'), 
-                       useblanks= True, bottom= True )        
-    NewspecHdu = fits.PrimaryHDU(data= spec_data, header= spec_header)
-
-    newname = 'w'+specname
-    mylist = [True for f in os.listdir('.') if f == newname]
-    exists = bool(mylist)
-    clob = False
-    if exists:
-        print 'File %s already exists.' % newname
-        nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
-        if nextstep == 'overwrite':
-            clob = True
-            exists = False
-        elif nextstep == 'new':
-            newname = raw_input('New file name: ')
-            exists = False
+    #Save parameters to ZZ Ceti spectrum#
+    #print "\nWrite solution to header of another spectrum?"
+    #yn= raw_input("yes/no? >>>")
+    if zz_specname:
+        #specname = raw_input("Filename: ")
+        #fitspectrum = raw_input('Would you like to fit a new zero point using a spectral line? (yes/no) ')
+        if fit_zpoint == 'yes':
+            newzeropoint = WaveShift(zz_specname,zzceti)
         else:
-            exists = False
-    NewspecHdu.writeto(newname, output_verify='warn', clobber= clob)
+            newzeropoint = n_zPnt
+        spec_data= fits.getdata(zz_specname)
+        spec_header= fits.getheader(zz_specname)
+        rt.Fix_Header(spec_header)
+        spec_header.append( ('LINDEN', n_fr,'Line Desity for Grating Eq.'), 
+                       useblanks= True, bottom= True )
+        spec_header.append( ('CAMFUD', n_fd,'Camera Angle Correction Factor for Grat. Eq.'), 
+                       useblanks= True, bottom= True )
+        spec_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
+                       useblanks= True, bottom= True )
+        spec_header.append( ('ZPOINT', newzeropoint,'Zero Point Pixel for Grat Eq.'), 
+                       useblanks= True, bottom= True )        
+        NewspecHdu = fits.PrimaryHDU(data= spec_data, header= spec_header)
 
-#Save arrays for diagnostics
-now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-endpoint = '.ms'
-with open('wavecal_' + specname[4:specname.find(endpoint)] + '_' + now + '.txt','a') as handle:
-    header = lamp + ',' + specname + '\n First 2 columns: fitted wavelengths, residuals \n Next 3 columns: wavelengths, flux, lambdas fit \n Final 3 columns: wavelengths, sky flux, fit to line for recentering'
-    np.savetxt(handle,savearray,fmt='%f',header = header)
+        newname = 'w'+zz_specname
+        mylist = [True for f in os.listdir('.') if f == newname]
+        exists = bool(mylist)
+        clob = False
+        if exists:
+            print 'File %s already exists.' % newname
+            nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
+            if nextstep == 'overwrite':
+                clob = True
+                exists = False
+            elif nextstep == 'new':
+                newname = raw_input('New file name: ')
+                exists = False
+            else:
+                exists = False
+        NewspecHdu.writeto(newname, output_verify='warn', clobber= clob)
+
+    #Save arrays for diagnostics
+    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+    endpoint = '.ms'
+    with open('wavecal_' + zz_specname[4:zz_specname.find(endpoint)] + '_' + now + '.txt','a') as handle:
+        header = lamp + ',' + zz_specname + '\n First 2 columns: fitted wavelengths, residuals \n Next 3 columns: wavelengths, flux, lambdas fit \n Final 3 columns: wavelengths, sky flux, fit to line for recentering'
+        np.savetxt(handle,savearray,fmt='%f',header = header)
     
     
 # ==========================================================================
+
+if __name__ == '__main__':
+    from sys import argv
+    script, lamp = argv 
+    print "\nWrite solution to header of another spectrum?"
+    yn= raw_input("yes/no? >>>")
+    if yn == 'yes':
+        zz_specname = raw_input("Filename: ")
+        fit_zpoint = raw_input('Would you like to fit a new zero point using a spectral line? (yes/no) ')
+        zzceti = raw_input('Is this a ZZ Ceti? (yes/no): ')
+    else:
+        zz_specname = None
+        fit_zpoint = 'no'
+    calibrate_now(lamp,zz_specname,fit_zpoint,zzceti)
     
     '''
         # This is the falied cross corelation reffiting code # 

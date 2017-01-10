@@ -38,12 +38,13 @@ import warnings
 # ===========================================================================
 # This peice takes in arguments from the command line to 
 # All the functions required are called from ReduceSpec_tools.py
-            
-if __name__ == "__main__":
-    from sys import argv
-    args = argv # arguments from comand line #
-    nargs = len(args) # number of arguments # 
-    
+
+
+def reduce_now(args):
+    print args
+    print len(args)
+    print type(args)
+    nargs = len(args)
     if (nargs < 5):
         print "\n====================\n"
         print "\nNot Enough Inputs." 
@@ -219,3 +220,9 @@ if __name__ == "__main__":
 # ===========================================================================
 # ===========================================================================
 # ===========================================================================
+
+#To run from command line
+if __name__ == "__main__":
+    from sys import argv
+    args = argv # arguments from comand line #
+    reduce_now(args)
