@@ -548,7 +548,7 @@ def Flat_Field( spec_list, flat ):
     if 'blue' in flat.lower():
         fit_data = np.median(flat_data[0][75:85],axis=0)
         low_index = 1210. #Lowest pixel to search within
-        high_index = 1650. #highest pixel to search within
+        high_index = 1710. #highest pixel to search within
         fit_data1 = fit_data[low_index:high_index]
         fit_pix1 = np.linspace(low_index,low_index+len(fit_data1),num=len(fit_data1))
         max_pixel = np.argmax(fit_data1)

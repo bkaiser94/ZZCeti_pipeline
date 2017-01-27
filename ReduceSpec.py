@@ -41,9 +41,6 @@ import warnings
 
 
 def reduce_now(args):
-    print args
-    print len(args)
-    print type(args)
     nargs = len(args)
     if (nargs < 5):
         print "\n====================\n"

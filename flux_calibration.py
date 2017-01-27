@@ -321,7 +321,8 @@ while avocado < length:
 
     #Perform the flux calibration. We do this on the optimal extraction, non-variance weighted aperture, the sky spectrum, and the sigma spectrum.
     print 'Doing the final flux calibration.'
-    np.savetxt('flux_sensvalue_gd108.txt',np.transpose([WD_spectra1.warr,(exptime1 * dispersion1 * 10.**(sens_wave1/2.5))]))
+    #np.savetxt('response_CD32-2.txt',np.transpose([WD_spectra1.warr,(exptime1 * dispersion1 * 10.**(sens_wave1/2.5)),WD_spectra2.warr,(exptime2 * dispersion2 * 10.**(sens_wave2/2.5))]))
+    #exit()
     star_opflux1 = st.cal_spec(WD_spectra1.opfarr,sens_wave1,exptime1,dispersion1)
     star_flux1 = st.cal_spec(WD_spectra1.farr,sens_wave1,exptime1,dispersion1)
     sky_flux1 = st.cal_spec(WD_spectra1.sky,sens_wave1,exptime1,dispersion1)

@@ -143,6 +143,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
         
         
         locfwhm = specfile.find('.fits')
+        print '\n Saving FWHM file.'
         np.save(specfile[0:locfwhm] + '_poly',fwhmpoly(allpixel))
     diagnostics = np.zeros([len(data[:,100]),12])
     diagnostics[0:len(allfwhm),0] = fwhmclipped
@@ -212,7 +213,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     print 'Starting extraction.'
     if trace_exist:
         trace = np.load(tracefile)
-        output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,trace=trace,pord=2,tord=2,bord=1,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=True,csigma=5.,polyspacing=1,retall=False)
+        output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,trace=trace,pord=2,tord=2,bord=1,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
     else:
         output_spec = superextract.superExtract(data,varmodel,gain,rdnoise,pord=2,tord=2,bord=1,bkg_radii=background_radii,bsigma=2.,extract_radius=extraction_rad,dispaxis=1,verbose=False,csigma=5.,polyspacing=1,retall=False)
     #pord = order of profile polynomial. Default = 2. This seems appropriate, no change for higher or lower order.
@@ -234,8 +235,10 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     #   plt.show()
     ##########
     
-    print 'Done extracting!'
-
+    print 'Done extracting. Starting to save.'
+    if not trace_exist:
+        print 'Saving the trace.'
+        np.save(specfile[0:locfwhm] + '_trace',output_spec.trace)
     sigSpectrum = np.sqrt(output_spec.varSpectrum)
     #plt.clf()
     #plt.imshow(data)
@@ -394,7 +397,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
         #Ask to overwrite if file already exists or provide new name
         loc2 = lamp.find('.fits')
         loc3 = newname.find('_930')
-        newname2 = lamp[0:loc2] + '_' + newname[4:loc3]  + '.ms.fits'
+        newname2 = lamp[0:loc2] + '_' + newname[5:loc3]  + '.ms.fits'
         clob = False
 
         mylist = [True for f in os.listdir('.') if f == newname2]

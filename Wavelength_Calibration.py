@@ -385,7 +385,7 @@ def newzeropoint(x):
     
 # =========================================================================== 
     
-def WaveShift(specname,zzceti):
+def WaveShift(specname,zzceti,plotall):
     #Calculates a new zero point for a spectrum based on a skyline
     spec_data= fits.getdata(specname)
     dataval = spec_data[0,0,:]
@@ -503,12 +503,14 @@ def WaveShift(specname,zzceti):
         known_wavelength = float(raw_input('Wavelength of line: '))
         
     print 'Gaussian center at pixel ',line_center
-    plt.hold('on')
-    plt.plot(fitpixels,line_fit,'r')
-    plt.plot(fitpixels,fitval,'b')
-    plt.axvline(x=line_center,color='r')
-    plt.hold('off')
-    plt.show()
+    if plotall:
+        plt.clf()
+        plt.hold('on')
+        plt.plot(fitpixels,line_fit,'r')
+        plt.plot(fitpixels,fitval,'b')
+        plt.axvline(x=line_center,color='r')
+        plt.hold('off')
+        plt.show()
 
     savearray[0:len(fitpixels),5] = fitpixels
     savearray[0:len(fitval),6] = fitval
@@ -534,7 +536,7 @@ def WaveShift(specname,zzceti):
 
 #  Get Lamps # ==============================================================
 
-def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti):
+def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
     # Read Lamp Data and Header # 
     lamp_data= fits.getdata(lamp)
     lamp_header= fits.getheader(lamp)
@@ -582,77 +584,99 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti):
     theta= float( lamp_header["CAM_TARG"] )
     Wavelengths= DispCalc(Pixels, alpha, theta, parm[0], parm[1], parm[2], parm[3])
 
-    # Plot Dispersion # 
-    plt.figure(1)
-    plt.plot(Wavelengths, lamp_spec)
-    plt.hold('on')
-    for line in line_list[1]:
-        if (Wavelengths[0] <= line <= Wavelengths[-1]):
-            plt.axvline(line, color= 'r', linestyle= '--')
-    plt.title("Initial Dispersion Inspection Graph. \nClose to Calculate Offset")
-    plt.xlabel("Wavelengths")
-    plt.ylabel("Counts")
-
-    plt.hold('off')
-    plt.show()
-
     # Ask for offset # ===========================================================
-
-    print "\nWould You like to set Offset?" 
-    yn= raw_input('yes/no? >>> ')
-    
-    #yn= 'yes'
-    if yn== 'yes':
-        global ax, fig, coords
-        fig = plt.figure(1)
-        ax = fig.add_subplot(111)
-        ax.plot(Wavelengths, lamp_spec)
-        plt.hold('on')
-        for line in line_list[1]:
-            if (Wavelengths[0] <= line <= Wavelengths[-1]):
-                plt.axvline(line, color= 'r', linestyle= '--')
-        plt.title("First click known line(red), then click coresponding peak near center\n Then close graph.")
-        plt.xlabel("Wavelengths (Ang.)")
-        plt.ylabel("Counts")
-        if lamp.__contains__('blue'):
-            plt.xlim(4700.,4900.)
-        elif lamp.__contains__('red'):
-            plt.xlim(6920.,7170.)
-        plt.hold('off')
-        coords= [] 
-        cid = fig.canvas.mpl_connect('button_press_event', onclick)
-        plt.show()
-
-        k_line= find_near(coords[0][0], line_list[1]) # Nearest line to click cordinates
-        k_peak= find_near(coords[1][0], Wavelengths) # Nearest Peak to click cordinates
-        i_peak= Wavelengths.index(k_peak)
-        X= Wavelengths[i_peak-7:i_peak+7]
-        Y= lamp_spec[i_peak-7:i_peak+7]
-        amp, center, width, b= fit_Gauss(X,Y)
-        offset= (k_line-center)
+    print offset_file
+    if offset_file:
+        print 'Using offset file: ', offset_file
+        offsets = np.genfromtxt(offset_file,dtype='d')
+        if offsets.size == 1:
+            offsets = np.array([offsets])
+        #print offsets
+        if 'blue' in lamp.lower():
+            offset = offsets[0]
+        elif 'red' in lamp.lower():
+            offset = offsets[1]
         Wavelengths= [w+offset for w in Wavelengths]
-
+    else:
+        # Plot Dispersion # 
         plt.figure(1)
         plt.plot(Wavelengths, lamp_spec)
         plt.hold('on')
         for line in line_list[1]:
             if (Wavelengths[0] <= line <= Wavelengths[-1]):
                 plt.axvline(line, color= 'r', linestyle= '--')
-        plt.title("Offset Applied.")
-        plt.xlabel("Wavelengths (Ang.)")
+        plt.title("Initial Dispersion Inspection Graph. \nClose to Calculate Offset")
+        plt.xlabel("Wavelengths")
         plt.ylabel("Counts")
         plt.hold('off')
         plt.show()
-    else:
-        offset = 0.
+        
+        
+        print "\nWould You like to set Offset?" 
+        yn= raw_input('yes/no? >>> ')
+        
+        #yn= 'yes'
+        if yn== 'yes':
+            global ax, fig, coords
+            fig = plt.figure(1)
+            ax = fig.add_subplot(111)
+            ax.plot(Wavelengths, lamp_spec)
+            plt.hold('on')
+            for line in line_list[1]:
+                if (Wavelengths[0] <= line <= Wavelengths[-1]):
+                    plt.axvline(line, color= 'r', linestyle= '--')
+            plt.title("First click known line(red), then click coresponding peak near center\n Then close graph.")
+            plt.xlabel("Wavelengths (Ang.)")
+            plt.ylabel("Counts")
+            if lamp.__contains__('blue'):
+                plt.xlim(4700.,4900.)
+            elif lamp.__contains__('red'):
+                plt.xlim(6920.,7170.)
+            plt.hold('off')
+            coords= [] 
+            cid = fig.canvas.mpl_connect('button_press_event', onclick)
+            plt.show()
+            
+            k_line= find_near(coords[0][0], line_list[1]) # Nearest line to click cordinates
+            k_peak= find_near(coords[1][0], Wavelengths) # Nearest Peak to click cordinates
+            i_peak= Wavelengths.index(k_peak)
+            X= Wavelengths[i_peak-7:i_peak+7]
+            Y= lamp_spec[i_peak-7:i_peak+7]
+            amp, center, width, b= fit_Gauss(X,Y)
+            offset= (k_line-center)
+            ##########
+            #Save the offset
+            print '\n Would you like to save the offset?'
+            save_offset = raw_input('yes/no? >>> ')
+            if save_offset == 'yes':
+                print 'Saving offset to offsets.txt'
+                g = open('offsets.txt','a')
+                g.write(str(offset) + '\n')
+                g.close()
+            ##########
+            Wavelengths= [w+offset for w in Wavelengths]
+            
+            plt.figure(1)
+            plt.plot(Wavelengths, lamp_spec)
+            plt.hold('on')
+            for line in line_list[1]:
+                if (Wavelengths[0] <= line <= Wavelengths[-1]):
+                    plt.axvline(line, color= 'r', linestyle= '--')
+            plt.title("Offset Applied.")
+            plt.xlabel("Wavelengths (Ang.)")
+            plt.ylabel("Counts")
+            plt.hold('off')
+            plt.show()
+        else:
+            offset = 0.
 
     # Ask Refit # ===============================================================
     yn= 'yes'
     while yn== 'yes':   
   
-        print "\nWould you like to refit and recalculate dispersion?" 
-        yn= raw_input('yes/no? >>> ')
-  
+        #print "\nWould you like to refit and recalculate dispersion?" 
+        #yn= raw_input('yes/no? >>> ')
+        yn = 'yes'
         if yn== 'yes' :
             #print "\nOffset to apply to Grating Angle?"
             #alpha_offset= float( raw_input('Offset Value? >>>') )
@@ -730,9 +754,13 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti):
             '''
 
             #plt.show()
+        yn = 'no' #Don't refit again
+
     # Save parameters in header and write file # 
-    print "\nWrite solution to header?"
-    yn= raw_input("yes/no? >>>")
+    #print "\nWrite solution to header?"
+    #yn= raw_input("yes/no? >>>")
+    print '\n Writing solution to header'
+    yn = 'yes'
     if yn== "yes":
         newname = 'w'+lamp
         mylist = [True for f in os.listdir('.') if f == newname]
@@ -769,7 +797,7 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti):
         #specname = raw_input("Filename: ")
         #fitspectrum = raw_input('Would you like to fit a new zero point using a spectral line? (yes/no) ')
         if fit_zpoint == 'yes':
-            newzeropoint = WaveShift(zz_specname,zzceti)
+            newzeropoint = WaveShift(zz_specname,zzceti,plotall)
         else:
             newzeropoint = n_zPnt
         spec_data= fits.getdata(zz_specname)
@@ -823,8 +851,15 @@ if __name__ == '__main__':
         zzceti = raw_input('Is this a ZZ Ceti? (yes/no): ')
     else:
         zz_specname = None
+        zzceti = 'no'
         fit_zpoint = 'no'
-    calibrate_now(lamp,zz_specname,fit_zpoint,zzceti)
+    print "\nDoes an offset file already exist?"
+    yn_off= raw_input("yes/no? >>>")
+    if yn_off == 'yes':
+        offset_file = raw_input("Filename: ")
+    else:
+        offset_file = None
+    calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file)
     
     '''
         # This is the falied cross corelation reffiting code # 

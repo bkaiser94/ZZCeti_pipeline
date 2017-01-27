@@ -32,7 +32,7 @@ import datetime
 
 
 
-def normalize_now(filenameblue,filenamered,redfile):
+def normalize_now(filenameblue,filenamered,redfile,plotall=True):
     #Read in the observed spectrum
     obs_spectrablue,airmass,exptime,dispersion = st.readspectrum(filenameblue)
     datalistblue = fits.open(filenameblue)
@@ -134,20 +134,22 @@ def normalize_now(filenameblue,filenamered,redfile):
         response_fit_red_poly = np.polyfit(spec_wav_masked_red,response_masked_red,response_poly_order_red)
         response_fit_red = np.poly1d(response_fit_red_poly)
 
-    #np.savetxt('con_sens.txt',np.transpose([obs_spectrablue.warr,response_fit_blue(obs_spectrablue.warr)]))
+    #Save response function
+    #np.savetxt('response_model.txt',np.transpose([obs_spectrablue.warr,response_fit_blue(obs_spectrablue.warr),obs_spectrared.warr,response_fit_red(obs_spectrared.warr)]))
     #exit()
-    plt.clf()
-    plt.plot(obs_spectrablue.warr,response_blue,'r')
-    plt.plot(spec_wav_masked_blue,response_masked_blue,'g.')
-    plt.plot(obs_spectrablue.warr,response_fit_blue(obs_spectrablue.warr),'k--')
-    #plt.show()
-
-    #plt.clf()
-    if redfile:
-        plt.plot(obs_spectrared.warr,response_red,'r')
-        plt.plot(spec_wav_masked_red,response_masked_red,'g.')
-        plt.plot(obs_spectrared.warr,response_fit_red(obs_spectrared.warr),'k--')
-    plt.show()
+    if plotall:
+        plt.clf()
+        plt.plot(obs_spectrablue.warr,response_blue,'r')
+        plt.plot(spec_wav_masked_blue,response_masked_blue,'g.')
+        plt.plot(obs_spectrablue.warr,response_fit_blue(obs_spectrablue.warr),'k--')
+        #plt.show()
+        
+        #plt.clf()
+        if redfile:
+            plt.plot(obs_spectrared.warr,response_red,'r')
+            plt.plot(spec_wav_masked_red,response_masked_red,'g.')
+            plt.plot(obs_spectrared.warr,response_fit_red(obs_spectrared.warr),'k--')
+        plt.show()
 
     #Divide by the fit to the response function to get the continuum normalized spectra. Divide every extension by the same polynomial
     fcorr_wd_blue_opfarr = obs_spectrablue.opfarr / response_fit_blue(obs_spectrablue.warr)
@@ -161,12 +163,13 @@ def normalize_now(filenameblue,filenamered,redfile):
         fcorr_wd_red_farr = obs_spectrared.farr / response_fit_red(obs_spectrared.warr)
         fcorr_wd_red_sky = obs_spectrared.sky / response_fit_red(obs_spectrared.warr)
         fcorr_wd_red_sigma = obs_spectrared.sigma / response_fit_red(obs_spectrared.warr)
-
-    plt.clf()
-    plt.plot(obs_spectrablue.warr,fcorr_wd_blue_opfarr,'b')
-    if redfile:
-        plt.plot(obs_spectrared.warr,fcorr_wd_red_opfarr,'r')
-    plt.show()
+    
+    if plotall:
+        plt.clf()
+        plt.plot(obs_spectrablue.warr,fcorr_wd_blue_opfarr,'b')
+        if redfile:
+            plt.plot(obs_spectrared.warr,fcorr_wd_red_opfarr,'r')
+        plt.show()
     #exit()
 
     #Save parameters for diagnostics
@@ -267,7 +270,7 @@ def normalize_now(filenameblue,filenamered,redfile):
         exists = bool(mylist)
 
         if exists:
-            print 'File %s already exists.' % newname1
+            print 'File %s already exists.' % newname2
             nextstep = raw_input('Do you want to overwrite or designate a new name (overwrite/new)? ')
             if nextstep == 'overwrite':
                 clob = True
