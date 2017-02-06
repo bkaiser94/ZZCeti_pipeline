@@ -101,7 +101,8 @@ def normalize_now(filenameblue,filenamered,redfile,plotall=True):
     '''
 
     #We want to mask out the Balmer line features, and the telluric line in the red spectrum. Set up the wavelength ranges to mask here.
-    balmer_features_blue = [[3745,3757],[3760,3780],[3784,3812],[3816,3856],[3865,3921],[3935,4021],[4040,4191],[4223,4460],[4691,5010]]
+    #balmer_features_blue = [[3745,3757],[3760,3780],[3784,3812],[3816,3856],[3865,3921],[3935,4021],[4040,4191],[4223,4460],[4691,5010]] #Keeping ends
+    balmer_features_blue = [[3400,3700],[3745,3757],[3760,3780],[3784,3812],[3816,3856],[3865,3921],[3935,4021],[4040,4191],[4223,4460],[4691,5010],[5140,5500]] #Discarding ends
     balmer_features_red = [[6350,6780],[6835,6970]]
 
     balmer_mask_blue = obs_spectrablue.warr == obs_spectrablue.warr
@@ -124,7 +125,7 @@ def normalize_now(filenameblue,filenamered,redfile,plotall=True):
 
 
     #Fit the response function with a polynomial. The order of polynomial is specified first. 
-    response_poly_order_blue = 7.
+    response_poly_order_blue = 3.
     response_fit_blue_poly = np.polyfit(spec_wav_masked_blue,response_masked_blue,response_poly_order_blue)
     response_fit_blue = np.poly1d(response_fit_blue_poly)
 
