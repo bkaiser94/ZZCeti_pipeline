@@ -345,7 +345,7 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     savearray[0:len(known_wave),0] = known_wave
     savearray[0:len(Res),1] = Res
     
-    return Par
+    return Par, rmsfit
     
 # =========================================================================== 
 def gaussmpfit(x,p): #single gaussian
@@ -724,7 +724,9 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
             #Create array to save data for diagnostic purposes
             global savearray, n_fr, n_fd, n_zPnt
             savearray = np.zeros([len(Wavelengths),8])
-            n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
+            #n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
+            par, rmsfit = fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
+            n_fr, n_fd, n_zPnt = par
             n_Wavelengths= DispCalc(Pixels, alpha-alpha_offset, theta, n_fr, n_fd, parm[2], n_zPnt)
         
             '''
@@ -754,7 +756,14 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
             '''
 
             #plt.show()
-        yn = 'no' #Don't refit again
+        if ('blue' in lamp.lower()) and (rmsfit > 1.0):
+            coord_list_short = line_list[0][1:]
+            wave_list_short = line_list[1][1:]
+            line_list = np.array([coord_list_short,wave_list_short])
+            print 'Refitting without first line.'
+            yn = 'yes'
+        else:
+            yn = 'no' #Don't refit again
 
     # Save parameters in header and write file # 
     #print "\nWrite solution to header?"
