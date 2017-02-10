@@ -11,6 +11,31 @@ import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 from PyPDF2 import PdfFileMerger
+import pandas as pd
+
+##### Flags #####
+# thresholds and constants
+num_flags = 22
+num_sigma = 2
+fwhm_tol = 1
+pos_tol = 5
+peak_tol = 500
+ext_FWHM_num_sigma = 2
+ext_prof_tol = 5
+background_fit_tol = 5
+wave_fit_tol = 0.15
+
+# Set up flags table
+def setup_flags_table(fwhm_file_name):
+    arr = np.genfromtxt(fwhm_file_name, dtype=None,delimiter='\t')
+    data = [ [0 for col in range(num_flags)] for row in range(len(arr))]
+    flags = pd.DataFrame(data, columns = ['Star', 'Exposure','Date', 'Bias1', 'Bias2', 'BlueFlat1','BlueFlat2', 'RedFlat1', 'RedFlat2', 'BluePoly', 'RedPoly', 'Littrow', 'ExtFWHM', 'ExtProf', 'FitToBack', 'ProfFWHM', 'ProfPos', 'PeakGauss', 'ResponseBlue', 'ResponseRed', 'WaveFitResBlue', 'WaveFitResRed'])
+    return flags
+
+# Use the FWHM_records file to determine how many total exposures there were for the given date
+fwhm_files = glob('FWHM*.txt')
+file_name = str(fwhm_files[0])
+flags = setup_flags_table(file_name)
 
 # function that takes file names and organizes by the unique star name in each
 def unique_star_names(seq, idfun=None): 
@@ -25,10 +50,11 @@ def unique_star_names(seq, idfun=None):
            seen[marker] = 1
            result.append(item)
        return result
-       
+           
 ##### ------------------------------------------------------------------ #####
 # Calibrations function
-def diagnostic_plots_cals(file_name):
+def diagnostic_plots_cals(file_name, flags):
+    date = str(file_name[10:20])
     pp = PdfPages('cal_plots.pdf')
 
     arr = np.genfromtxt(file_name, dtype=None, delimiter=' ')
@@ -71,87 +97,73 @@ def diagnostic_plots_cals(file_name):
         masked_edges.append(arr[m][21])
     
     bias_bs = np.array(bias_bs)
-    bias_bs = bias_bs[bias_bs != 0.0]
-    bias_bs = np.array(bias_bs)
+    bias_bs = np.trim_zeros(bias_bs, 'b')
     
     bias_as = np.array(bias_as)
-    bias_as = bias_as[bias_as != 0.0]
-    bias_as = np.array(bias_as)
+    bias_as = np.trim_zeros(bias_as, 'b')
     
     bias_std = np.array(bias_std)
-    bias_std = bias_std[bias_std != 0.0]
-    bias_std = np.array(bias_std)
+    bias_std = np.trim_zeros(bias_std, 'b')
     
     flat_blue_bs = np.array(flat_blue_bs)
-    flat_blue_bs = flat_blue_bs[flat_blue_bs != 0.0]
-    flat_blue_bs = np.array(flat_blue_bs)
+    flat_blue_bs = np.trim_zeros(flat_blue_bs, 'b')
     
     flat_blue_as = np.array(flat_blue_as)
-    flat_blue_as = flat_blue_as[flat_blue_as != 0.0]
-    flat_blue_as = np.array(flat_blue_as)
+    flat_blue_as = np.trim_zeros(flat_blue_as, 'b')
     
     flat_blue_std_bs = np.array(flat_blue_std_bs)
-    flat_blue_std_bs = flat_blue_std_bs[flat_blue_std_bs != 0.0]
-    flat_blue_std_bs = np.array(flat_blue_std_bs)
+    flat_blue_std_bs = np.trim_zeros(flat_blue_std_bs, 'b')
     
     flat_blue_std_as = np.array(flat_blue_std_as)
-    flat_blue_std_as = flat_blue_std_as[flat_blue_std_as != 0.0]
-    flat_blue_std_as = np.array(flat_blue_std_as)
+    flat_blue_std_as = np.trim_zeros(flat_blue_std_as, 'b')
     
     flat_red_bs = np.array(flat_red_bs)
-    flat_red_bs = flat_red_bs[flat_red_bs != 0.0]
-    flat_red_bs = np.array(flat_red_bs)
+    flat_red_bs = np.trim_zeros(flat_red_bs, 'b')
     
     flat_red_as = np.array(flat_red_as)
-    flat_red_as = flat_red_as[flat_red_as != 0.0]
-    flat_red_as = np.array(flat_red_as)
+    flat_red_as = np.trim_zeros(flat_red_as, 'b')
     
     flat_red_std_bs = np.array(flat_red_std_bs)
-    flat_red_std_bs = flat_red_std_bs[flat_red_std_bs != 0.0]
-    flat_red_std_bs = np.array(flat_red_std_bs)
+    flat_red_std_bs = np.trim_zeros(flat_red_std_bs, 'b')
     
     flat_red_std_as = np.array(flat_red_std_as)
-    flat_red_std_as = flat_red_std_as[flat_red_std_as != 0.0]
-    flat_red_std_as = np.array(flat_red_std_as)
+    flat_red_std_as = np.trim_zeros(flat_red_std_as, 'b')
     
     blue_pix = np.array(blue_pix)
-    blue_pix = blue_pix[blue_pix != 0.0]
-    blue_pix = np.array(blue_pix)
+    blue_pix = np.trim_zeros(blue_pix, 'b')
     
     blue_val = np.array(blue_val)
-    blue_val = blue_val[blue_val != 0.0]
-    blue_val = np.array(blue_val)
+    blue_val = np.trim_zeros(blue_val, 'b')
     
     blue_poly = np.array(blue_poly)
-    blue_poly = blue_poly[blue_poly != 0.0]
-    blue_poly = np.array(blue_poly)
+    blue_poly = np.trim_zeros(blue_poly, 'b')
     
     red_pix = np.array(red_pix)
-    red_pix = red_pix[red_pix != 0.0]
-    red_pix = np.array(red_pix)
+    red_pix = np.trim_zeros(red_pix, 'b')
     
     red_val = np.array(red_val)
-    red_val = red_val[red_val != 0.0]
-    red_val = np.array(red_val)
+    red_val = np.trim_zeros(red_val, 'b')
     
     red_poly = np.array(red_poly)
-    red_poly = red_poly[red_poly != 0.0]
-    red_poly = np.array(red_poly)
+    red_poly = np.trim_zeros(red_poly, 'b')
     
     bias_bs = np.array(bias_bs)
-    bias_bs = bias_bs[bias_bs != 0.0]
-    bias_bs = np.array(bias_bs)
+    bias_bs = np.trim_zeros(bias_bs, 'b')
     
     littrow_pix = np.array(littrow_pix)
-    littrow_val = np.array(littrow_val)
-    fit_pix_lit = np.array(fit_pix_lit)
-    fit_lit = np.array(fit_lit)
+    littrow_pix = np.trim_zeros(littrow_pix, 'b')
     
-    littrow_pix = littrow_pix[littrow_val != 0.0]
-    littrow_val = littrow_val[littrow_val != 0.0]
-    fit_pix_lit = fit_pix_lit[fit_lit != 0.0]
-    fit_lit = fit_lit[fit_lit != 0.0]
-
+    littrow_val = np.array(littrow_val)
+    littrow_val = np.trim_zeros(littrow_val, 'b')
+    
+    fit_pix_lit = np.array(fit_pix_lit)
+    fit_pix_lit = np.trim_zeros(fit_pix_lit, 'b')
+    
+    fit_lit = np.array(fit_lit)
+    fit_lit = np.trim_zeros(fit_lit, 'b')
+    
+    edge1 = float(masked_edges[0])
+    edge2 = float(masked_edges[1])
 
     plt.figure()
     plt.errorbar(np.arange(len(bias_bs)), bias_bs, yerr=bias_std, marker="o", linestyle="None")
@@ -234,9 +246,75 @@ def diagnostic_plots_cals(file_name):
     
     pp.close()
     
+    ###### FLAGS #####
+    bias1_flag = 0
+    bias2_flag = 0
+    blueflat1_flag = 0
+    blueflat2_flag = 0
+    redflat1_flag = 0
+    redflat2_flag = 0
+    blue_poly_flag = 0
+    red_poly_flag = 0
+    littrow_flag = 0
+    unscaled_bias_std = np.std(bias_bs)
+    scaled_bias_std = np.std(bias_as)
+    unscaled_blue_flat_std = np.std(flat_blue_bs)
+    scaled_blue_flat_std = np.std(flat_blue_as)
+    unscaled_red_flat_std = np.std(flat_red_bs)
+    scaled_red_flat_std = np.std(flat_red_as)
+    
+    if all( (np.mean(bias_bs) - 2*unscaled_bias_std) <= x <= (np.mean(bias_bs) + 2*unscaled_bias_std) for x in bias_bs):
+        bias1_flag = 0
+    else:
+        bias1_flag = 1
+    if all( (np.mean(bias_as) - 2*scaled_bias_std) <= x <= (np.mean(bias_as) + 2*scaled_bias_std) for x in bias_as):
+        bias2_flag = 0
+    else:
+        bias2_flag = 1
+    if all( (np.mean(flat_blue_bs) - 2*unscaled_blue_flat_std) <= x <= (np.mean(flat_blue_bs) + 2*unscaled_blue_flat_std) for x in flat_blue_bs):
+        blueflat1_flag = 0
+    else:
+        blueflat1_flag = 1
+    if all( (np.mean(flat_blue_as) - 2*scaled_blue_flat_std) <= x <= (np.mean(flat_blue_as) + 2*scaled_blue_flat_std) for x in flat_blue_as):
+        blueflat2_flag = 0
+    else:
+        blueflat2_flag = 1
+    if all( (np.mean(flat_red_bs) - 2*unscaled_red_flat_std) <= x <= (np.mean(flat_red_bs) + 2*unscaled_red_flat_std) for x in flat_red_bs):
+        redflat1_flag = 0
+    else:
+        redflat1_flag = 1
+    if all( (np.mean(flat_red_as) - 2*scaled_red_flat_std) <= x <= (np.mean(flat_red_as) + 2*scaled_red_flat_std) for x in flat_red_as):
+        redflat2_flag = 0
+    else:
+        redflat2_flag = 1
+    if all( abs((blue_val[x] - blue_poly[x])) < 1000 for x in range(len(blue_pix))):
+        blue_poly_flag = 0
+    else:
+        blue_poly_flag = 1
+    if all( abs(red_val[x] - red_poly[x]) < 500 for x in range(101)):  # Only look at first 100 pixels on red due to fringing
+        red_poly_flag = 0
+    else:
+        red_poly_flag = 1
+    if abs(np.average([edge1, edge2]) - 1400) < 10:
+        littrow_flag = 0
+    else:
+        littrow_flag = 1
+    flags['Date'] = date   
+    flags['Bias1'] = bias1_flag
+    flags['Bias2'] = bias2_flag
+    flags['BlueFlat1'] = blueflat1_flag
+    flags['BlueFlat2'] = blueflat2_flag
+    flags['RedFlat1'] = redflat1_flag
+    flags['RedFlat2'] = redflat2_flag
+    flags['BluePoly'] = blue_poly_flag
+    flags['RedPoly'] = red_poly_flag
+    flags['Littrow'] = littrow_flag
+
 ##### ------------------------------------------------------------------ #####
 # FWHM / Profile Position function
-def diagnostic_plots_FWHM(file_name):
+def diagnostic_plots_FWHM(file_name, flags):
+    date = str(file_name[13:23])
+    
     pp = PdfPages('fwhm_plots.pdf')
     
     def unique_star_names(seq, idfun=None): 
@@ -259,7 +337,7 @@ def diagnostic_plots_FWHM(file_name):
     
     names, col1, fwhm1, pos1, peak1, col2, fwhm2, pos2, peak2 = [],[],[],[],[],[],[],[],[]
     for m in np.arange(len(arr)):
-        names.append(str(arr[m][0][9:-5]))
+        names.append(str(arr[m][0][8:-5]))
         col1.append(arr[m][1])
         fwhm1.append(arr[m][2])    
         pos1.append(arr[m][3])
@@ -274,7 +352,7 @@ def diagnostic_plots_FWHM(file_name):
     peak2 = np.array(peak2)
 
     no_duplicates = sorted(list(set(names)))
-
+    
     cat_pts = []
     fwhm_pts = []
     pos_pts = []
@@ -282,11 +360,42 @@ def diagnostic_plots_FWHM(file_name):
     for i in range(len(names)):
         for j in range(len(no_duplicates)):
             if no_duplicates[j] in names[i]:
+                current_fwhm_array = []
                 cat_pts.append(j)
                 fwhm_pts.append(fwhm2[i])
                 pos_pts.append(pos2[i])
                 peak_pts.append(peak2[i])
+
+    ##### FLAGS #####
+    flags['Star'] = names
     
+
+    for i in range(len(no_duplicates)):        
+        star_name = no_duplicates[i]
+        num_exposures = names.count(star_name)
+        current_fwhm_array = []
+        current_pos_array = []
+        current_peak_array = []
+        star_indexes = flags[flags['Star'] == star_name].index.tolist()
+
+        for j in range(len(fwhm_pts)):
+            if cat_pts[j] == i:
+                current_fwhm_array.append(fwhm_pts[j])
+                current_pos_array.append(pos_pts[j])
+                current_peak_array.append(peak_pts[j])
+
+        for k in range(num_exposures):
+            flags.set_value(star_indexes[k], 'Exposure', k)
+            if abs(current_fwhm_array[k] - np.median(current_fwhm_array)) > fwhm_tol:#*np.std(current_fwhm_array):
+                flags.set_value(star_indexes[k], 'ProfFWHM', 1)
+                
+            if abs(current_pos_array[k] - np.median(current_pos_array)) > pos_tol:#*np.std(current_pos_array):
+                flags.set_value(star_indexes[k], 'ProfPos', 1)
+                
+            if abs(current_peak_array[k] - np.median(current_peak_array)) > peak_tol:#*np.std(current_peak_array):
+                flags.set_value(star_indexes[k], 'PeakGauss', 1)
+    
+    ##### ----- #####    
     x = np.arange(len(no_duplicates))
     jitter = 0.1*np.random.rand(len(cat_pts))
     cat_pts = cat_pts + jitter
@@ -321,11 +430,10 @@ def diagnostic_plots_FWHM(file_name):
     plt.savefig(pp,format='pdf')
     plt.close()
     
-    pp.close()
-   
+    pp.close()   
 ##### ------------------------------------------------------------------ #####
 # Wavelength calibrations function
-def diagnostic_plots_wavecal(files):
+def diagnostic_plots_wavecal(files, flags):
     
     star_name = str(files[0][8:-21])
     pdf_name = 'wavecal_plots_' + star_name + '.pdf'
@@ -366,36 +474,28 @@ def diagnostic_plots_wavecal(files):
             line_fit.append(blue_arr[m][7])
         
         wave_fit = np.array(wave_fit)
-        wave_fit = wave_fit[wave_fit != 0.0]
-        wave_fit = np.array(wave_fit)
+        wave_fit = np.trim_zeros(wave_fit, 'b')
         
         res = np.array(res)
-        res = res[res != 0.0]
-        res = np.array(res)
+        res = np.trim_zeros(res, 'b')
         
         wave1 = np.array(wave1)
-        wave1 = wave1[wave1 != 0.0]
-        wave1 = np.array(wave1)
+        wave1 = np.trim_zeros(wave1, 'b')
         
         lam_fit = np.array(lam_fit)
-        lam_fit = lam_fit[lam_fit != 0.0]
-        lam_fit = np.array(lam_fit)
+        lam_fit = np.trim_zeros(lam_fit, 'b')
         
         flux1 = np.array(flux1)
-        flux1 = flux1[flux1 != 0.0]
-        flux1 = np.array(flux1)
+        flux1 = np.trim_zeros(flux1, 'b')
         
         wave2 = np.array(wave2)
-        wave2 = wave2[wave2 != 0.0]
-        wave2 = np.array(wave2)
+        wave2 = np.trim_zeros(wave2, 'b')
         
         flux2 = np.array(flux2)
-        flux2 = flux2[flux2 != 0.0]
-        flux2 = np.array(flux2)
+        flux2 = np.trim_zeros(flux2, 'b')
         
         line_fit = np.array(line_fit)
-        line_fit = line_fit[line_fit != 0.0]
-        line_fit = np.array(line_fit)
+        line_fit = np.trim_zeros(line_fit, 'b')
         
         xmin = np.min(wave_fit)-500
         xmax = np.max(wave_fit)+500
@@ -410,16 +510,7 @@ def diagnostic_plots_wavecal(files):
         plt.title('Wavelength Fit Residuals - Blue - ' + star_name)
         plt.savefig(pp,format='pdf')
         plt.close()       
-        '''
-        plt.figure()
-        plt.plot(wave1,flux1)
-        plt.xlabel('Wavelength')
-        plt.ylabel('Flux')
-        plt.title('Flux - Blue - ' + star_name)
-        plt.savefig(pp,format='pdf')
-        plt.close()
-        '''
-    
+
         x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
         plt.figure()
         plt.plot(wave2,flux2)
@@ -429,6 +520,15 @@ def diagnostic_plots_wavecal(files):
         plt.title('Zero Point Offset - Blue - ' + star_name)
         plt.savefig(pp,format='pdf')
         plt.close()
+        
+        ##### FLAGS #####
+        star_indexes = flags[flags['Star'] == star_name].index.tolist()
+        blue_wave_fit_flag = 0
+        if all(-wave_fit_tol <= x <= wave_fit_tol for x in res):
+            blue_wave_fit_flag = 0
+        else:
+            blue_wave_fit_flag = 1
+        flags.set_value(star_indexes, 'WaveFitResBlue', blue_wave_fit_flag)
     ### ---------------------------------------------------------------------- ###
     if len(red_arr) > 0:
         wave_fit, res, wave1, flux1, lam_fit, wave2, flux2, line_fit = [],[],[],[],[],[],[],[]
@@ -447,36 +547,28 @@ def diagnostic_plots_wavecal(files):
             line_fit.append(red_arr[m][7])
         
         wave_fit = np.array(wave_fit)
-        wave_fit = wave_fit[wave_fit != 0.0]
-        wave_fit = np.array(wave_fit)
+        wave_fit = np.trim_zeros(wave_fit, 'b')
         
         res = np.array(res)
-        res = res[res != 0.0]
-        res = np.array(res)
+        res = np.trim_zeros(res, 'b')
         
         wave1 = np.array(wave1)
-        wave1 = wave1[wave1 != 0.0]
-        wave1 = np.array(wave1)
+        wave1 = np.trim_zeros(wave1, 'b')
         
         lam_fit = np.array(lam_fit)
-        lam_fit = lam_fit[lam_fit != 0.0]
-        lam_fit = np.array(lam_fit)
+        lam_fit = np.trim_zeros(lam_fit, 'b')
         
         flux1 = np.array(flux1)
-        flux1 = flux1[flux1 != 0.0]
-        flux1 = np.array(flux1)
+        flux1 = np.trim_zeros(flux1, 'b')
         
         wave2 = np.array(wave2)
-        wave2 = wave2[wave2 != 0.0]
-        wave2 = np.array(wave2)
+        wave2 = np.trim_zeros(wave2, 'b')
         
         flux2 = np.array(flux2)
-        flux2 = flux2[flux2 != 0.0]
-        flux2 = np.array(flux2)
+        flux2 = np.trim_zeros(flux2, 'b')
         
         line_fit = np.array(line_fit)
-        line_fit = line_fit[line_fit != 0.0]
-        line_fit = np.array(line_fit)
+        line_fit = np.trim_zeros(line_fit, 'b')
         
         xmin = np.min(wave_fit)-500
         xmax = np.max(wave_fit)+500
@@ -491,16 +583,7 @@ def diagnostic_plots_wavecal(files):
         plt.title('Wavelength Fit Residuals - Red - ' + star_name)
         plt.savefig(pp,format='pdf')
         plt.close()        
-        '''
-        plt.figure()
-        plt.plot(wave1,flux1,'r')
-        plt.xlabel('Wavelength')
-        plt.ylabel('Flux')
-        plt.title('Flux - Red - ' + star_name)
-        plt.savefig(pp,format='pdf')
-        plt.close()        
-        '''
-    
+
         x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
         plt.figure()
         plt.plot(wave2,flux2,'r')
@@ -510,11 +593,21 @@ def diagnostic_plots_wavecal(files):
         plt.title('Zero Point Offset - Red - ' + star_name)
         plt.savefig(pp,format='pdf')
         plt.close()
+        
+        ##### FLAGS #####
+        star_indexes = flags[flags['Star'] == star_name].index.tolist()
+        red_wave_fit_flag = 0
+        if all(-wave_fit_tol <= x <= wave_fit_tol for x in res):
+            red_wave_fit_flag = 0
+        else:
+            red_wave_fit_flag = 1
+        flags.set_value(star_indexes, 'WaveFitResRed', red_wave_fit_flag)
+
     pp.close()
 
 ##### ------------------------------------------------------------------ #####
 # Continuum function
-def diagnostic_plots_continuum(file_name):
+def diagnostic_plots_continuum(file_name, flags):
     
     star_name = str(file_name[24:-21])
     pdf_name = 'modelcal_plots_' + star_name + '.pdf'
@@ -536,28 +629,22 @@ def diagnostic_plots_continuum(file_name):
         norm_spec_blue.append(arr[m][5])
 
     blue_lam = np.array(blue_lam)
-    blue_lam = blue_lam[blue_lam != 0.0]
-    blue_lam = np.array(blue_lam)
+    blue_lam = np.trim_zeros(blue_lam, 'b')
     
     blue_res = np.array(blue_res)
-    blue_res = blue_res[blue_res != 0.0]
-    blue_res = np.array(blue_res)
+    blue_res = np.trim_zeros(blue_res, 'b')
     
     blue_masked_lam = np.array(blue_masked_lam)
-    blue_masked_lam = blue_masked_lam[blue_masked_lam != 0.0]
-    blue_masked_lam = np.array(blue_masked_lam)
+    blue_masked_lam = np.trim_zeros(blue_masked_lam, 'b')
     
     blue_masked_res = np.array(blue_masked_res)
-    blue_masked_res = blue_masked_res[blue_masked_res != 0.0]
-    blue_masked_res = np.array(blue_masked_res)
+    blue_masked_res = np.trim_zeros(blue_masked_res, 'b')
     
     blue_res_fit = np.array(blue_res_fit)
-    blue_res_fit = blue_res_fit[blue_res_fit != 0.0]
-    blue_res_fit = np.array(blue_res_fit)
+    blue_res_fit = np.trim_zeros(blue_res_fit, 'b')
     
     norm_spec_blue = np.array(norm_spec_blue)
-    norm_spec_blue = norm_spec_blue[norm_spec_blue != 0.0]
-    norm_spec_blue = np.array(norm_spec_blue)
+    norm_spec_blue = np.trim_zeros(norm_spec_blue)
 
     plt.figure()
     plt.plot(blue_lam, blue_res)
@@ -575,7 +662,24 @@ def diagnostic_plots_continuum(file_name):
     plt.title('Continuum Normalized Spectrum - Blue')
     plt.savefig(pp,format='pdf')
     plt.close()
-     
+    
+    ##### FLAGS #####
+    star_indexes = flags[flags['Star'] == star_name].index.tolist()
+    blue_res_flag = 0
+    for i in range(10,len(blue_masked_res)-10):
+        wavelength_interval = blue_masked_lam[i-10:i+10]
+        res_interval = blue_masked_res[i-10:i+10]
+        fit_interval = blue_res_fit[np.where(blue_lam == wavelength_interval)]
+        min_res = np.min(res_interval)
+        max_res = np.max(res_interval)
+        if all( min_res <= x <= max_res for x in fit_interval):
+            blue_res_flag += 0
+        else:
+            blue_res_flag += 1
+    
+    if blue_res_flag > 0:
+        flags.set_value(star_indexes, 'ResponseBlue', 1)
+
     ### ---------------------------------------------------------------------- ###
     if len(arr[0]) > 6:    
         red_lam, red_res, red_masked_lam, red_masked_res, red_res_fit, norm_spec_red = [],[],[],[],[],[]
@@ -592,26 +696,22 @@ def diagnostic_plots_continuum(file_name):
             norm_spec_red.append(arr[m][11])
     
         red_lam = np.array(red_lam)
-        red_lam = red_lam[red_lam != 0.0]
-        red_lam = np.array(red_lam)
+        red_lam = np.trim_zeros(red_lam, 'b')
         
         red_res = np.array(red_res)
-        red_res = red_res[red_res != 0.0]
-        red_res = np.array(red_res)
+        red_res = np.trim_zeros(red_res, 'b')
         
         red_masked_lam = np.array(red_masked_lam)
-        red_masked_lam = red_masked_lam[red_masked_lam != 0.0]
-        red_masked_lam = np.array(red_masked_lam)
+        red_masked_lam = np.trim_zeros(red_masked_lam, 'b')
         
         red_masked_res = np.array(red_masked_res)
-        red_masked_res = red_masked_res[red_masked_res != 0.0]
-        red_masked_res = np.array(red_masked_res)
+        red_masked_res = np.trim_zeros(red_masked_res, 'b')
         
         red_res_fit = np.array(red_res_fit)
-        red_res_fit = red_res_fit[red_res_fit != 0.0]
-        red_res_fit = np.array(red_res_fit)
+        red_res_fit = np.trim_zeros(red_res_fit, 'b')
         
         norm_spec_red = np.array(norm_spec_red)
+        norm_spec_red = np.trim_zeros(norm_spec_red, 'b')
 
         plt.figure()
         plt.plot(red_lam, red_res)
@@ -630,12 +730,30 @@ def diagnostic_plots_continuum(file_name):
         plt.savefig(pp,format='pdf')
         plt.close()   
         
+        ##### FLAGS #####
+        star_indexes = flags[flags['Star'] == star_name].index.tolist()
+        red_res_flag = 0
+        for i in range(10,len(blue_masked_res)-10):
+            wavelength_interval = blue_masked_lam[i-10:i+10]
+            res_interval = blue_masked_res[i-10:i+10]
+            fit_interval = blue_res_fit[np.where(blue_lam == wavelength_interval)]
+            min_res = np.min(res_interval)
+            max_res = np.max(res_interval)
+            if all( min_res <= x <= max_res for x in fit_interval):
+                red_res_flag += 0
+            else:
+                red_res_flag += 1
+    
+        if red_res_flag > 0:
+            flags.set_value(star_indexes, 'ResponseRed', 1)
     pp.close()
   
 ##### ------------------------------------------------------------------ #####
 # Extraction function
-def diagnostic_plots_extraction(file_name):
+def diagnostic_plots_extraction(file_name, flags):
     star_name = str(file_name)[11:-21]
+    date = str(file_name)[-20:-10]
+
     pdf_name = 'extraction_plots_' + star_name + '.pdf'
     pp = PdfPages(pdf_name)
 
@@ -662,45 +780,41 @@ def diagnostic_plots_extraction(file_name):
         poly_fit_back.append(arr[m][11])
 
     meas_FWHM = np.array(meas_FWHM)
-    meas_FWHM = meas_FWHM[meas_FWHM != 0.0]
-    meas_FWHM = np.array(meas_FWHM)
+    meas_FWHM = np.trim_zeros(meas_FWHM, 'b')
 
     pix_FWHM = np.array(pix_FWHM)
-    pix_FWHM = pix_FWHM[pix_FWHM != 0.0]
-    pix_FWHM = np.array(pix_FWHM)
+    pix_FWHM = np.trim_zeros(pix_FWHM, 'b')
 
     fit_FWHM = np.array(fit_FWHM)
-    fit_FWHM = fit_FWHM[fit_FWHM != 0.0]
-    fit_FWHM = np.array(fit_FWHM)
+    fit_FWHM = np.trim_zeros(fit_FWHM, 'b')
     
     all_pix = np.array(all_pix)
-    all_pix = all_pix[all_pix != 0.0]
-    all_pix = np.array(all_pix)
+    all_pix = np.trim_zeros(all_pix, 'b')
+
+    prof_pix = np.array(prof_pix)
+    prof_pix = np.trim_zeros(prof_pix, 'b')
     
-    #prof_pix = np.array(prof_pix)
-    #prof_pix = prof_pix[prof_pix != 0.0]
-    #prof_pix = np.array(prof_pix)
-    
-    #prof_pos = np.array(prof_pos)
-    #prof_pos = prof_pos[prof_pos != 0.0]
-    #prof_pos = np.array(prof_pos)
-    
+    prof_pos = np.array(prof_pos)
+    prof_pos = np.trim_zeros(prof_pos, 'b')
+
     fit_prof_pos = np.array(fit_prof_pos)
-    fit_prof_pos = fit_prof_pos[fit_prof_pos != 0.0]
-    fit_prof_pos = np.array(fit_prof_pos)
+    fit_prof_pos = np.trim_zeros(fit_prof_pos, 'b')
     
     pix_val_1200 = np.array(pix_val_1200)
-    val_1200 = np.array(val_1200)
-    pixel_back_fit = np.array(pixel_back_fit)
-    val_fit = np.array(val_fit)
-    poly_fit_back = np.array(poly_fit_back)
+    pix_val_1200 = np.trim_zeros(pix_val_1200, 'b')
     
-    pix_val_1200 = pix_val_1200[pix_val_1200 != 0.0]
-    val_1200 = val_1200[val_1200 != 0.0] 
-    pixel_back_fit = pixel_back_fit[pixel_back_fit != 0.0]
-    val_fit = val_fit[val_fit != 0.0] 
-    poly_fit_back = poly_fit_back[poly_fit_back != 0.0]
-
+    val_1200 = np.array(val_1200)
+    val_1200 = np.trim_zeros(val_1200, 'b')
+    
+    pixel_back_fit = np.array(pixel_back_fit)
+    pixel_back_fit = np.trim_zeros(pixel_back_fit, 'b')
+    
+    val_fit = np.array(val_fit)
+    val_fit = np.trim_zeros(val_fit, 'b')
+    
+    poly_fit_back = np.array(poly_fit_back)  
+    poly_fit_back = np.trim_zeros(poly_fit_back, 'b')
+    
     plt.figure()
     plt.scatter(pix_FWHM,meas_FWHM)
     plt.plot(np.arange(len(fit_FWHM)),fit_FWHM)
@@ -729,6 +843,33 @@ def diagnostic_plots_extraction(file_name):
     plt.close()
     
     pp.close()
+    
+    ##### FLAGS #####
+    star_indexes = flags[flags['Star'] == star_name].index.tolist()
+    ext_FWHM_flag = 0
+    ext_profile_flag = 0
+    background_fit_flag= 0
+    meas_FWHM_std = np.std(meas_FWHM)
+    max_back_ind = np.argmax(val_1200)
+    fit_at_max = poly_fit_back[max_back_ind]
+    avg_poly_fit = np.average(val_fit)
+    
+    if all( (np.mean(meas_FWHM) - ext_FWHM_num_sigma*meas_FWHM_std) <= x <= (np.mean(meas_FWHM) + ext_FWHM_num_sigma*meas_FWHM_std) for x in meas_FWHM):
+        ext_FWHM_flag = 0
+    else:
+        ext_FWHM_flag = 1
+    if all( abs(prof_pos[x] - fit_prof_pos[prof_pix[x]]) < ext_prof_tol for x in range(len(prof_pos)) ):
+        ext_profile_flag = 0
+    else:
+        ext_profile_flag = 1
+    if abs(fit_at_max - avg_poly_fit) < background_fit_tol:
+        background_fit_flag = 0
+    else:
+        background_fit_flag = 1
+        
+    flags.set_value(star_indexes, 'ExtFWHM', ext_FWHM_flag)
+    flags.set_value(star_indexes, 'ExtProf', ext_profile_flag)
+    flags.set_value(star_indexes, 'FitToBack', background_fit_flag)
 
 ##### ------------------------------------------------------------------ #####    
 # Sort file names by type
@@ -739,16 +880,16 @@ model_cal_files = glob('continuum_normalization*.txt')
 extraction_files = glob('extraction_*_*.txt')
 
 ##### ------------------------------------------------------------------ #####
-# Calibrations
-for i in range(len(cal_files)): # Repeat copy of data below
-    file_name = str(cal_files[i])
-    diagnostic_plots_cals(file_name)
-
-##### ------------------------------------------------------------------ #####
 # FWHM
 for i in range(len(fwhm_files)):    # First line not commented out
     file_name = str(fwhm_files[i])
-    diagnostic_plots_FWHM(file_name)
+    diagnostic_plots_FWHM(file_name, flags)
+
+##### ------------------------------------------------------------------ #####
+# Calibrations
+for i in range(len(cal_files)): # Repeat copy of data below
+    file_name = str(cal_files[i])
+    diagnostic_plots_cals(file_name, flags)
 
 ##### ------------------------------------------------------------------ #####
 # Wavelength Calibrations
@@ -762,12 +903,10 @@ unique_names = unique_star_names(star_names)
 
 for sub in unique_names:
    file_names = [x for x in wave_cal_files if str(sub) in x]
-   diagnostic_plots_wavecal(file_names)
+   diagnostic_plots_wavecal(file_names, flags)
 
- 
 ##### ------------------------------------------------------------------ #####
 # Model Calibrations
-
 star_names = []
 for i in range(len(model_cal_files)):
     star_names.append(model_cal_files[i][24:-21])
@@ -778,13 +917,13 @@ unique_names = unique_star_names(star_names)
 
 for sub in unique_names:
     file_name = [x for x in model_cal_files if str(sub) in x]
-    diagnostic_plots_continuum(file_name[0])
+    diagnostic_plots_continuum(file_name[0], flags)
 
 ##### ------------------------------------------------------------------ #####
 # Extraction
 for i in range(len(extraction_files)):
     file_name = str(extraction_files[i])
-    diagnostic_plots_extraction(file_name)
+    diagnostic_plots_extraction(file_name, flags)
      
 ######------------------------------------------------------------------ #####
 # Merge all pdfs of plots
@@ -796,3 +935,4 @@ for f in pdfs:
     os.remove(f)
     
 outfile.write(open('diagnostic_plots.pdf', 'wb'))
+flags.to_csv('diagnostics_flags.csv')
