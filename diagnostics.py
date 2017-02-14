@@ -528,7 +528,8 @@ def diagnostic_plots_wavecal(files, flags):
             blue_wave_fit_flag = 0
         else:
             blue_wave_fit_flag = 1
-        flags.set_value(star_indexes, 'WaveFitResBlue', blue_wave_fit_flag)
+        for k in range(len(star_indexes)):
+            flags.set_value(star_indexes[k], 'WaveFitResBlue', blue_wave_fit_flag)
     ### ---------------------------------------------------------------------- ###
     if len(red_arr) > 0:
         wave_fit, res, wave1, flux1, lam_fit, wave2, flux2, line_fit = [],[],[],[],[],[],[],[]
@@ -601,7 +602,8 @@ def diagnostic_plots_wavecal(files, flags):
             red_wave_fit_flag = 0
         else:
             red_wave_fit_flag = 1
-        flags.set_value(star_indexes, 'WaveFitResRed', red_wave_fit_flag)
+        for k in range(len(star_indexes)):
+            flags.set_value(star_indexes[k], 'WaveFitResRed', red_wave_fit_flag)
 
     pp.close()
 
@@ -678,7 +680,8 @@ def diagnostic_plots_continuum(file_name, flags):
             blue_res_flag += 1
     
     if blue_res_flag > 0:
-        flags.set_value(star_indexes, 'ResponseBlue', 1)
+        for k in range(len(star_indexes)):
+            flags.set_value(star_indexes[k], 'ResponseBlue', 1)
 
     ### ---------------------------------------------------------------------- ###
     if len(arr[0]) > 6:    
@@ -745,7 +748,8 @@ def diagnostic_plots_continuum(file_name, flags):
                 red_res_flag += 1
     
         if red_res_flag > 0:
-            flags.set_value(star_indexes, 'ResponseRed', 1)
+            for k in range(len(star_indexes)):
+                flags.set_value(star_indexes[k], 'ResponseRed', 1)
     pp.close()
   
 ##### ------------------------------------------------------------------ #####
@@ -866,10 +870,11 @@ def diagnostic_plots_extraction(file_name, flags):
         background_fit_flag = 0
     else:
         background_fit_flag = 1
-        
-    flags.set_value(star_indexes, 'ExtFWHM', ext_FWHM_flag)
-    flags.set_value(star_indexes, 'ExtProf', ext_profile_flag)
-    flags.set_value(star_indexes, 'FitToBack', background_fit_flag)
+    
+    for k in range(len(star_indexes)):    
+        flags.set_value(star_indexes[k], 'ExtFWHM', ext_FWHM_flag)
+        flags.set_value(star_indexes[k], 'ExtProf', ext_profile_flag)
+        flags.set_value(star_indexes[k], 'FitToBack', background_fit_flag)
 
 ##### ------------------------------------------------------------------ #####    
 # Sort file names by type
