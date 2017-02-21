@@ -2,6 +2,7 @@ import ReduceSpec
 import spectral_extraction
 import Wavelength_Calibration
 import continuum_normalization
+import flux_calibration
 from glob import glob
 
 
@@ -17,10 +18,10 @@ ReduceSpec.reduce_now(['script_name','listZero','listFlat','listSpec','listFe'])
 #Begin Spectral Extraction
 #========================
 print 'Beginning spectral extraction.'
-spec_files = sorted(glob('ctfb*fits'))
+spec_files = sorted(glob('cftb*fits'))
 single_spec_list = []
 for x in spec_files:
-    if ('ctfb.0' or 'ctfb.1') in x:
+    if ('cftb.0' or 'cftb.1') in x:
         single_spec_list.append(x)
 for x in single_spec_list:
     spec_files.remove(x)
@@ -29,16 +30,6 @@ spec_files = sorted(spec_files)
 lamp_file_blue = sorted(glob('tFe*blue*fits'))
 lamp_file_red = sorted(glob('tFe*red*fits'))
 
-
-#Get the trace and FWHM files if they exist. 
-'''
-trace_files = sorted(glob('*trace*npy'))
-if len(trace_files) != len(spec_files):
-    trace_files = [None] * len(spec_files)
-FWHM_files = sorted(glob('*poly.npy'))
-if len(FWHM_files) != len(spec_files):
-    FWHM_files = [None] * len(spec_files)
-'''
 
 #Search for FWHM and trace file for each spectrum. If it does not exist, these go to None and will be fit and saved during the extraction.
 trace_files = []
@@ -81,7 +72,7 @@ for x in spec_files:
 # Begin Wavelength Calibration
 #=========================
 print '\n Beginning Wavelength Calibration'
-spec_files = sorted(glob('ctfb*ms.fits'))
+spec_files = sorted(glob('cftb*ms.fits'))
 lamp_files = sorted(glob('tFe*ms.fits'))
 offset_file = glob('offsets.txt') #Offset file must be structured as blue, then red
 if len(offset_file) == 0:
@@ -107,22 +98,38 @@ for x in lamp_files:
 #Begin Continuum Normalization
 #=========================
 print '\n Begin continuum normalization.'
-continuum_files = sorted(glob('wctfb*ms.fits'))
-print continuum_files
+continuum_files = sorted(glob('wcftb*ms.fits'))
+#print continuum_files
 x = 0
 while x < len(continuum_files):
     if x == len(continuum_files)-1:
-        print continuum_files[x]
+        #print continuum_files[x]
         continuum_normalization.normalize_now(continuum_files[x],None,False,plotall=False)
         x += 1
     elif continuum_files[x][0:continuum_files[x].find('930')] == continuum_files[x+1][0:continuum_files[x].find('930')]:
-        print continuum_files[x],continuum_files[x+1]
+        #print continuum_files[x],continuum_files[x+1]
         continuum_normalization.normalize_now(continuum_files[x],continuum_files[x+1],True,plotall=False)
         x += 2
     else:
-        print continuum_files[x]
+        #print continuum_files[x]
         continuum_normalization.normalize_now(continuum_files[x],None,False,plotall=False)
         x += 1
 
-#continuum_normalization.normalize_now('wctfb.wd1307-017_930_blue.ms.fits',None,False)
-#exit()
+#=========================
+#Begin Flux Calibration
+#=========================
+print '\n Begin flux calibration.'
+#We should use the same files are for the continuum normalization. But if you want to change that for some reason, adjust below.
+'''
+continuum_files = sorted(glob('wcftb*ms.fits'))
+single_spec_list = []
+for x in continuum_files:
+    if 'flux' in x:
+        single_spec_list.append(x)
+for x in single_spec_list:
+    continuum_files.remove(x)
+continuum_files = sorted(continuum_files)
+'''
+stdlist = None
+fluxlist = None
+flux_calibration.flux_calibrate_now(stdlist,fluxlist,continuum_files,extinct_correct=True,masterresp=True)
