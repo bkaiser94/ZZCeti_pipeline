@@ -17,6 +17,9 @@ import os
 import datetime
 import matplotlib.pyplot as plt
 import cosmics
+from glob import glob
+from astropy.convolution import convolve, Box2DKernel
+
 # ===========================================================================
 # Lesser Functions Used by Main Functions ===================================
 # ===========================================================================
@@ -28,7 +31,7 @@ def init():
 def save_diagnostic():
     global now
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-    header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11) Combined blue flat pixel values, 12) Combined blue flat values, 13) Polynomial fit to combined blue flat \n 14) Combined red flat pixel values, 15) Combined red flat values, 16) Polynomial fit to combined red flat \n 17) Range of pixels used to find the littrow ghost, 18) Range of values used to find the littrow ghost, 19) Range of pixels used to fit the littrow ghost, 20) Gaussian fit to small number of pixels to find the center of the littrow ghost, 21) The upper and lower edges of the masked region saved to the header'
+    header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11)Blue Pixels for polynomial fit over littrow ghost, 12) Blue values for polynomial fit over littrow ghost, 13)Polynomial fit mask out littrow ghost  \n 14) Cut along row 100 for blue flat, 15) Cut along row 100 for red flat, 16) junk zeros \n 17) Range of pixels used to find the littrow ghost, 18) Range of values used to find the littrow ghost, 19) Range of pixels used to fit the littrow ghost, 20) Gaussian fit to small number of pixels to find the center of the littrow ghost, 21) The upper and lower edges of the masked region saved to the header'
     with open('reduction_' + now + '.txt','a') as handle:
         np.savetxt(handle,diagnostic,fmt='%f',header=header)
 
@@ -487,17 +490,40 @@ def Norm_Flat_Poly( flat ):
         print ("Could not identifiy blue or red flat")
         order= raw_input("Fit Order?>>>")
     print "Fit Order: %s" % order
+    #See in littrow ghost file already exists for blue files
+    if flat.lower().__contains__("blue")== True:
+        littrow_exist = glob('littrow_ghost.txt')
+        if len(littrow_exist) == 1:
+            print 'littrow_ghost.txt file already exists. Using that for mask.'
+            littrow_ghost = np.genfromtxt('littrow_ghost.txt')
+            litt_low = int(littrow_ghost[0])
+            litt_hi = int(littrow_ghost[1])
+        else:
+            print 'Finding and saving littrow ghost location'
+            littrow_ghost = find_littrow(flat)
+            litt_low = int(littrow_ghost[0])
+            litt_hi = int(littrow_ghost[1])
+    else:
+        #These are dummy values so we can concatenate below 
+        litt_low = 100
+        litt_hi = 99
     # Read Flat and Average Center Rows # 
     flat_data = fits.getdata(flat)
     flat_data[ np.isnan(flat_data) ] = 0
     fit_data= np.median(flat_data[0][95:105], axis=0) # Median of center Rows
     X= range(0,len(fit_data)) # Column Numbers 
-    # Fit the data removeing the limits of the overscan regions. #
+    # Fit the data removeing the limits of the overscan regions and littrow ghost. #
     lo= 10;
     hi= 2055;
+    xvals = np.concatenate((X[lo:litt_low],X[litt_hi:hi]))
+    yvals = np.concatenate((fit_data[lo:litt_low],fit_data[litt_hi:hi]))
     # Calculate Fit # 
-    coeff= np.polyfit(X[lo:hi], fit_data[lo:hi], order ) # coefficents of polynomial fit # 
+    coeff= np.polyfit(xvals, yvals, order ) # coefficents of polynomial fit # 
     profile= np.poly1d(coeff)(X) # Profile Along Dispersion axis # 
+    plt.clf()
+    plt.plot(xvals,yvals,'b.')
+    plt.plot(X,profile,'r')
+    plt.show()
     #Save values for diagnostics
     if flat.lower().__contains__("blue"):
         diagnostic[0:len(X[lo:hi]),11] = X[lo:hi]
@@ -532,7 +558,84 @@ def Norm_Flat_Poly( flat ):
     
     print '\nFlat: %s Mean: %.3f StDev: %.3f' % (norm_flat_name, np.mean(flat_data), np.std(flat_data))
     return (norm_flat_name)
+
+# ============================================================================    
+
+def Norm_Flat_Boxcar( flat ):
+    flat_image = fits.getdata(flat)
+    flat_data = flat_image[0,:,:]
+
+    #See if littrow ghost file already exists for blue files
+    if flat.lower().__contains__("blue")== True:
+        littrow_exist = glob('littrow_ghost.txt')
+        if len(littrow_exist) == 1:
+            print 'littrow_ghost.txt file already exists. Using that for mask.'
+            littrow_ghost = np.genfromtxt('littrow_ghost.txt')
+            litt_low = int(littrow_ghost[0])
+            litt_hi = int(littrow_ghost[1])
+        else:
+            print 'Finding and saving littrow ghost location'
+            littrow_ghost = find_littrow(flat)
+            litt_low = int(littrow_ghost[0])
+            litt_hi = int(littrow_ghost[1])
+        image_masked = flat_data.copy()
+        rows = image_masked.shape[0]
+        columns = np.arange(image_masked.shape[1])
+        columns_littrow = np.linspace(litt_low,litt_hi,num=(litt_hi-litt_low)+1)
+        for x in np.arange(rows):
+            row_data = np.concatenate((flat_data[x,litt_low-15:litt_low+1],flat_data[x,litt_hi:litt_hi+16]))
+            columns_fit = np.concatenate((columns[litt_low-15:litt_low+1],columns[litt_hi:litt_hi+16]))
+            pol = np.polyfit(columns_fit,row_data,2)
+            polp = np.poly1d(pol)
+            #if (x > 80) and (x < 90):
+            #    plt.plot(columns_fit,row_data,'b+')
+            #    plt.plot(columns_fit,polp(columns_fit),'r')
+            #    plt.show()
+            if x == 100:
+                diagnostic[0:len(columns_fit),11] = columns_fit
+                diagnostic[0:len(row_data),12] = row_data
+                diagnostic[0:len(row_data),13] = polp(columns_fit)
+            image_masked[x,litt_low:litt_hi+1] = polp(columns_littrow)
+    else:
+        #These are dummy values so we can concatenate below 
+        litt_low = 100
+        litt_hi = 99
+        image_masked = flat_data.copy()
+
+    kernel_size = 20 #size of boxcar kernel to convolve with image
+    boxcar_kernel = Box2DKernel(kernel_size)
+
+    image_pad = np.pad(image_masked,kernel_size,'edge') #Pad to reduce edge effects
+    image_smooth = convolve(image_pad,boxcar_kernel)
+    image_smooth_unpad = image_smooth[kernel_size:(-1*kernel_size),kernel_size:(-1*kernel_size)]
+
+    image_divided = flat_data / image_smooth_unpad
+
+    plt.clf()
+    plt.plot(image_divided[100,:])
+    #plt.show()
+
+    if flat.lower().__contains__("blue"):
+        diagnostic[0:len(image_divided[100,:]),14] = image_divided[100,:]
+    if flat.lower().__contains__("red"):
+        diagnostic[0:len(image_divided[100,:]),15] = image_divided[100,:]
+
+
+    # Copy Header, write changes, and write file #
+    hdu = fits.getheader(flat)
+    Fix_Header(hdu)
+    hdu.append( ('FLATTYPE', 'BOXCAR','Kernel used to flatten'), useblanks= True, bottom= True )
+    hdu.append(('KERNEL',kernel_size,'Kernel size used'), useblanks= True, bottom= True )
+    NewHdu = fits.PrimaryHDU(data= image_divided, header= hdu)
+    norm_flat_name= check_file_exist('n'+flat)
+    NewHdu.writeto(norm_flat_name, output_verify='warn', clobber= True )
     
+    print '\nFlat: %s Mean: %.3f StDev: %.3f' % (norm_flat_name, np.mean(flat_data), np.std(flat_data))
+    return (norm_flat_name)
+
+
+
+
 # ===========================================================================    
     
 def Flat_Field( spec_list, flat ):
@@ -541,39 +644,57 @@ def Flat_Field( spec_list, flat ):
     # the flat fielded images. 
     print "\n====================\n" 
     print 'Flat Fielding Images by Dividing by %s\n' % (flat) 
-        
+    
     np.seterr(divide= 'warn')
     flat_data = fits.getdata(flat)
-    #If flat is a blue spectrum, find the Littro ghost and add those pixels to the header
+    #If flat is a blue spectrum, find the Littrow ghost and add those pixels to the header
     if 'blue' in flat.lower():
-        fit_data = np.median(flat_data[0][75:85],axis=0)
-        low_index = 1210. #Lowest pixel to search within
-        high_index = 1710. #highest pixel to search within
-        fit_data1 = fit_data[low_index:high_index]
-        fit_pix1 = np.linspace(low_index,low_index+len(fit_data1),num=len(fit_data1))
-        max_pixel = np.argmax(fit_data1)
-        fit_data2 = fit_data1[max_pixel-30:max_pixel+30]
-        guess1 = np.zeros(5)
-        guess1[0] = np.mean(fit_data2)
-        guess1[1] = (fit_data2[-1]-fit_data2[0])/len(fit_data2)
-        guess1[2] = np.amax(fit_data2)
-        guess1[3] = np.argmax(fit_data2)
-        guess1[4] = 4.
-        error_fit1 = np.ones(len(fit_data2))
-        xes1 = np.linspace(0,len(fit_data2)-1,num=len(fit_data2))
-        fa1 = {'x':xes1,'y':fit_data2,'err':error_fit1}
-        fitparams1 = mpfit.mpfit(fitgaussslope,guess1,functkw=fa1,quiet=True)
-        center_pixel = low_index+max_pixel-30.+fitparams1.params[3]
-        littrow_ghost = [np.rint(center_pixel-9.),np.rint(center_pixel+9.)]
-        diagnostic[0:len(fit_pix1),17] = fit_pix1
-        diagnostic[0:len(fit_data1),18] = fit_data1
-        diagnostic[0:len(xes1+low_index+max_pixel-30.),19] = xes1+low_index+max_pixel-30.
-        diagnostic[0:len(gaussslope(xes1,fitparams1.params)),20] = gaussslope(xes1,fitparams1.params)
-        diagnostic[0,21] = littrow_ghost[0]
-        diagnostic[1,21] = littrow_ghost[1]
+        #See if littrow_ghost.txt already exists
+        file_exist = glob('littrow_ghost.txt')
+        if len(file_exist) == 1:
+            littrow_location = np.genfromtxt('littrow_ghost.txt')
+            littrow_ghost = [littrow_location[0],littrow_location[1]]
+            fit_data = np.median(flat_data[75:85],axis=0)
+            low_index = 1210. #Lowest pixel to search within
+            high_index = 1710. #highest pixel to search within
+            fit_data1 = fit_data[low_index:high_index]
+            fit_pix1 = np.linspace(low_index,low_index+len(fit_data1),num=len(fit_data1))
+            diagnostic[0:len(fit_pix1),17] = fit_pix1
+            diagnostic[0:len(fit_data1),18] = fit_data1
+            diagnostic[0,21] = littrow_ghost[0]
+            diagnostic[1,21] = littrow_ghost[1]
+        else:
+            fit_data = np.median(flat_data[75:85],axis=0)
+            low_index = 1210. #Lowest pixel to search within
+            high_index = 1700. #highest pixel to search within
+            fit_data1 = fit_data[low_index:high_index]
+            fit_pix1 = np.linspace(low_index,low_index+len(fit_data1),num=len(fit_data1))
+            max_pixel = np.argmax(fit_data1)
+            fit_data2 = fit_data1[max_pixel-30:max_pixel+30]
+            guess1 = np.zeros(5)
+            guess1[0] = np.mean(fit_data2)
+            guess1[1] = (fit_data2[-1]-fit_data2[0])/len(fit_data2)
+            guess1[2] = np.amax(fit_data2)
+            guess1[3] = np.argmax(fit_data2)
+            guess1[4] = 4.
+            error_fit1 = np.ones(len(fit_data2))
+            xes1 = np.linspace(0,len(fit_data2)-1,num=len(fit_data2))
+            fa1 = {'x':xes1,'y':fit_data2,'err':error_fit1}
+            fitparams1 = mpfit.mpfit(fitgaussslope,guess1,functkw=fa1,quiet=True)
+            center_pixel = low_index+max_pixel-30.+fitparams1.params[3]
+            littrow_ghost = [np.rint(center_pixel-9.),np.rint(center_pixel+9.)]
+            np.savetxt('littrow_ghost.txt',[np.rint(center_pixel-9.),np.rint(center_pixel+9.)])
+            diagnostic[0:len(fit_pix1),17] = fit_pix1
+            diagnostic[0:len(fit_data1),18] = fit_data1
+            diagnostic[0:len(xes1+low_index+max_pixel-30.),19] = xes1+low_index+max_pixel-30.
+            diagnostic[0:len(gaussslope(xes1,fitparams1.params)),20] = gaussslope(xes1,fitparams1.params)
+            diagnostic[0,21] = littrow_ghost[0]
+            diagnostic[1,21] = littrow_ghost[1]
     else:
         littrow_ghost = 'None'
     f_spec_list = []
+    if isinstance(spec_list,str):
+        spec_list = [spec_list] #Ensure that spec_list is actually a list
     for spec in spec_list:
         spec_data = fits.getdata(spec)
         f_spec_data = np.divide(spec_data, flat_data)
@@ -590,6 +711,58 @@ def Flat_Field( spec_list, flat ):
         NewHdu.writeto(new_file_name, output_verify='warn', clobber= True)
         f_spec_list.append(new_file_name)
     return f_spec_list
+
+# ===========================================================================
+
+def find_littrow(flat):
+    print 'Finding Littrow Ghost'
+    #Do a normalization first.
+    flat_data = fits.getdata(flat)
+    flat_data[ np.isnan(flat_data) ] = 0
+    fit_data= np.median(flat_data[0][95:105], axis=0) # Median of center Rows
+    X= range(0,len(fit_data)) # Column Numbers 
+    # Fit the data removeing the limits of the overscan regions. #
+    lo= 10; #10
+    hi= 2055; #2055
+    coeff = np.polyfit(X[lo:hi],fit_data[lo:hi],4)
+    profile = np.poly1d(coeff)(X)
+    #plt.clf()
+    #plt.plot(X[lo:hi],fit_data[lo:hi],'bo')
+    #plt.plot(X,profile)
+    #plt.show()
+    for row in flat_data[0]:
+        i = 0;
+        while i < len(row):
+            row[i] = row[i]/profile[i]
+            i += 1
+
+    fit_data = np.median(flat_data[0][75:85],axis=0)
+    low_index = 1210. #Lowest pixel to search within
+    high_index = 1650. #highest pixel to search within
+    fit_data1 = fit_data[low_index:high_index]
+    fit_pix1 = np.linspace(low_index,low_index+len(fit_data1),num=len(fit_data1))
+    max_pixel = np.argmax(fit_data1)
+    fit_data2 = fit_data1[max_pixel-30:max_pixel+30]
+    guess1 = np.zeros(5)
+    guess1[0] = np.mean(fit_data2)
+    guess1[1] = (fit_data2[-1]-fit_data2[0])/len(fit_data2)
+    guess1[2] = np.amax(fit_data2)
+    guess1[3] = np.argmax(fit_data2)
+    guess1[4] = 4.
+    error_fit1 = np.ones(len(fit_data2))
+    xes1 = np.linspace(0,len(fit_data2)-1,num=len(fit_data2))
+    fa1 = {'x':xes1,'y':fit_data2,'err':error_fit1}
+    fitparams1 = mpfit.mpfit(fitgaussslope,guess1,functkw=fa1,quiet=True)
+    center_pixel = low_index+max_pixel-30.+fitparams1.params[3]
+    littrow_ghost = [np.rint(center_pixel-9.),np.rint(center_pixel+9.)]
+    np.savetxt('littrow_ghost.txt',[np.rint(center_pixel-9.),np.rint(center_pixel+9.)])
+    plt.clf()
+    plt.plot(fit_pix1,fit_data1)
+    plt.axvline(littrow_ghost[0])
+    plt.axvline(littrow_ghost[1])
+    plt.show()
+    return littrow_ghost
+    
 
 # ===========================================================================
 

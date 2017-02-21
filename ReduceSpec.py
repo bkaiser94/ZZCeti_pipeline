@@ -114,11 +114,20 @@ def reduce_now(args):
                         lo_sig= 10, hi_sig= 3, overwrite= overwrite) )
         i= i+1
     
-    # Normalize Flat (divide by average of counts) # 
+    #Trim flats#
+    tcomb_flat = []
+    i= 0
+    while i < nf:
+        tcomb_flat.append(rt.Trim_Spec(comb_flat[i])) 
+        i= i+1
+              
+
+    # Normalize Flat # 
     i= 0
     nb_flat= []
     while i < nf:
-        nb_flat.append( rt.Norm_Flat_Poly(comb_flat[i]) )
+        #nb_flat.append( rt.Norm_Flat_Poly(tcomb_flat[i]) ) # (divide by average of counts)
+        nb_flat.append(rt.Norm_Flat_Boxcar(tcomb_flat[i]))
         i= i+1
 
     # Bias Subtract Spec # 
@@ -129,6 +138,14 @@ def reduce_now(args):
         b_spec_list.append( rt.Bias_Subtract(spec_lists[i], comb_zero) )
         i= i+1
     
+    #Trim Spectra#
+    tb_spec_list = []
+    i= 0
+    while i < nsp:
+        for x in range(0,len(b_spec_list[i])):
+            tb_spec_list.append(rt.Trim_Spec(b_spec_list[i][x])) 
+        i= i+1
+                        
     # Flat Field Individual Spectra #
     blueindex = [i for i, s in enumerate(nb_flat) if 'blue' in s.lower()]
     nbflatblue = nb_flat[blueindex[0]]
@@ -136,61 +153,47 @@ def reduce_now(args):
     if len(redindex) > 0:
         nbflatred = nb_flat[redindex[0]]
     i= 0
-    fb_spec_list = []
+    ftb_spec_list = []
+    tb_spec_list = rt.List_Combe(tb_spec_list)
     while i < nsp:
-        if b_spec_list[i][0].lower().__contains__('blue') == True:
-            fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nbflatblue) )
-        elif b_spec_list[i][0].lower().__contains__('red') == True:
-            fb_spec_list.append( rt.Flat_Field(b_spec_list[i], nbflatred) )
+        if tb_spec_list[i][0].lower().__contains__('blue') == True:
+            ftb_spec_list.append( rt.Flat_Field(tb_spec_list[i], nbflatblue) )
+        elif tb_spec_list[i][0].lower().__contains__('red') == True:
+            ftb_spec_list.append( rt.Flat_Field(tb_spec_list[i], nbflatred) )
         else: 
             print ("Problem applying the Flats." )
             print ("Could not identify blue or red setup.")
         i= i+1
-    
+
     # Save all diagnostic info
     rt.save_diagnostic()
     
-    # Trim Spectra # 
-    #print fb_spec_list
-    tfb_spec = []
-    i= 0
-    while i < nsp:
-        for x in range(0,len(fb_spec_list[i])):
-            tfb_spec.append(rt.Trim_Spec(fb_spec_list[i][x])) 
-        i= i+1
-                        
     #LA Cosmic
     i = 0
-    ctfb_spec = []
-    ctfb_mask = []
-    #print tfb_spec
-    #print nsp
-    while i < len(tfb_spec):
-        #print tfb_spec[i]
-        lacos_spec, lacos_mask = rt.lacosmic(tfb_spec[i])
-        ctfb_spec.append(lacos_spec)
-        ctfb_mask.append(lacos_mask)
-        #ctfb_spec.append(rt.lacosmic(tfb_spec[i]))
+    cftb_spec = []
+    cftb_mask = []
+    while i < nsp:
+        m = 0
+        while m < len(ftb_spec_list[i]):
+            lacos_spec, lacos_mask = rt.lacosmic(ftb_spec_list[i][m])
+            cftb_spec.append(lacos_spec)
+            cftb_mask.append(lacos_mask)
+            m += 1
         i += 1
     
-    ctfb_spec_list = rt.List_Combe(ctfb_spec)
-    ctfb_mask_list = rt.List_Combe(ctfb_mask)
+    cftb_spec_list = rt.List_Combe(cftb_spec)
+    cftb_mask_list = rt.List_Combe(cftb_mask)
     
     # Combine Spectra # 
     i= 0 
     comb_fb_spec = []
     while i < nsp:
-        rt.checkspec(ctfb_spec_list[i])
-        comb_fb_spec.append ( rt.imcombine(ctfb_spec_list[i], 'ctfb.'+spec_names[i], 'average', 
-                                           lo_sig= 10, hi_sig= 3, overwrite= overwrite,mask=ctfb_mask_list[i]) )
+        rt.checkspec(cftb_spec_list[i])
+        comb_fb_spec.append ( rt.imcombine(cftb_spec_list[i], 'cftb.'+spec_names[i], 'average', 
+                                           lo_sig= 10, hi_sig= 3, overwrite= overwrite,mask=cftb_mask_list[i]) )
         i= i+1
 
-#    # Trim Spectra # 
-#    i= 0
-#    while i < nsp:
-#        rt.Trim_Spec(comb_fb_spec[i]); 
-#        i= i+1
-#                        
+     
     print "\n====================\n"
 
     #########################################
