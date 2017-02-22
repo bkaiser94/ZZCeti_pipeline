@@ -2,7 +2,7 @@
 """
 Diagnostic Plots for Pipeline
 Author: Patrick O'Brien
-Date: October 2016
+Date last updated: February 2017
 """
 # Import statements
 from glob import glob
@@ -309,7 +309,7 @@ def diagnostic_plots_cals(file_name, flags):
     flags['BlueFlat1'] = blueflat1_flag
     flags['BlueFlat2'] = blueflat2_flag
     flags['BluePoly'] = blue_poly_flag
-    flags['BlueCutt'] = blue_cut_flag
+    flags['BlueCut'] = blue_cut_flag
     flags['Littrow'] = littrow_flag
     
     if len(flat_red_bs) > 0:
