@@ -136,6 +136,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
             plt.clf()
             plt.plot(fitpixel,fwhmclipped,'^')
             plt.plot(allpixel,fwhmpoly(allpixel),'g')
+            plt.title(specfile)
             plt.show()
             repeat = raw_input('Do you want to try again (yes/no)? ')
             if repeat == 'yes':
