@@ -2,7 +2,7 @@
 """
 Diagnostic Plots for Pipeline
 Author: Patrick O'Brien
-Date: October 2016
+Date last updated: February 2017
 """
 # Import statements
 from glob import glob
@@ -12,10 +12,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 from PyPDF2 import PdfFileMerger
 import pandas as pd
+original_date = os.getcwd()[-10::]
 
 ##### Flags #####
 # thresholds and constants
-num_flags = 22
+num_flags = 23
 num_sigma = 2
 fwhm_tol = 1
 pos_tol = 5
@@ -25,11 +26,16 @@ ext_prof_tol = 5
 background_fit_tol = 5
 wave_fit_tol = 0.15
 
+pdfs = glob('diagnostics_plots.pdf')
+for f in pdfs:
+    os.remove(f)
+pdfs = []
+
 # Set up flags table
 def setup_flags_table(fwhm_file_name):
     arr = np.genfromtxt(fwhm_file_name, dtype=None,delimiter='\t')
     data = [ [0 for col in range(num_flags)] for row in range(len(arr))]
-    flags = pd.DataFrame(data, columns = ['Star', 'Exposure','Date', 'Bias1', 'Bias2', 'BlueFlat1','BlueFlat2', 'RedFlat1', 'RedFlat2', 'BluePoly', 'RedPoly', 'Littrow', 'ExtFWHM', 'ExtProf', 'FitToBack', 'ProfFWHM', 'ProfPos', 'PeakGauss', 'ResponseBlue', 'ResponseRed', 'WaveFitResBlue', 'WaveFitResRed'])
+    flags = pd.DataFrame(data, columns = ['Star', 'Exposure','Date', 'Bias1', 'Bias2', 'BlueFlat1','BlueFlat2', 'RedFlat1', 'RedFlat2', 'BluePoly', 'BlueCut', 'RedCut', 'Littrow', 'ExtFWHM', 'ExtProf', 'FitToBack', 'ProfFWHM', 'ProfPos', 'PeakGauss', 'ResponseBlue', 'ResponseRed', 'WaveFitResBlue', 'WaveFitResRed'])
     return flags
 
 # Use the FWHM_records file to determine how many total exposures there were for the given date
@@ -56,6 +62,7 @@ def unique_star_names(seq, idfun=None):
 def diagnostic_plots_cals(file_name, flags):
     date = str(file_name[10:20])
     pp = PdfPages('cal_plots.pdf')
+    pdfs.append('cal_plots.pdf')
 
     arr = np.genfromtxt(file_name, dtype=None, delimiter=' ')
     
@@ -63,7 +70,7 @@ def diagnostic_plots_cals(file_name, flags):
     flat_blue_bs, flat_blue_std_bs, flat_blue_as, flat_blue_std_as = [],[],[], []
     flat_red_bs, flat_red_std_bs, flat_red_as, flat_red_std_as = [],[],[], []
     blue_pix, blue_val, blue_poly = [],[],[]
-    red_pix, red_val, red_poly = [],[],[]
+    blue_cut_row100, red_cut_row100, junk_zeros = [],[],[]
     littrow_pix, littrow_val, fit_pix_lit, fit_lit, masked_edges = [],[],[],[],[]
 
     for m in np.arange(len(arr)):
@@ -86,9 +93,9 @@ def diagnostic_plots_cals(file_name, flags):
         blue_val.append(arr[m][12])
         blue_poly.append(arr[m][13])
         
-        red_pix.append(arr[m][14])
-        red_val.append(arr[m][15])
-        red_poly.append(arr[m][16])
+        blue_cut_row100.append(arr[m][14])
+        red_cut_row100.append(arr[m][15])
+        junk_zeros.append(arr[m][16])
     
         littrow_pix.append(arr[m][17])
         littrow_val.append(arr[m][18])
@@ -138,15 +145,12 @@ def diagnostic_plots_cals(file_name, flags):
     blue_poly = np.array(blue_poly)
     blue_poly = np.trim_zeros(blue_poly, 'b')
     
-    red_pix = np.array(red_pix)
-    red_pix = np.trim_zeros(red_pix, 'b')
+    blue_cut_row100 = np.array(blue_cut_row100)
+    blue_cut_row100 = np.trim_zeros(blue_cut_row100, 'b')
     
-    red_val = np.array(red_val)
-    red_val = np.trim_zeros(red_val, 'b')
-    
-    red_poly = np.array(red_poly)
-    red_poly = np.trim_zeros(red_poly, 'b')
-    
+    red_cut_row100 = np.array(red_cut_row100)
+    red_cut_row100 = np.trim_zeros(red_cut_row100, 'b')
+
     bias_bs = np.array(bias_bs)
     bias_bs = np.trim_zeros(bias_bs, 'b')
     
@@ -216,22 +220,31 @@ def diagnostic_plots_cals(file_name, flags):
         
     plt.figure()
     plt.plot(blue_pix, blue_val,'o')
-    plt.plot(np.arange(len(blue_poly)),blue_poly,'g')
+    plt.plot(blue_pix, blue_poly,'g')
     plt.xlabel('Pixel')
     plt.ylabel('Value')
-    plt.title('Blue Polynomial Check')
+    plt.title('Blue Polynomial Littrow Fit Check')
     plt.savefig(pp,format='pdf')
     plt.close()
+
+    plt.figure()
+    plt.plot(np.arange(len(blue_cut_row100)), blue_cut_row100, 'b')
+    plt.plot(np.arange(len(blue_cut_row100)), np.ones(len(blue_cut_row100)), 'k--')
+    plt.xlabel('Pixel')
+    plt.ylabel('Value')
+    plt.title('Cut Along Row 100 - Blue')
+    plt.savefig(pp, format='pdf')
+    plt.close()
     
-    if len(red_val > 0):
+    if len(red_cut_row100 > 0):
         plt.figure()
-        plt.plot(red_pix, red_val,'ro')
-        plt.plot(np.arange(len(red_poly)),red_poly,'g')
+        plt.plot(np.arange(len(red_cut_row100)), red_cut_row100, 'r')
+        plt.plot(np.arange(len(red_cut_row100)), np.ones(len(red_cut_row100)), 'k--')
         plt.xlabel('Pixel')
         plt.ylabel('Value')
-        plt.title('Red Polynomial Check')
-        plt.savefig(pp,format='pdf')
-        plt.close()    
+        plt.title('Cut Along Row 100 - Red')
+        plt.savefig(pp, format='pdf')
+        plt.close()
     
     plt.figure()
     plt.plot(littrow_pix, littrow_val, 'k-')
@@ -254,14 +267,13 @@ def diagnostic_plots_cals(file_name, flags):
     redflat1_flag = 0
     redflat2_flag = 0
     blue_poly_flag = 0
-    red_poly_flag = 0
+    blue_cut_flag = 0
+    red_cut_flag = 0
     littrow_flag = 0
     unscaled_bias_std = np.std(bias_bs)
     scaled_bias_std = np.std(bias_as)
     unscaled_blue_flat_std = np.std(flat_blue_bs)
     scaled_blue_flat_std = np.std(flat_blue_as)
-    unscaled_red_flat_std = np.std(flat_red_bs)
-    scaled_red_flat_std = np.std(flat_red_as)
     
     if all( (np.mean(bias_bs) - 2*unscaled_bias_std) <= x <= (np.mean(bias_bs) + 2*unscaled_bias_std) for x in bias_bs):
         bias1_flag = 0
@@ -279,22 +291,14 @@ def diagnostic_plots_cals(file_name, flags):
         blueflat2_flag = 0
     else:
         blueflat2_flag = 1
-    if all( (np.mean(flat_red_bs) - 2*unscaled_red_flat_std) <= x <= (np.mean(flat_red_bs) + 2*unscaled_red_flat_std) for x in flat_red_bs):
-        redflat1_flag = 0
-    else:
-        redflat1_flag = 1
-    if all( (np.mean(flat_red_as) - 2*scaled_red_flat_std) <= x <= (np.mean(flat_red_as) + 2*scaled_red_flat_std) for x in flat_red_as):
-        redflat2_flag = 0
-    else:
-        redflat2_flag = 1
-    if all( abs((blue_val[x] - blue_poly[x])) < 1000 for x in range(len(blue_pix))):
+    if all( abs((blue_val[x] - blue_poly[x])) < 250 for x in range(len(blue_pix))):
         blue_poly_flag = 0
     else:
         blue_poly_flag = 1
-    if all( abs(red_val[x] - red_poly[x]) < 500 for x in range(101)):  # Only look at first 100 pixels on red due to fringing
-        red_poly_flag = 0
+    if all( abs((blue_cut_row100[x] - 1.0)) < 0.1 for x in range(len(blue_cut_row100))):
+        blue_cut_flag = 0
     else:
-        red_poly_flag = 1
+        blue_cut_flag = 1    
     if abs(np.average([edge1, edge2]) - 1400) < 10:
         littrow_flag = 0
     else:
@@ -304,11 +308,29 @@ def diagnostic_plots_cals(file_name, flags):
     flags['Bias2'] = bias2_flag
     flags['BlueFlat1'] = blueflat1_flag
     flags['BlueFlat2'] = blueflat2_flag
+    flags['BluePoly'] = blue_poly_flag
+    flags['BlueCut'] = blue_cut_flag
+    flags['Littrow'] = littrow_flag
+    
+    if len(flat_red_bs) > 0:
+        unscaled_red_flat_std = np.std(flat_red_bs)
+        scaled_red_flat_std = np.std(flat_red_as)
+        if all( (np.mean(flat_red_bs) - 2*unscaled_red_flat_std) <= x <= (np.mean(flat_red_bs) + 2*unscaled_red_flat_std) for x in flat_red_bs):
+            redflat1_flag = 0
+        else:
+            redflat1_flag = 1
+        if all( (np.mean(flat_red_as) - 2*scaled_red_flat_std) <= x <= (np.mean(flat_red_as) + 2*scaled_red_flat_std) for x in flat_red_as):
+            redflat2_flag = 0
+        else:
+            redflat2_flag = 1
+        if all( abs((red_cut_row100[x] - 1.0)) < 0.1 for x in range(len(red_cut_row100))):
+            red_cut_flag = 0
+        else:
+            red_cut_flag = 1   
+          
     flags['RedFlat1'] = redflat1_flag
     flags['RedFlat2'] = redflat2_flag
-    flags['BluePoly'] = blue_poly_flag
-    flags['RedPoly'] = red_poly_flag
-    flags['Littrow'] = littrow_flag
+    flags['RedCut'] = red_cut_flag
 
 ##### ------------------------------------------------------------------ #####
 # FWHM / Profile Position function
@@ -316,7 +338,7 @@ def diagnostic_plots_FWHM(file_name, flags):
     date = str(file_name[13:23])
     
     pp = PdfPages('fwhm_plots.pdf')
-    
+    pdfs.append('fwhm_plots.pdf')
     def unique_star_names(seq, idfun=None): 
        # order preserving
        if idfun is None:
@@ -438,6 +460,7 @@ def diagnostic_plots_wavecal(files, flags):
     star_name = str(files[0][8:-21])
     pdf_name = 'wavecal_plots_' + star_name + '.pdf'
     pp = PdfPages(pdf_name)
+    pdfs.append(pdf_name)
     blue_arr = []
     red_arr = []
     if len(files) == 1:
@@ -614,6 +637,7 @@ def diagnostic_plots_continuum(file_name, flags):
     star_name = str(file_name[24:-21])
     pdf_name = 'modelcal_plots_' + star_name + '.pdf'
     pp = PdfPages(pdf_name)
+    pdfs.append(pdf_name)
 
     arr = np.genfromtxt(file_name, dtype=None, delimiter=' ')
 
@@ -760,6 +784,7 @@ def diagnostic_plots_extraction(file_name, flags):
 
     pdf_name = 'extraction_plots_' + star_name + '.pdf'
     pp = PdfPages(pdf_name)
+    pdfs.append(pdf_name)
 
     arr = np.genfromtxt(file_name, dtype=None, delimiter=' ')
 
@@ -862,7 +887,7 @@ def diagnostic_plots_extraction(file_name, flags):
         ext_FWHM_flag = 0
     else:
         ext_FWHM_flag = 1
-    if all( abs(prof_pos[x] - fit_prof_pos[prof_pix[x]]) < ext_prof_tol for x in range(len(prof_pos)) ):
+    if all( abs(prof_pos[x] - fit_prof_pos[int(prof_pix[x])]) < ext_prof_tol for x in range(len(prof_pos)) ):
         ext_profile_flag = 0
     else:
         ext_profile_flag = 1
@@ -885,16 +910,16 @@ model_cal_files = glob('continuum_normalization*.txt')
 extraction_files = glob('extraction_*_*.txt')
 
 ##### ------------------------------------------------------------------ #####
-# FWHM
-for i in range(len(fwhm_files)):    # First line not commented out
-    file_name = str(fwhm_files[i])
-    diagnostic_plots_FWHM(file_name, flags)
-
-##### ------------------------------------------------------------------ #####
 # Calibrations
 for i in range(len(cal_files)): # Repeat copy of data below
     file_name = str(cal_files[i])
     diagnostic_plots_cals(file_name, flags)
+    
+##### ------------------------------------------------------------------ #####
+# FWHM
+for i in range(len(fwhm_files)):    # First line not commented out
+    file_name = str(fwhm_files[i])
+    diagnostic_plots_FWHM(file_name, flags)
 
 ##### ------------------------------------------------------------------ #####
 # Wavelength Calibrations
@@ -932,7 +957,7 @@ for i in range(len(extraction_files)):
      
 ######------------------------------------------------------------------ #####
 # Merge all pdfs of plots
-pdfs = glob('*.pdf')
+#pdfs = glob('*.pdf')
 outfile = PdfFileMerger()
 
 for f in pdfs:
