@@ -123,12 +123,30 @@ def reduce_now(args):
               
 
     # Normalize Flat # 
+    #i= 0
+    #nb_flat1= []
+    #while i < nf:
+    #    #nb_flat1.append( rt.Norm_Flat_Poly(tcomb_flat[i]) ) # (divide by average of counts)
+    #    #nb_flat.append(rt.Norm_Flat_Boxcar(tcomb_flat[i]))
+    #    i= i+1
+
+    # Normalize Flat # 
     i= 0
     nb_flat= []
     while i < nf:
+        if 'blue' in tcomb_flat[i]:
+            nb_flat.append(rt.Norm_Flat_Boxcar_Multiples(tcomb_flat[i]))
+        else:
+            flat_temp = []
+            flat_temp.append( rt.Norm_Flat_Poly(tcomb_flat[i]) )
+            nb_flat.append( rt.Norm_Flat_Boxcar(flat_temp[0]))
         #nb_flat.append( rt.Norm_Flat_Poly(tcomb_flat[i]) ) # (divide by average of counts)
-        nb_flat.append(rt.Norm_Flat_Boxcar(tcomb_flat[i]))
+        #nb_flat.append(rt.Norm_Flat_Boxcar(nb_flat1[i]))
+        #nb_flat.append(rt.Norm_Flat_Boxcar_Multiples(tcomb_flat[i]))
         i= i+1
+
+
+
 
     # Bias Subtract Spec # 
     i= 0
