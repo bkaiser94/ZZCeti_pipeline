@@ -424,6 +424,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
         specfile = np.array([specfile])
     length = len(specfile)
     airwd = np.zeros([length])
+    bean = 0
     #if length == 1:
     #    redfile = False
     #else:
@@ -522,6 +523,27 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
         #plt.clf()
         #plt.plot(WD_spectra.warr,star_opflux)
         #plt.show()
+
+        #Save final spectra if using master response
+        if masterresp:
+            if avocado == 0:
+                diagnostic_array = np.zeros([len(WD_spectra1.warr),2*length])
+            diagnostic_array[0:len(WD_spectra1.warr),bean] = WD_spectra1.warr
+            bean += 1
+            diagnostic_array[0:len(star_opflux1),bean] = star_opflux1
+            bean += 1
+            if redfile:
+                diagnostic_array[0:len(WD_spectra2.warr),bean] = WD_spectra2.warr
+                bean += 1
+                diagnostic_array[0:len(star_opflux2),bean] = star_opflux2
+                bean += 1
+        if avocado == (length -1 ) or (redfile == True and avocado == (length-2)):
+            print 'Saveing diagnostic file.'
+            now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+            with open('flux_fits_' + now + '.txt','a') as handle:
+                header = str(specfile) + '\n Each star is formatted as wavelength, flux'
+                np.savetxt(handle,diagnostic_array,fmt='%.10e',header=header)
+
 
         print 'Saving the final spectrum.'
         

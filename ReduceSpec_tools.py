@@ -26,12 +26,12 @@ from astropy.convolution import convolve, Box2DKernel
 
 def init():
     global diagnostic
-    diagnostic = np.zeros([2071,22])
+    diagnostic = np.zeros([2071,28])
 
 def save_diagnostic():
     global now
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-    header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11)Blue Pixels for polynomial fit over littrow ghost, 12) Blue values for polynomial fit over littrow ghost, 13)Polynomial fit mask out littrow ghost  \n 14) Cut along row 100 for blue flat, 15) Cut along row 100 for red flat, 16) junk zeros \n 17) Range of pixels used to find the littrow ghost, 18) Range of values used to find the littrow ghost, 19) Range of pixels used to fit the littrow ghost, 20) Gaussian fit to small number of pixels to find the center of the littrow ghost, 21) The upper and lower edges of the masked region saved to the header'
+    header = 'Reduction done on ' + now + '\n Zeros in a whole column typically mean blue/red setup not included. Will need to strip zeros from end. \n Columns are: 0) average from bias, 1) average from scaled bias, 2) standard deviation of bias \n 3) Blue flat field average, 4) Blue flat field standard deviation, 5) Blue flat field scaled average, 6) Blue flat field scaled standard deviation \n 7) Red flat field average, 8) Red flat field standard deviation, 9) Red flat field scaled average, 10) Red flat field scaled standard deviation \n 11)Blue Pixels for polynomial fit over littrow ghost, 12) Blue values for polynomial fit over littrow ghost, 13)Polynomial fit mask out littrow ghost  \n 14) Cut along row 100 for blue flat, 15) Cut along row 100 for red flat, 16) junk zeros \n 17) Range of pixels used to find the littrow ghost, 18) Range of values used to find the littrow ghost, 19) Range of pixels used to fit the littrow ghost, 20) Gaussian fit to small number of pixels to find the center of the littrow ghost, 21) The upper and lower edges of the masked region saved to the header \n  22) Combined blue flat pixel values, 23) Combined blue flat values, 24) Polynomial fit to combined blue flat \n 25) Combined red flat pixel values, 26) Combined red flat values, 27) Polynomial fit to combined red flat '
     with open('reduction_' + now + '.txt','a') as handle:
         np.savetxt(handle,diagnostic,fmt='%f',header=header)
 
@@ -54,6 +54,13 @@ def fitgaussslope(p,fjac=None,x=None,y=None,err=None):
     model = gaussslope(x,p)
     status = 0
     return([status,(y-model)/err])
+
+def adcstat(specname):
+    hdu = fits.getheader(specname)
+    adc_stat = hdu['ADCSTAT']
+    print 'ADC status during observations was ', adc_stat
+    return adc_stat
+
 
 def checkspec(listcheck):
     #Calculates the FWHM and profile postion for two points on each spectrum
@@ -525,14 +532,14 @@ def Norm_Flat_Poly( flat ):
     #plt.plot(X,profile,'r')
     #plt.show()
     #Save values for diagnostics
-    if flat.lower().__contains__("blue"):
-        diagnostic[0:len(X[lo:hi]),11] = X[lo:hi]
-        diagnostic[0:len(fit_data[lo:hi]),12] = fit_data[lo:hi]
-        diagnostic[0:len(profile),13] = profile
+    #if flat.lower().__contains__("blue"):
+    #    diagnostic[0:len(X[lo:hi]),22] = X[lo:hi]
+    #    diagnostic[0:len(fit_data[lo:hi]),23] = fit_data[lo:hi]
+    #    diagnostic[0:len(profile),24] = profile
     if flat.lower().__contains__("red"):
-        diagnostic[0:len(X[lo:hi]),14] = X[lo:hi]
-        diagnostic[0:len(fit_data[lo:hi]),15] = fit_data[lo:hi]
-        diagnostic[0:len(profile),16] = profile
+        diagnostic[0:len(X[lo:hi]),25] = X[lo:hi]
+        diagnostic[0:len(fit_data[lo:hi]),26] = fit_data[lo:hi]
+        diagnostic[0:len(profile),27] = profile
     # Divide each Row by the Profile # 
     for row in flat_data[0]:
         i= 0; 
@@ -635,12 +642,13 @@ def Norm_Flat_Boxcar( flat ):
 
 # ============================================================================    
 
-def Norm_Flat_Boxcar_Multiples( flat ):
+def Norm_Flat_Boxcar_Multiples( flat ,adc_stat=None):
     print 'Normalizing ', flat, 'by using multiple boxcars.'
     flat_image = fits.getdata(flat)
     quartz_data = flat_image[0,:,:] ###
-    hdu = fits.getheader(flat)
-    adc_stat = hdu['ADCSTAT']
+    if adc_stat == None:
+        hdu = fits.getheader(flat)
+        adc_stat = hdu['ADCSTAT']
     print 'Using ADC status: ', adc_stat
     if adc_stat == 'IN':
         dome_flat_directory = '/afs/cas.unc.edu/depts/physics_astronomy/clemens/students/group/domeflats/ADC'
@@ -759,16 +767,23 @@ def Norm_Flat_Boxcar_Multiples( flat ):
     # Calculate Fit # 
     coeff= np.polyfit(X[650:], fit_data[650:], order ) # coefficents of polynomial fit # 
     profile= np.poly1d(coeff)(X) # Profile Along Dispersion axis # 
-    plt.clf()
+    #plt.clf()
     #plt.plot(X[650:],fit_data[650:],'b')
     #plt.plot(X,profile,'r')
-    plt.plot(X[650:],fit_data[650:]/profile[650:])
+    #plt.plot(X[650:],fit_data[650:]/profile[650:])
     #plt.show()
     for row in nnQD:
         i= 0; 
         while i < len(row): 
             row[i]= row[i]/profile[i]
             i= i+1   
+    
+
+    if flat.lower().__contains__("blue"):
+        diagnostic[0:len(X[650:]),22] = X[650:]
+        diagnostic[0:len(fit_data[650:]),23] = fit_data[650:]
+        diagnostic[0:len(profile),24] = profile
+
 
     #newim = fits.PrimaryHDU(data=nnQD,header=domehdu.header)
     #newim.writeto('nnQD_blue.fits',clobber=True)
@@ -844,6 +859,9 @@ def Norm_Flat_Boxcar_Multiples( flat ):
 
     newimage = np.concatenate((leftside,rightside),axis=1)
 
+
+    if flat.lower().__contains__("blue"):
+        diagnostic[0:len(newimage[100,:]),14] = newimage[100,:]
 
     # Copy Header, write changes, and write file #
     hdu = fits.getheader(flat)
@@ -959,11 +977,11 @@ def find_littrow(flat):
     center_pixel = low_index+max_pixel-30.+fitparams1.params[3]
     littrow_ghost = [np.rint(center_pixel-9.),np.rint(center_pixel+9.)]
     np.savetxt('littrow_ghost.txt',[np.rint(center_pixel-9.),np.rint(center_pixel+9.)])
-    plt.clf()
-    plt.plot(fit_pix1,fit_data1)
-    plt.axvline(littrow_ghost[0])
-    plt.axvline(littrow_ghost[1])
-    plt.show()
+    #plt.clf()
+    #plt.plot(fit_pix1,fit_data1)
+    #plt.axvline(littrow_ghost[0])
+    #plt.axvline(littrow_ghost[1])
+    #plt.show()
     return littrow_ghost
     
 

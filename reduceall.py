@@ -129,6 +129,7 @@ for x in continuum_files:
 for x in single_spec_list:
     continuum_files.remove(x)
 continuum_files = sorted(continuum_files)
+print continuum_files
 '''
 stdlist = None
 fluxlist = None

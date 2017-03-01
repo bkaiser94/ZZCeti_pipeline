@@ -92,6 +92,9 @@ def reduce_now(args):
         
     #Set up array to save for diagnostics. This is defined in rt.init()
     rt.init()
+
+    #Check ADC status during observations
+    adc_status = rt.adcstat(spec_lists[0][0])
     
     # The rest of the code runs the reduction procces up to apall #  =========
     # Combine Zeros # 
@@ -135,7 +138,7 @@ def reduce_now(args):
     nb_flat= []
     while i < nf:
         if 'blue' in tcomb_flat[i]:
-            nb_flat.append(rt.Norm_Flat_Boxcar_Multiples(tcomb_flat[i]))
+            nb_flat.append(rt.Norm_Flat_Boxcar_Multiples(tcomb_flat[i],adc_stat=adc_status))
         else:
             flat_temp = []
             flat_temp.append( rt.Norm_Flat_Poly(tcomb_flat[i]) )
