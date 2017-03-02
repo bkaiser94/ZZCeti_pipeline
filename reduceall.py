@@ -114,7 +114,7 @@ while x < len(continuum_files):
         #print continuum_files[x]
         continuum_normalization.normalize_now(continuum_files[x],None,False,plotall=False)
         x += 1
-
+exit()
 #=========================
 #Begin Flux Calibration
 #=========================

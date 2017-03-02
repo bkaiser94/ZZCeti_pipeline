@@ -853,7 +853,13 @@ def Norm_Flat_Boxcar_Multiples( flat ,adc_stat=None):
     #Stictch the two images together
     ###############################
     print 'Stitching images together.'
-    stitchloc = 769.
+    try:
+        stitchloc_temp = np.genfromtxt('stitch_location.txt')
+        stitchloc = float(stitchloc_temp)
+        print 'Found stitch_location.txt file. Using ', stitchloc, ' for stitching location.'
+    except:
+        stitchloc = 747.
+        print 'No file found. Using ', stitchloc, ' for stitching location.'
     leftside = image_divided_quartz[:,:stitchloc]
     rightside = image_divided[:,stitchloc:]
 
@@ -911,8 +917,16 @@ def Flat_Field( spec_list, flat ):
             littrow_ghost = find_littrow(flat)
             litt_low = int(littrow_ghost[0])
             litt_hi = int(littrow_ghost[1])
+        try:
+            hduflat = fits.getheader(flat)
+            stitchloc = hduflat['STITCHLO']
+            print stitchloc
+        except:
+            stitchloc = 'None'
+            pass
     else:
         littrow_ghost = 'None'
+        stitchloc = 'None'
     f_spec_list = []
     if isinstance(spec_list,str):
         spec_list = [spec_list] #Ensure that spec_list is actually a list
@@ -926,7 +940,8 @@ def Flat_Field( spec_list, flat ):
         hdu.set('DATEFLAT', datetime.datetime.now().strftime("%Y-%m-%d"), 'Date of Flat Fielding')
         hdu.set('LITTROW',str(littrow_ghost),'Littrow Ghost location in Flat')
         hdu.append( ('FLATFLD', flat,'Image used to Flat Field.'), 
-               useblanks= True, bottom= True )    
+               useblanks= True, bottom= True )
+        hdu.append(('STITCHLO',stitchloc,'Stitch location between flats'), useblanks= True, bottom= True )
         NewHdu = fits.PrimaryHDU(data= f_spec_data, header= hdu)
         new_file_name= check_file_exist('f'+spec)
         NewHdu.writeto(new_file_name, output_verify='warn', clobber= True)
