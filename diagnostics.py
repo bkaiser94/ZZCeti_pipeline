@@ -72,6 +72,9 @@ def diagnostic_plots_cals(file_name, flags):
     blue_pix, blue_val, blue_poly = [],[],[]
     blue_cut_row100, red_cut_row100, junk_zeros = [],[],[]
     littrow_pix, littrow_val, fit_pix_lit, fit_lit, masked_edges = [],[],[],[],[]
+    com_blue_pix, com_blue_flat, blue_poly_fit = [], [], []
+    com_red_pix, com_red_flat, red_poly_fit = [], [], []
+
 
     for m in np.arange(len(arr)):
     
@@ -102,7 +105,15 @@ def diagnostic_plots_cals(file_name, flags):
         fit_pix_lit.append(arr[m][19])
         fit_lit.append(arr[m][20])
         masked_edges.append(arr[m][21])
-    
+        
+        com_blue_pix.append(arr[m][22])
+        com_blue_flat.append(arr[m][23])
+        blue_poly_fit.append(arr[m][24])
+
+        com_red_pix.append(arr[m][25])
+        com_red_flat.append(arr[m][26])
+        red_poly_fit.append(arr[m][27])
+
     bias_bs = np.array(bias_bs)
     bias_bs = np.trim_zeros(bias_bs, 'b')
     
@@ -165,6 +176,24 @@ def diagnostic_plots_cals(file_name, flags):
     
     fit_lit = np.array(fit_lit)
     fit_lit = np.trim_zeros(fit_lit, 'b')
+    
+    com_blue_pix = np.array(com_blue_pix)
+    com_blue_pix = np.trim_zeros(com_blue_pix, 'b')
+    
+    com_blue_flat = np.array(com_blue_flat)
+    com_blue_flat = np.trim_zeros(com_blue_flat, 'b')
+    
+    blue_poly_fit = np.array(blue_poly_fit)
+    blue_poly_fit = np.trim_zeros(blue_poly_fit)
+
+    com_red_pix = np.array(com_red_pix)
+    com_red_pix = np.trim_zeros(com_red_pix, 'b')
+    
+    com_red_flat = np.array(com_red_flat)
+    com_red_flat = np.trim_zeros(com_red_flat, 'b')
+    
+    red_poly_fit = np.array(red_poly_fit)
+    red_poly_fit = np.trim_zeros(red_poly_fit)
     
     edge1 = float(masked_edges[0])
     edge2 = float(masked_edges[1])
@@ -236,6 +265,15 @@ def diagnostic_plots_cals(file_name, flags):
     plt.savefig(pp, format='pdf')
     plt.close()
     
+    plt.figure()
+    plt.plot(com_blue_pix, com_blue_flat,'o')
+    plt.plot(np.arange(len(blue_poly_fit)),blue_poly_fit,'g')
+    plt.xlabel('Pixel')
+    plt.ylabel('Value')
+    plt.title('Blue Polynomial Check')
+    plt.savefig(pp,format='pdf')
+    plt.close()
+    
     if len(red_cut_row100 > 0):
         plt.figure()
         plt.plot(np.arange(len(red_cut_row100)), red_cut_row100, 'r')
@@ -244,6 +282,15 @@ def diagnostic_plots_cals(file_name, flags):
         plt.ylabel('Value')
         plt.title('Cut Along Row 100 - Red')
         plt.savefig(pp, format='pdf')
+        plt.close()
+        
+        plt.figure()
+        plt.plot(com_red_pix, com_red_flat,'ro')
+        plt.plot(np.arange(len(red_poly_fit)),red_poly_fit,'g')
+        plt.xlabel('Pixel')
+        plt.ylabel('Value')
+        plt.title('Red Polynomial Check')
+        plt.savefig(pp,format='pdf')
         plt.close()
     
     plt.figure()
@@ -359,7 +406,7 @@ def diagnostic_plots_FWHM(file_name, flags):
     
     names, col1, fwhm1, pos1, peak1, col2, fwhm2, pos2, peak2 = [],[],[],[],[],[],[],[],[]
     for m in np.arange(len(arr)):
-        names.append(str(arr[m][0][8:-5]))
+        names.append(str(arr[m][0][10:-5]))
         col1.append(arr[m][1])
         fwhm1.append(arr[m][2])    
         pos1.append(arr[m][3])
@@ -633,7 +680,6 @@ def diagnostic_plots_wavecal(files, flags):
 ##### ------------------------------------------------------------------ #####
 # Continuum function
 def diagnostic_plots_continuum(file_name, flags):
-    
     star_name = str(file_name[24:-21])
     pdf_name = 'modelcal_plots_' + star_name + '.pdf'
     pp = PdfPages(pdf_name)
@@ -901,6 +947,48 @@ def diagnostic_plots_extraction(file_name, flags):
         flags.set_value(star_indexes[k], 'ExtProf', ext_profile_flag)
         flags.set_value(star_indexes[k], 'FitToBack', background_fit_flag)
 
+##### ------------------------------------------------------------------ #####
+# Final spectra function
+def diagnostic_plots_spectra(file_name, flags):
+    date = str(file_name)[9:19]
+
+    pdf_name = 'final_spectra_plots.pdf'
+    pp = PdfPages(pdf_name)
+    pdfs.append(pdf_name)
+    
+    spectra_names = []
+    with open(file_name, 'r') as f:
+        first_line = f.readline()
+        second_line = f.readline()
+        names = first_line[3:-1] + ' ' + second_line[3:-2]
+        names = names.split(' ')
+        for n in names:
+            spectra_names.append(n[7:-9])
+    star_count = len(spectra_names)
+    lam_arrs = [[] for i in range(star_count)]   
+    flux_arrs = [[] for i in range(star_count)]
+
+    arr = np.genfromtxt(file_name, dtype=None, delimiter=' ')
+    for m in np.arange(len(arr)):
+        lams_to_append = arr[m][0::2]
+        flux_to_append = arr[m][1::2]
+        
+        for i in range(len(lam_arrs)):
+            lam_arrs[i].append(lams_to_append[i])
+            flux_arrs[i].append(flux_to_append[i])
+        
+    for i in range(len(spectra_names)):
+        plt.figure()
+        plt.plot(lam_arrs[i], flux_arrs[i])
+        plt.xlabel('Wavelength (Angstroms)')
+        plt.ylabel('Flux')
+        plt.title('Final Spectrum - ' + spectra_names[i])
+        plt.savefig(pp,format='pdf')
+        plt.close()
+                    
+    pp.close()
+
+
 ##### ------------------------------------------------------------------ #####    
 # Sort file names by type
 cal_files = glob('reduction*.txt')
@@ -908,6 +996,7 @@ fwhm_files = glob('FWHM*.txt')
 wave_cal_files = glob('wavecal*.txt')
 model_cal_files = glob('continuum_normalization*.txt')
 extraction_files = glob('extraction_*_*.txt')
+spectra_files = glob('flux_fits*.txt')
 
 ##### ------------------------------------------------------------------ #####
 # Calibrations
@@ -954,7 +1043,12 @@ for sub in unique_names:
 for i in range(len(extraction_files)):
     file_name = str(extraction_files[i])
     diagnostic_plots_extraction(file_name, flags)
-     
+    
+######------------------------------------------------------------------ #####
+for i in range(len(spectra_files)):
+    file_name = str(spectra_files[i])
+    diagnostic_plots_spectra(file_name, flags) 
+ 
 ######------------------------------------------------------------------ #####
 # Merge all pdfs of plots
 #pdfs = glob('*.pdf')
