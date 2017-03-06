@@ -150,6 +150,28 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
         orderused = np.zeros([len(standards)])
         size = 0.
 
+        #Find shift for each night
+        #For blue setup: use mean of 4530-4590
+        #for red setup: use mean of 6090-6190
+        try:
+            flux_tonight_list = np.genfromtxt('response_curves.txt',dtype=str)
+            print 'Found response_curves.txt file.'
+            for x in flux_tonight_list:
+                if 'blue' in x.lower():
+                    wave_tonight, sens_tonight = np.genfromtxt(x,unpack=True)
+                    blue_low_index = np.min(np.where(wave_tonight > 4530.))
+                    blue_high_index = np.min(np.where(wave_tonight > 4590.))
+                    blue_mean_tonight = np.mean(sens_tonight[blue_low_index:blue_high_index])
+                elif 'red' in x.lower():
+                    wave_tonight, sens_tonight = np.genfromtxt(x,unpack=True)
+                    red_low_index = np.min(np.where(wave_tonight > 6090.))
+                    red_high_index = np.min(np.where(wave_tonight > 6190.))
+                    red_mean_tonight = np.mean(sens_tonight[red_low_index:red_high_index])
+        except:
+            print 'No response_curves.txt file found.'
+            blue_mean_tonight = None
+            red_mean_tonight = None
+
     else: #Use the standard star fluxes in the typical manner
         #Read in each standard star spectrum 
         standards = np.genfromtxt(stdlist,dtype=str)
@@ -447,19 +469,19 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
         #Extinction correct WD
         if extinct_correct:
             print 'Extinction correcting spectra.'
-            plt.clf()
-            plt.plot(WD_spectra1.warr,WD_spectra1.opfarr)
+            #plt.clf()
+            #plt.plot(WD_spectra1.warr,WD_spectra1.opfarr)
             WD_spectra1.opfarr = extinction_correction(WD_spectra1.warr,WD_spectra1.opfarr,airmass1)
             WD_spectra1.farr = extinction_correction(WD_spectra1.warr,WD_spectra1.farr,airmass1)
-            plt.plot(WD_spectra1.warr,WD_spectra1.opfarr)
+            #plt.plot(WD_spectra1.warr,WD_spectra1.opfarr)
             #plt.show()
 
             if redfile:
-                plt.clf()
-                plt.plot(WD_spectra2.warr,WD_spectra2.opfarr)
+                #plt.clf()
+                #plt.plot(WD_spectra2.warr,WD_spectra2.opfarr)
                 WD_spectra2.opfarr = extinction_correction(WD_spectra2.warr,WD_spectra2.opfarr,airmass2)
                 WD_spectra2.farr = extinction_correction(WD_spectra2.warr,WD_spectra2.farr,airmass2)
-                plt.plot(WD_spectra2.warr,WD_spectra2.opfarr)
+                #zaplt.plot(WD_spectra2.warr,WD_spectra2.opfarr)
                 #plt.show()
         airwd[avocado] = airmass1
         if redfile:
@@ -486,19 +508,47 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             header_temp = st.readheader(specfile[avocado])
             ADCstatus = header_temp['ADCSTAT']
             if ADCstatus == 'IN':
-                sens_wave1 = master_response_blue_in_pol(WD_spectra1.warr)
+                sens_wave1_unscale = master_response_blue_in_pol(WD_spectra1.warr)
+                blue_low_index = np.min(np.where(WD_spectra1.warr > 4530.))
+                blue_high_index = np.min(np.where(WD_spectra1.warr > 4590.))
+                blue_mean_stan = np.mean(sens_wave1_unscale[blue_low_index:blue_high_index])
+                if blue_mean_tonight == None:
+                    sens_wave1 = sens_wave1_unscale
+                else:
+                    sens_wave1 = sens_wave1_unscale + (blue_mean_tonight - blue_mean_stan)
                 choice = 0
             else:
-                sens_wave1 = master_response_blue_out_pol(WD_spectra1.warr)
+                sens_wave1_unscale = master_response_blue_out_pol(WD_spectra1.warr)
+                blue_low_index = np.min(np.where(WD_spectra1.warr > 4530.))
+                blue_high_index = np.min(np.where(WD_spectra1.warr > 4590.))
+                blue_mean_stan = np.mean(sens_wave1_unscale[blue_low_index:blue_high_index])
+                if blue_mean_tonight == None:
+                    sens_wave1 = sens_wave1_unscale
+                else:
+                    sens_wave1 = sens_wave1_unscale + (blue_mean_tonight - blue_mean_stan)
                 choice = 1
             if redfile:
                 header_temp = st.readheader(specfile[avocado+1])
                 ADCstatus = header_temp['ADCSTAT']
                 if ADCstatus == 'IN':
-                    sens_wave2 = master_response_red_in_pol(WD_spectra2.warr)
+                    sens_wave2_unscale = master_response_red_in_pol(WD_spectra2.warr)
+                    red_low_index = np.min(np.where(WD_spectra2.warr > 6090.))
+                    red_high_index = np.min(np.where(WD_spectra2.warr > 6190.))
+                    red_mean_stan = np.mean(sens_wave2_unscale[red_low_index:red_high_index])
+                    if red_mean_tonight == None:
+                        sens_wave2 = sens_wave2_unscale
+                    else:
+                        sens_wave2 = sens_wave2_unscale + (red_mean_tonight - red_mean_stan)
                     choice2 = 2
                 else:
-                    sens_wave2 = master_response_red_out_pol(WD_spectra2.warr)
+                    sens_wave2_unscale = master_response_red_out_pol(WD_spectra2.warr)
+                    red_low_index = np.min(np.where(WD_spectra2.warr > 6090.))
+                    red_high_index = np.min(np.where(WD_spectra2.warr > 6190.))
+                    red_mean_stan = np.mean(sens_wave2_unscale[red_low_index:red_high_index])
+                    if red_mean_tonight == None:
+                        sens_wave2 = sens_wave2_unscale
+                    else:
+                        sens_wave2 = sens_wave2_unscale + (red_mean_tonight - red_mean_stan)
                     choice2 = 3
         else:
             sens_wave1 = senspolys[choice](WD_spectra1.warr)

@@ -118,11 +118,12 @@ while x < len(continuum_files):
         #print continuum_files[x]
         continuum_normalization.normalize_now(continuum_files[x],None,False,plotall=False)
         x += 1
-exit()
+
+
 #=========================
 #Begin Flux Calibration
 #=========================
-print '\n Begin flux calibration.'
+print '\nBegin flux calibration.'
 #We should use the same files are for the continuum normalization. But if you want to change that for some reason, adjust below.
 '''
 continuum_files = sorted(glob('wcftb*ms.fits'))
@@ -133,7 +134,7 @@ for x in continuum_files:
 for x in single_spec_list:
     continuum_files.remove(x)
 continuum_files = sorted(continuum_files)
-print continuum_files
+#print continuum_files
 '''
 stdlist = None
 fluxlist = None
