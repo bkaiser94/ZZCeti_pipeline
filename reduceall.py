@@ -21,7 +21,7 @@ print 'Beginning spectral extraction.'
 spec_files = sorted(glob('cftb*fits'))
 single_spec_list = []
 for x in spec_files:
-    if ('cftb.0' or 'cftb.1') in x:
+    if ('cftb.0' in x) or ('cftb.1' in x) or ('cftb.2' in x):
         single_spec_list.append(x)
 for x in single_spec_list:
     spec_files.remove(x)
@@ -90,8 +90,12 @@ for x in lamp_files:
         #print y[5:y.find('_930')], y[y.find('_930'):y.find('_930')+8]
         if (y[5:y.find('_930')] in x) and (y[y.find('_930'):y.find('_930')+8] in x):
             print x, y, offset_file
+            if offset_file == None:
+                plotalot = True
+            else:
+                plotalot = False
             #Wavelength_Calibration.calibrate_now('tFe_ZZCeti_930_blue_long_.wd1307-017.ms.fits','ctfb.wd1307-017_930_blue.ms.fits','yes','yes')
-            Wavelength_Calibration.calibrate_now(x,y,'yes','yes',offset_file,plotall=False)
+            Wavelength_Calibration.calibrate_now(x,y,'yes','yes',offset_file,plotall=plotalot)
 
 
 #=========================

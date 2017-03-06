@@ -126,7 +126,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
     if masterresp: #Use the master response function
         #Read in master response function and use that.
         cwd = os.getcwd()
-        os.chdir('/afs/cas.unc.edu/depts/physics_astronomy/clemens/students/group/standards/')
+        os.chdir('/afs/cas.unc.edu/depts/physics_astronomy/clemens/students/group/standards/response_curves/')
         standards = sorted(glob('*resp*.npy'))
 
         master_response_blue_in = np.load(standards[0])

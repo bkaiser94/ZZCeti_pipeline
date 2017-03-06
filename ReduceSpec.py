@@ -71,7 +71,7 @@ def reduce_now(args):
     fe_names = []
     for lamp in fe_lists:
         fe_names.append(lamp[0][5:])
-
+    
     # Default values for special commands if none are given these dont change #   
     overwrite = False # dont give imcombine permision to overwrite files # 
     lo_sig = 10
@@ -129,7 +129,7 @@ def reduce_now(args):
     #i= 0
     #nb_flat1= []
     #while i < nf:
-    #    #nb_flat1.append( rt.Norm_Flat_Poly(tcomb_flat[i]) ) # (divide by average of counts)
+    #    #nb_flat1.append( rt.Norm_Flat_Poly(tcomb_flat[i], 4.) ) # (divide by average of counts)
     #    #nb_flat.append(rt.Norm_Flat_Boxcar(tcomb_flat[i]))
     #    i= i+1
 
@@ -137,12 +137,15 @@ def reduce_now(args):
     i= 0
     nb_flat= []
     while i < nf:
-        if 'blue' in tcomb_flat[i]:
+        if 'blue' in tcomb_flat[i].lower():
             nb_flat.append(rt.Norm_Flat_Boxcar_Multiples(tcomb_flat[i],adc_stat=adc_status))
         else:
-            flat_temp = []
-            flat_temp.append( rt.Norm_Flat_Poly(tcomb_flat[i]) )
-            nb_flat.append( rt.Norm_Flat_Boxcar(flat_temp[0]))
+            if 'quartz' in tcomb_flat[i].lower():
+                nb_flat.append( rt.Norm_Flat_Poly(tcomb_flat[i],4.) )
+            else:
+                flat_temp = []
+                flat_temp.append( rt.Norm_Flat_Poly(tcomb_flat[i],3.) )
+                nb_flat.append( rt.Norm_Flat_Boxcar(flat_temp[0]))
         #nb_flat.append( rt.Norm_Flat_Poly(tcomb_flat[i]) ) # (divide by average of counts)
         #nb_flat.append(rt.Norm_Flat_Boxcar(nb_flat1[i]))
         #nb_flat.append(rt.Norm_Flat_Boxcar_Multiples(tcomb_flat[i]))

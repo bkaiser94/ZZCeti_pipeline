@@ -178,8 +178,12 @@ def List_Combe(img_list):
     sl= [] # sub_list of images
     sl.append(img_list[0]) # place first image in sublist
     i= 0; # image counter  
+    if (img_list[0][0] == 0) or (img_list[0][0] == 1) or (img_list[0][0] == 2):
+        cutpoint = 5
+    else:
+        cutpoint = 10
     while i < len(img_list)-1: # run trough all images 
-        if img_list[i+1].__contains__(img_list[i][10:]) == True: #Old = 4
+        if img_list[i+1].__contains__(img_list[i][cutpoint:]) == True: #Old = 4
             sl.append(img_list[i+1]) # place it in the sub_list 
         else:
             # if the images dont match: 
@@ -485,17 +489,17 @@ def Norm_Flat_Avg( flat ):
 
 # ============================================================================    
 
-def Norm_Flat_Poly( flat ):
+def Norm_Flat_Poly( flat , order):
     print "\n====================\n" 
     print 'Normalizing %s By Fitting Polynomial to center rows [95:105]:' % ( flat )
     # Decide Order # 
-    if flat.lower().__contains__("blue")== True:
-        order= 3;
-    elif flat.lower().__contains__("red")== True:
-        order= 3; 
-    else:
-        print ("Could not identifiy blue or red flat")
-        order= raw_input("Fit Order?>>>")
+    #if flat.lower().__contains__("blue")== True:
+    #    order= 3;
+    #elif flat.lower().__contains__("red")== True:
+    #    order= 3; 
+    #else:
+    #    print ("Could not identifiy blue or red flat")
+    #    order= raw_input("Fit Order?>>>")
     print "Fit Order: %s" % order
     #See in littrow ghost file already exists for blue files
     if flat.lower().__contains__("blue")== True:
