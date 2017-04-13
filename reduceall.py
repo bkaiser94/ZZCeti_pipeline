@@ -3,6 +3,7 @@ import spectral_extraction
 import Wavelength_Calibration
 import continuum_normalization
 import flux_calibration
+import diagnostics
 from glob import glob
 
 
@@ -139,3 +140,10 @@ continuum_files = sorted(continuum_files)
 stdlist = None
 fluxlist = None
 flux_calibration.flux_calibrate_now(stdlist,fluxlist,continuum_files,extinct_correct=True,masterresp=True)
+
+#=========================
+#Begin Flux Calibration
+#=========================
+print 'Running diagnostics.'
+
+diagnostics.diagnostic_now()
