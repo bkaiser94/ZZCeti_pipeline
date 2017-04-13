@@ -12,24 +12,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 from PyPDF2 import PdfFileMerger
 import pandas as pd
-original_date = os.getcwd()[-10::]
 
-##### Flags #####
-# thresholds and constants
-num_flags = 23
-num_sigma = 2
-fwhm_tol = 1
-pos_tol = 5
-peak_tol = 500
-ext_FWHM_num_sigma = 2
-ext_prof_tol = 5
-background_fit_tol = 5
-wave_fit_tol = 0.15
-
-pdfs = glob('diagnostics_plots.pdf')
-for f in pdfs:
-    os.remove(f)
-pdfs = []
+##### ------------------------------------------------------------------ #####
 
 # Set up flags table
 def setup_flags_table(fwhm_file_name):
@@ -38,10 +22,7 @@ def setup_flags_table(fwhm_file_name):
     flags = pd.DataFrame(data, columns = ['Star', 'Exposure','Date', 'Bias1', 'Bias2', 'BlueFlat1','BlueFlat2', 'RedFlat1', 'RedFlat2', 'BluePoly', 'BlueCut', 'RedCut', 'Littrow', 'ExtFWHM', 'ExtProf', 'FitToBack', 'ProfFWHM', 'ProfPos', 'PeakGauss', 'ResponseBlue', 'ResponseRed', 'WaveFitResBlue', 'WaveFitResRed'])
     return flags
 
-# Use the FWHM_records file to determine how many total exposures there were for the given date
-fwhm_files = glob('FWHM*.txt')
-file_name = str(fwhm_files[0])
-flags = setup_flags_table(file_name)
+##### ------------------------------------------------------------------ #####
 
 # function that takes file names and organizes by the unique star name in each
 def unique_star_names(seq, idfun=None): 
@@ -989,74 +970,111 @@ def diagnostic_plots_spectra(file_name, flags):
     pp.close()
 
 
-##### ------------------------------------------------------------------ #####    
-# Sort file names by type
-cal_files = glob('reduction*.txt')
-fwhm_files = glob('FWHM*.txt')
-wave_cal_files = glob('wavecal*.txt')
-model_cal_files = glob('continuum_normalization*.txt')
-extraction_files = glob('extraction_*_*.txt')
-spectra_files = glob('flux_fits*.txt')
-
-##### ------------------------------------------------------------------ #####
-# Calibrations
-for i in range(len(cal_files)): # Repeat copy of data below
-    file_name = str(cal_files[i])
-    diagnostic_plots_cals(file_name, flags)
+def diagnostic_now():
     
-##### ------------------------------------------------------------------ #####
-# FWHM
-for i in range(len(fwhm_files)):    # First line not commented out
-    file_name = str(fwhm_files[i])
-    diagnostic_plots_FWHM(file_name, flags)
+    original_date = os.getcwd()[-10::]
 
-##### ------------------------------------------------------------------ #####
-# Wavelength Calibrations
-star_names = []
-for i in range(len(wave_cal_files)):
-    star_names.append(wave_cal_files[i][8:-21])
-    with open(wave_cal_files[i], 'r') as f:
-        first_line = f.readline()
+    ##### Flags #####
+    # thresholds and constants
+    global pdfs, num_flags, num_sigma, fwhm_tol, pos_tol, peak_tol, ext_FWHM_num_sigma,ext_prof_tol,background_fit_tol,wave_fit_tol
+    num_flags = 23
+    num_sigma = 2
+    fwhm_tol = 1
+    pos_tol = 5
+    peak_tol = 500
+    ext_FWHM_num_sigma = 2
+    ext_prof_tol = 5
+    background_fit_tol = 5
+    wave_fit_tol = 0.15
 
-unique_names = unique_star_names(star_names)
+    pdfs = glob('diagnostics_plots.pdf')
+    for f in pdfs:
+        os.remove(f)
 
-for sub in unique_names:
-   file_names = [x for x in wave_cal_files if str(sub) in x]
-   diagnostic_plots_wavecal(file_names, flags)
-
-##### ------------------------------------------------------------------ #####
-# Model Calibrations
-star_names = []
-for i in range(len(model_cal_files)):
-    star_names.append(model_cal_files[i][24:-21])
-    with open(model_cal_files[i], 'r') as f:
-        first_line = f.readline()
-
-unique_names = unique_star_names(star_names)
-
-for sub in unique_names:
-    file_name = [x for x in model_cal_files if str(sub) in x]
-    diagnostic_plots_continuum(file_name[0], flags)
-
-##### ------------------------------------------------------------------ #####
-# Extraction
-for i in range(len(extraction_files)):
-    file_name = str(extraction_files[i])
-    diagnostic_plots_extraction(file_name, flags)
     
-######------------------------------------------------------------------ #####
-for i in range(len(spectra_files)):
-    file_name = str(spectra_files[i])
-    diagnostic_plots_spectra(file_name, flags) 
+    pdfs = []
+
+
+    # Use the FWHM_records file to determine how many total exposures there were for the given date
+    fwhm_files = glob('FWHM*.txt')
+    file_name = str(fwhm_files[0])
+    flags = setup_flags_table(file_name)
+
+
+    ##### ------------------------------------------------------------------ #####    
+    # Sort file names by type
+    cal_files = glob('reduction*.txt')
+    fwhm_files = glob('FWHM*.txt')
+    wave_cal_files = glob('wavecal*.txt')
+    model_cal_files = glob('continuum_normalization*.txt')
+    extraction_files = glob('extraction_*_*.txt')
+    spectra_files = glob('flux_fits*.txt')
+
+    ##### ------------------------------------------------------------------ #####
+    # Calibrations
+    for i in range(len(cal_files)): # Repeat copy of data below
+        file_name = str(cal_files[i])
+        diagnostic_plots_cals(file_name, flags)
+    
+    ##### ------------------------------------------------------------------ #####
+    # FWHM
+    for i in range(len(fwhm_files)):    # First line not commented out
+        file_name = str(fwhm_files[i])
+        diagnostic_plots_FWHM(file_name, flags)
+
+    ##### ------------------------------------------------------------------ #####
+    # Wavelength Calibrations
+    star_names = []
+    for i in range(len(wave_cal_files)):
+        star_names.append(wave_cal_files[i][8:-21])
+        with open(wave_cal_files[i], 'r') as f:
+            first_line = f.readline()
+
+    unique_names = unique_star_names(star_names)
+
+    for sub in unique_names:
+        file_names = [x for x in wave_cal_files if str(sub) in x]
+        diagnostic_plots_wavecal(file_names, flags)
+
+    ##### ------------------------------------------------------------------ #####
+    # Model Calibrations
+    star_names = []
+    for i in range(len(model_cal_files)):
+        star_names.append(model_cal_files[i][24:-21])
+        with open(model_cal_files[i], 'r') as f:
+            first_line = f.readline()
+
+    unique_names = unique_star_names(star_names)
+
+    for sub in unique_names:
+        file_name = [x for x in model_cal_files if str(sub) in x]
+        diagnostic_plots_continuum(file_name[0], flags)
+
+    ##### ------------------------------------------------------------------ #####
+    # Extraction
+    for i in range(len(extraction_files)):
+        file_name = str(extraction_files[i])
+        diagnostic_plots_extraction(file_name, flags)
+    
+    ######------------------------------------------------------------------ #####
+    for i in range(len(spectra_files)):
+        file_name = str(spectra_files[i])
+        diagnostic_plots_spectra(file_name, flags) 
  
-######------------------------------------------------------------------ #####
-# Merge all pdfs of plots
-#pdfs = glob('*.pdf')
-outfile = PdfFileMerger()
+    ######------------------------------------------------------------------ #####
+    # Merge all pdfs of plots
+    #pdfs = glob('*.pdf')
+    outfile = PdfFileMerger()
 
-for f in pdfs:
-    outfile.append(open(f, 'rb'))
-    os.remove(f)
+    for f in pdfs:
+        outfile.append(open(f, 'rb'))
+        os.remove(f)
     
-outfile.write(open('diagnostic_plots.pdf', 'wb'))
-flags.to_csv('diagnostics_flags.csv')
+    outfile.write(open('diagnostic_plots.pdf', 'wb'))
+    flags.to_csv('diagnostics_flags.csv')
+
+
+#Run from command line
+if __name__ == '__main__':
+     diagnostic_now()
+
