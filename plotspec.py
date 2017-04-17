@@ -64,9 +64,9 @@ except:
         WDwave = np.arange(len(spec_data[0,0,:]))
 
 
-#np.savetxt('OWJ1818-2434_930_blue.txt',np.transpose([WDwave2,spec_data[0,0,:],spec_data[3,0,:],spec_data[2,0,:]]),header='wavelengths, optimally extracted spectrum, sigma spectrum, sky spectrum')
-
-#np.savetxt('L19-2_2016-06-22_red.txt',np.transpose([WDwave,spec_data[0,0,:]]))
+#np.savetxt('WD1456+103_spectrum.txt',np.transpose([WDwave,spec_data[0,0,:],spec_data[3,0,:],spec_data[2,0,:]]),header='wavelengths, optimally extracted spectrum, sigma spectrum, sky spectrum')
+#exit()
+#np.savetxt('hz4_obs.txt',np.transpose([WDwave,spec_data[0,0,:]]))
 #exit()
 
 if 'fe_' in specname.lower():
@@ -83,6 +83,10 @@ else:
     while plotagain == 'y':
         extension = raw_input('Which extenstion? >> ')
         plt.clf()
-        plt.plot(WDwave,spec_data[extension,0,:])
+        plt.plot(WDwave,spec_data[extension,0,:],'k')
+        plt.title(specname)
+        plt.xlabel('Wavelength (Angstroms)')
+        plt.ylabel('Flux (erg/cm2/s/A)')
         plt.show()
         plotagain = raw_input('Would you like to plot a different extension? (y/n)')
+
