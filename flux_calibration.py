@@ -66,6 +66,17 @@ from scipy.interpolate import UnivariateSpline
 import argparse
 
 #=============================================
+#To help with command line interpretation
+def str2bool(v):
+    if v.lower() in ('yes','true','t','y','1'):
+        return True
+    if v.lower() in ('no','false','f','n','0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+#=============================================
 #These functions are to help with excluding regions from the sensitivity function
 def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
@@ -156,7 +167,13 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
         try:
             flux_tonight_list = np.genfromtxt('response_curves.txt',dtype=str)
             print 'Found response_curves.txt file.'
+            print flux_tonight_list
+            print type(flux_tonight_list)
+            flux_tonight_list = np.array([flux_tonight_list])
+            print flux_tonight_list
+            print type(flux_tonight_list)
             for x in flux_tonight_list:
+                print x
                 if 'blue' in x.lower():
                     wave_tonight, sens_tonight = np.genfromtxt(x,unpack=True)
                     blue_low_index = np.min(np.where(wave_tonight > 4530.))
@@ -226,7 +243,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             std_spectra = st.readstandard(stdfile)
             os.chdir(cwd)
             #plt.clf()
-            #plt.plot(std_spectra.warr,std_spectra.magarr)
+            #plt.plot(std_spectra.warr,std_spectra.magarr,'.')
             #plt.show()
             #Only keep the part of the standard file that overlaps with observation.
             lowwv = np.where(std_spectra.warr >= np.min(obs_spectra.warr))
@@ -245,8 +262,9 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             std_spectra.magarr = st.fnutofwave(std_spectra.warr, std_spectra.magarr)
 
             #plt.clf()
-            #plt.plot(std_spectra.warr,std_spectra.magarr)
+            #plt.plot(std_spectra.warr,std_spectra.magarr,'.')
             #plt.show()
+            #np.savetxt('hz4_stan.txt',np.transpose([std_spectra.warr,std_spectra.magarr]))
             #exit()
         
             #We want to rebin the observed spectrum to match with the bins in the standard file. This makes summing up counts significantly easier.
@@ -280,7 +298,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             #plt.clf()
             #plt.plot(std_spectra.warr,sens_function)
             #plt.show()
-        
+            #sys.exit()
             #Fit a low order polynomial to this function so that it is smooth.
             #The sensitivity function is in units of 2.5 * log10[counts/sec/Ang / ergs/cm2/sec/Ang]
             #Choose regions to not include in fit, first by checking if a mask file exists, and if not the prompt for user interaction.
@@ -587,12 +605,12 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 bean += 1
                 diagnostic_array[0:len(star_opflux2),bean] = star_opflux2
                 bean += 1
-        if avocado == (length -1 ) or (redfile == True and avocado == (length-2)):
-            print 'Saveing diagnostic file.'
-            now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
-            with open('flux_fits_' + now + '.txt','a') as handle:
-                header = str(specfile) + '\n Each star is formatted as wavelength, flux'
-                np.savetxt(handle,diagnostic_array,fmt='%.10e',header=header)
+        #if avocado == (length -1 ) or (redfile == True and avocado == (length-2)):
+        #    print 'Saveing diagnostic file.'
+        #    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M")
+        #    with open('flux_fits_' + now + '.txt','a') as handle:
+        #        header = str(specfile) + '\n Each star is formatted as wavelength, flux'
+        #        np.savetxt(handle,diagnostic_array,fmt='%.10e',header=header)
 
 
         print 'Saving the final spectrum.'
@@ -720,9 +738,8 @@ if __name__ == '__main__':
     parser.add_argument('spec_list')
     parser.add_argument('--flux_list',default=None)
     parser.add_argument('--stan_list',default=None)
-    parser.add_argument('--usemaster',type=bool,default=False)
-    parser.add_argument('--extinct',type=bool,default=True)
-    #parser.set_defaults(
+    parser.add_argument('--usemaster',type=str2bool,nargs='?',const=False,default=False,help='Activate nice mode.')
+    parser.add_argument('--extinct',type=str2bool,nargs='?',const=True,default=True,help='Activate nice mode.')
     args = parser.parse_args()
     #print args.stand_list
     #Read in lists from command line
