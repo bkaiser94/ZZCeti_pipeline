@@ -7,7 +7,8 @@ Based on pySALT
 
 """
 
-import pyfits as fits
+#import pyfits as fits
+import astropy.io.fits as fits
 import ReduceSpec_tools as rt
 import numpy as np
 import scipy

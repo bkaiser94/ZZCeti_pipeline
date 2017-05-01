@@ -14,7 +14,8 @@ import numpy as np
 import ReduceSpec_tools as rt
 import spectools as st
 import warnings
-import pyfits as fits
+#import pyfits as fits
+import astropy.io.fits as fits
 
 task = raw_input('What would you like to do? (bias, flat, normalize, lacosmic, combine, trim, wavelength, details) ')
 

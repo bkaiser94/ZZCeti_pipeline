@@ -11,7 +11,8 @@ Created on Sun Aug 23 20:48:10 2015
 # ===========================================================================
 
 import numpy as np
-import pyfits as fits
+#import pyfits as fits
+import astropy.io.fits as fits
 import mpfit
 import os
 import datetime

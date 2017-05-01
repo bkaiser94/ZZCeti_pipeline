@@ -34,7 +34,8 @@ To do:
 
 import ReduceSpec_tools as rt 
 import numpy as np
-import pyfits as fits
+#import pyfits as fits
+import astropy.io.fits as fits
 import scipy.signal as sg
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit, fsolve

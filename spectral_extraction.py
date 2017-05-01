@@ -36,7 +36,8 @@ To Do:
 import sys
 import os
 import numpy as np
-import pyfits as fits
+#import pyfits as fits
+import astropy.io.fits as fits
 import matplotlib.pyplot as plt
 import datetime
 import mpfit

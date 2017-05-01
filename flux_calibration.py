@@ -57,7 +57,8 @@ import os
 import sys
 import time
 import numpy as np
-import pyfits as fits
+#import pyfits as fits
+import astropy.io.fits as fits
 import spectools as st
 import datetime
 from glob import glob
@@ -168,10 +169,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             flux_tonight_list = np.genfromtxt('response_curves.txt',dtype=str)
             print 'Found response_curves.txt file.'
             print flux_tonight_list
-            print type(flux_tonight_list)
             flux_tonight_list = np.array([flux_tonight_list])
-            print flux_tonight_list
-            print type(flux_tonight_list)
             for x in flux_tonight_list:
                 print x
                 if 'blue' in x.lower():
@@ -411,7 +409,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 plt.show()
                 plt.ioff()
                 #Save this sensitivity curve
-                '''
+                
                 try:
                     temp_file = fits.open(stdspecfile)
                     ADCstat = temp_file[0].header['ADCSTAT']
@@ -425,7 +423,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 print resp_name
                 #exit()
                 np.savetxt(resp_name,np.transpose([lambdasfit,fluxesfit]))
-                '''
+                
                 repeat = raw_input('Do you want to try again (yes/no)? ')
                 if repeat == 'yes':
                     order = raw_input('New order for polynomial: ')

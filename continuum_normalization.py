@@ -24,7 +24,8 @@ python model_calibration.py wtfb.wd1401-147_930_blue.ms.fits wtfb.wd1401-147_930
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as inter
-import pyfits as fits
+#import pyfits as fits
+import astropy.io.fits as fits
 import spectools as st
 import os
 import sys
