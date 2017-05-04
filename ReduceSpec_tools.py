@@ -179,7 +179,8 @@ def List_Combe(img_list):
     sl= [] # sub_list of images
     sl.append(img_list[0]) # place first image in sublist
     i= 0; # image counter  
-    if (img_list[0][0] == 0) or (img_list[0][0] == 1) or (img_list[0][0] == 2):
+    #img_list[0][0] is a string, so need to check that agaisnt strings. Use a shorter cutpoint if these are RAW images. This will help eliminate problems with short filenames.
+    if (img_list[0][0] == '0') or (img_list[0][0] == '1') or (img_list[0][0] == '2'):
         cutpoint = 5
     else:
         cutpoint = 10
