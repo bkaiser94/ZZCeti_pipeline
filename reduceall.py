@@ -1,3 +1,21 @@
+'''
+Written by JT Fuchs, UNC. 
+
+PURPOSE: This program takes ZZ Ceti observations with Goodman and runs the full pipeline on a night. Uses ReduceSpec.py, spectral_extraction.py, Wavelenght_Calibration.py, continuum_normalization.py, flux_calibration.py, and diagnostics.py (and all dependencies therein).
+
+DIRECTORY FILES THAT SHOULD EXIST:
+    listZero - text file containing list of bias images to combine
+    
+    listFlat - text file containing list of flat field images to combine. If both blue and red set, give all blue files first, then all red files.
+
+    listSpec - text file containing list of spectra to combine. Organize by target. 
+
+    listFe - text file containing list of Iron lamps to combine. If both blue and red set, give all blue files first, then all red files.
+
+'''
+
+
+
 import ReduceSpec
 import spectral_extraction
 import Wavelength_Calibration
@@ -66,7 +84,6 @@ for x in spec_files:
     #Must add in option of not have trace file or FWHM file
     #if no FWHMfile, FWHMfile=None
     spectral_extraction.extract_now(x,lamp_file,FWHMfile=FWHM_thisfile,tracefile=trace_thisfile,trace_exist=trace_exist_file)
-    #spectral_extraction.extract_now('ctfb.wd1307-017_930_blue.fits','tFe_ZZCeti_930_blue_long.fits',FWHMfile='ctfb.wd1307-017_930_blue_poly.npy',tracefile='tfb.wd1307-017_930_blue_trace.npy',trace_exist=True)
 
 
 #=========================
@@ -83,21 +100,21 @@ else:
 
 #print spec_files
 #print lamp_files
+#Need to carefully match up the correct lamp and spectrum files. This seems to work well.
 for x in lamp_files:
-    #print ''
-    #print x
+    if 'blue' in x.lower():
+        lamp_color = 'blue'
+    elif 'red' in x.lower():
+        lamp_color = 'red'
     for y in spec_files:
-        #print y[5:y.find('_930')], y[y.find('930_'):y.find('.ms')]
-        #print y[5:y.find('_930')], y[y.find('_930'):y.find('_930')+8]
-        if (y[5:y.find('_930')] in x) and (y[y.find('_930'):y.find('_930')+8] in x):
+        ###if (y[5:y.find('_930')] in x) and (y[y.find('_930'):y.find('_930')+8] in x):
+        if (lamp_color in y.lower()) and (y[5:y.find('_930')] in x):
             print x, y, offset_file
             if offset_file == None:
                 plotalot = True
             else:
                 plotalot = False
-            #Wavelength_Calibration.calibrate_now('tFe_ZZCeti_930_blue_long_.wd1307-017.ms.fits','ctfb.wd1307-017_930_blue.ms.fits','yes','yes')
             Wavelength_Calibration.calibrate_now(x,y,'yes','yes',offset_file,plotall=plotalot)
-
 
 #=========================
 #Begin Continuum Normalization
