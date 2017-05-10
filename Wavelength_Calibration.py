@@ -286,7 +286,7 @@ def find_near(p, in_data):
     
 # =========================================================================== 
     
-def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
+def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param,plotalot=False):
     # Model # =============================================
     
     def Beta_Calc(w,a, FR, TF):
@@ -334,15 +334,15 @@ def fit_Grating_Eq(known_pix, known_wave, alpha, theta, Param):
     # print '\nResiduals:\n %s' % Res
     rmsfit = np.sqrt(np.mean([n**2. for n in Res]))
     print '\nRMS = %s' % rmsfit
-    '''
-    plt.scatter(known_wave, Res, color='r', marker='+')
-    plt.grid()
-    plt.ylim( min(Res)*2., max(Res)*2.)
-    plt.title('Least Squares Fit Residuals')
-    plt.ylabel('Pixels')
-    plt.xlabel('Wavelength')
-    plt.show()
-    '''
+    if plotalot:
+        plt.scatter(known_wave, Res, color='r', marker='+')
+        plt.grid()
+        plt.ylim( min(Res)*2., max(Res)*2.)
+        plt.title('Least Squares Fit Residuals')
+        plt.ylabel('Pixels')
+        plt.xlabel('Wavelength')
+        plt.show()
+    
     savearray[0:len(known_wave),0] = known_wave
     savearray[0:len(Res),1] = Res
     
@@ -726,28 +726,28 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
             global savearray, n_fr, n_fd, n_zPnt
             savearray = np.zeros([len(Wavelengths),8])
             #n_fr, n_fd, n_zPnt= fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
-            par, rmsfit = fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm)
+            par, rmsfit = fit_Grating_Eq(centers_in_pix, known_waves, alpha, theta, parm,plotalot=plotall)
             n_fr, n_fd, n_zPnt = par
             n_Wavelengths= DispCalc(Pixels, alpha-alpha_offset, theta, n_fr, n_fd, parm[2], n_zPnt)
         
-            '''
-            plt.figure(1)
-            plt.plot(n_Wavelengths, lamp_spec)
-            plt.hold('on')
-            for line in line_list[1]:
-                if (n_Wavelengths[0] <= line <= n_Wavelengths[-1]):
-                    plt.axvline(line, color= 'r', linestyle= '--')
-            plt.title("Refitted Solution")
-            plt.xlabel("Wavelengths (Ang.)")
-            plt.ylabel("Counts")
-            plt.hold('off')
-            '''
+            if plotall:
+                plt.figure(1)
+                plt.plot(n_Wavelengths, lamp_spec)
+                plt.hold('on')
+                for line in line_list[1]:
+                    if (n_Wavelengths[0] <= line <= n_Wavelengths[-1]):
+                        plt.axvline(line, color= 'r', linestyle= '--')
+                plt.title("Refitted Solution")
+                plt.xlabel("Wavelengths (Ang.)")
+                plt.ylabel("Counts")
+                plt.hold('off')
+            
             savearray[0:len(n_Wavelengths),2] = n_Wavelengths
             savearray[0:len(lamp_spec),3] = lamp_spec
             savearray[0:len(np.array(line_list[1])),4] = np.array(line_list[1])
         
 
-            '''        
+            '''   
             plt.figure(2)
             Diff= [ (Wavelengths[i]-n_Wavelengths[i]) for i in range(0,np.size(Wavelengths)) ]
             plt.plot(Diff, '.')
@@ -756,7 +756,7 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
             plt.ylabel("old-new Wavelength (Ang.)")
             '''
 
-            #plt.show()
+            plt.show()
         if ('blue' in lamp.lower()) and (rmsfit > 1.0):
             coord_list_short = line_list[0][1:]
             wave_list_short = line_list[1][1:]
@@ -869,6 +869,6 @@ if __name__ == '__main__':
         offset_file = raw_input("Filename: ")
     else:
         offset_file = None
-    calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file)
+    calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True)
     
  
