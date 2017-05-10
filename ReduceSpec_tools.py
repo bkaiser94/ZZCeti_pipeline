@@ -242,11 +242,11 @@ def decimal_ra(hdu_str):
     # and outputs the value as a decimal. 
     val_list = [float(n) for n in hdu_str.split(':')]
     if val_list[0] < 0 :
-        sng = -1
+        sng = -1.
         val_list[0] = sng*val_list[0]
     else:
-        sng = 1
-    val_deci =  15*sng*(val_list[0]+((val_list[1]+(val_list[2]/60.0))/60.0))
+        sng = 1.
+    val_deci =  15.*sng*(val_list[0]+((val_list[1]+(val_list[2]/60.0))/60.0))
 
     return val_deci
 
@@ -279,9 +279,9 @@ def RaDec2AltAz(ra, dec, lat, lst ):
     # Compute Hour Angle
         ha = lst-ra # hour angle in deg
         if ha < 0 :
-            ha = ha+360
+            ha = ha+360.
         if ha > 360:
-            ha = ha-360
+            ha = ha-360.
     # Convert Qunataties to Radians 
         ra = ra*(np.pi/180.0) 
         dec = dec*(np.pi/180.0) 
@@ -296,7 +296,7 @@ def RaDec2AltAz(ra, dec, lat, lst ):
         b = np.cos(lat)*np.cos(alt)
         az = np.arccos( a/b ) # azumuth in radians
         if np.sin(ha) > 0:
-            az = (2*np.pi) - az 
+            az = (2.*np.pi) - az 
     # Convert Alt, Az, and Ha to decimal deg
         alt = alt*(180.0/np.pi)
         az = az*(180.0/np.pi)
@@ -305,20 +305,25 @@ def RaDec2AltAz(ra, dec, lat, lst ):
         
 def AirMass(alt, scale):
     # Calculates instantaneus airmass to be called by SetAirMass() #
+    # This comes from Allen, Astrophysical Quantities, page 125.
+    # See also http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?setairmass
     # Input: 
     #   scale = atmospheric scale factor (defalut 750)
     #   alt = altitude of star in degrees.  
     # Output: 
     #   AM = airmass from given altitude and scale factor
     x = scale*np.sin(np.pi*alt/180.)
-    AM = np.sqrt( x**2 + 2*scale + 1 ) - x
+    AM = np.sqrt( x**2. + 2.*scale + 1. ) - x
     return AM
         
 def EffectiveAirMass(AM_st, AM_mid, AM_end):
-    # Calculate effective airmass to be called by SetAirMass() and Imcombine() 
+    # Calculate effective airmass to be called by SetAirMass() and Imcombine()
+    # This comes from Stetson, 'Some Factors Affecting the Accuracy of Stellar 
+    # Photometry with CCDs,' DAO preprint, September 1988 and uses Simpson's rule.
+    # See also http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?setairmass
     # Input: airmass at start, middel, and end of an exposure. 
     # Output: Effective Airmass 
-    AM_eff = (AM_st + 4*AM_mid + AM_end)/6.  
+    AM_eff = (AM_st + 4.*AM_mid + AM_end)/6.  
     return AM_eff
 
 def Trim_Spec(img):
@@ -980,7 +985,7 @@ def find_littrow(flat):
 
     fit_data = np.median(flat_data[0][75:85],axis=0)
     low_index = 1210. #Lowest pixel to search within
-    high_index = 1650. #highest pixel to search within
+    high_index = 1730. #highest pixel to search within
     fit_data1 = fit_data[low_index:high_index]
     fit_pix1 = np.linspace(low_index,low_index+len(fit_data1),num=len(fit_data1))
     max_pixel = np.argmax(fit_data1)
