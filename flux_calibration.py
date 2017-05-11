@@ -4,12 +4,34 @@ Written by JT Fuchs in July 2015
 Based off pySALT redution routine specsens.py by S. Crawford
 And reading the darned IRAF documentation
 
-spec_sens.py calculates the calibration curve given an
-observation and a standard star.
+flux_calibration.py performs flux calibration on a 1D and wavelength-calibrated spectrum
 
 To run file:
-python spec_sens.py liststandard listflux liststar
-######
+python flux_calibration.py spec_list --flux_list listflux.txt --stan_list liststandards.txt --extinct False
+python flux_calibration.py GD1212.ms.fits --usemaster True
+
+
+:INPUTS:
+    spec_list: either single *.fits file or text file containing list of files to flux calibrate.
+
+:OPTIONS:
+    --flux_list: string, file containing standard star fluxes. These are typically m*.dat.
+
+    --stan_list: string, file with list of 1D standard star spectra
+
+    --usemaster: boolean, Option to use master response function instead of single star observation. Default: False
+
+    --extinct: boolean, Option to extinction correct spectra. Default: True
+
+:OUTPUTS: 
+        flux calibrated files (_flux is added to the filename). User will be prompted if file will overwrite existing file.
+
+        sensitivity_params.txt:  File is updated everytime spec_sens.py is run. Contains information used in the flux calibration. Columns are: input observed spectrum, date/time program was run, observed standard spectrum used for calibration, flux calibration file (m*dat), pixel regions excluded in fit, order of polynomial to flux standard, width in Angstroms used for rebinning, output spectrum filename
+
+        sens_fits_DATE.txt: File for diagnostics. Columns are: wavelength, observed flux, polynomial fit, and residuals for each standard listed above. There are extra zeros at the bottom of some columns. 
+
+
+
 Each list should have the names of the stars, with blue and red exposures next to each other.
 The ordering of the standard star flux files should match the order of the standard star list.
 Example:
@@ -24,7 +46,7 @@ listflux:
 mltt3218.dat
 mgd50.dat
 
-liststar
+spec_list:
 wnb.WD0122p0030_930_blue.ms.fits
 wnb.WD0122p0030_930_red.ms.fits
 wnb.WD0235p069_930_blue.ms.fits
@@ -34,28 +56,11 @@ wnb.WD0235p069_930_red.ms.fits
 
 Counting variables are fruits and vegetables.
 
-:INPUTS: 
-        stdlist: string, file with list of 1D standard star spectra
-
-        fluxlist: string, file containing standard star fluxes. These are typically m*.dat.
-
-        speclist: string, file with list of  1D spectrum of observed stars you want to flux calibrate
-
-:OUTPUTS: 
-        flux calibrated files (_flux is added to the filename). User will be prompted if file will overwrite existing file.
-
-        sensitivity_params.txt:  File is updated everytime spec_sens.py is run. Contains information used in the flux calibration. Columns are: input observed spectrum, date/time program was run, observed standard spectrum used for calibration, flux calibration file (m*dat), pixel regions excluded in fit, order of polynomial to flux standard, width in Angstroms used for rebinning, output spectrum filename
-
-        sens_fits_DATE.txt: File for diagnostics. Columns are: wavelength, observed flux, polynomial fit, and residuals for each standard listed above. There are extra zeros at the bottom of some columns. 
-
-To do:
-
 
 """
 
 import os
 import sys
-import time
 import numpy as np
 #import pyfits as fits
 import astropy.io.fits as fits
@@ -169,7 +174,8 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             flux_tonight_list = np.genfromtxt('response_curves.txt',dtype=str)
             print 'Found response_curves.txt file.'
             print flux_tonight_list
-            flux_tonight_list = np.array([flux_tonight_list])
+            if len(flux_tonight_list) == 1:
+                flux_tonight_list = np.array([flux_tonight_list])
             for x in flux_tonight_list:
                 print x
                 if 'blue' in x.lower():
@@ -456,10 +462,14 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
     #compute airmass and compare to airstd
     #choose best standard and flux calibrate both blue and red
     #save files and write to sensitivity_params.txt
-      
-    specfile = np.genfromtxt(speclist,dtype=str)
-    if specfile.size ==1:
-        specfile = np.array([specfile])
+    
+    if speclist[-4:] == 'fits':
+        specfile = np.array([speclist])
+    else:
+        specfile = np.genfromtxt(speclist,dtype=str)
+        if specfile.size ==1:
+            specfile = np.array([specfile])
+    
     length = len(specfile)
     airwd = np.zeros([length])
     bean = 0
@@ -740,11 +750,4 @@ if __name__ == '__main__':
     parser.add_argument('--extinct',type=str2bool,nargs='?',const=True,default=True,help='Activate nice mode.')
     args = parser.parse_args()
     #print args.stand_list
-    #Read in lists from command line
-    #print args.spec_list
-    #print args.usemaster, args.extinct
-    #stdspecfile = 'wnb.GD50_930_blue.ms.fits'
-    #stdfile = 'mgd50.dat'
-    #specfile = 'wnb.WD0122p0030_930_blue.ms.fits'
-    #flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=True)
     flux_calibrate_now(args.stan_list,args.flux_list,args.spec_list,extinct_correct=args.extinct,masterresp=args.usemaster)

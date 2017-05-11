@@ -1,10 +1,12 @@
-ZZ Ceti pipeline written by JT Fuchs and J Meza.
+ZZ Ceti pipeline written by JT Fuchs, J Meza, and P. O'Brien.
 
 spectools.py - A module containing commonly done processes on 1D spectra, including reading in arrays, reading headers, rebinning, summing.
 
 flux_calibration.py - This program encompasses IRAF's standard, sensfunc, and calibrate tasks into one program. Uses tools written by Ian Crossfield for rebinning the spectra.
 
 ReduceSpec.py - Written primarily by J Meza. This performs the inital calibration on the 2D images, including combining biases and flats, trimming, and applying those to the spectra.
+
+ReduceSpec_tools.py - Written primarily by J Meza. Tools for ReduceSpec.py.
 
 spectral_extraction.py - This program calls superextract.py. All the setting up for the spectral extraction and saving the file are done here.
 
@@ -16,7 +18,17 @@ Wavelength_Calibration.py - Written by J Meza. Fits the grating equation to a sp
 
 plotspec.py - Plots a 1D spectrum. You choose which extension.
 
-Continuum_normalization.py - Normalizes the continuum to match a DA model continuum.
+reduceall.py - Wrapper to run the other programs with one input from command line.
+
+reduction.py - Choose to complete only a single part of the reduction steps.
+
+continuum_normalization.py - Normalizes the continuum to match a DA model continuum.
+
+diagnostics.py - Written by P. O'Brien. Compiles and prints to a PDF diagnostic plots from the pipeline.
+
+=================================
+=================================
+=================================
 
 
 The reduction flow is a follows: Bias-subtract, flat-field, trim (ReduceSpec.py). Extract spectrum (spec_extract.py). Flux calibration (spec_sens.py).
@@ -33,12 +45,22 @@ python Wavelength_Calibration.py lamp_spec.fits
 python flux_calibration.py liststandard listflux liststar
        - You have to click the regions you want to exclude from the polynomial fit. 
 
-Dependencies:
-- pyfits
+Python dependencies:
+- Astropy
 - numpy
 - scipy
 - pylb
 - mpfit (can be found at http://code.google.com/p/astrolibpy/source/browse/trunk/)
-
-
+- LACOSMIC (can be found at http://www.astro.yale.edu/dokkum/lacosmic/)
+- warnings 
+- os
+- sys
+- datetime
+- matplotlib
+- glob
+- PyPDF2
+- pandas
+- argparse
+- pylab
+- pdb
 
