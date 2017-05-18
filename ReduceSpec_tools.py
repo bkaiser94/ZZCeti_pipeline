@@ -19,7 +19,7 @@ import datetime
 import matplotlib.pyplot as plt
 import cosmics
 from glob import glob
-from astropy.convolution import convolve, Box2DKernel
+from astropy.convolution import convolve, convolve_fft, Box2DKernel
 
 # ===========================================================================
 # Lesser Functions Used by Main Functions ===================================
@@ -624,7 +624,7 @@ def Norm_Flat_Boxcar( flat ):
     kernel_size = 200 #size of boxcar kernel to convolve with image
     boxcar_kernel = Box2DKernel(kernel_size)
     image_pad = np.pad(image_masked,kernel_size,'mean',stat_length=40) #Pad to reduce edge effects
-    image_smooth = convolve(image_pad,boxcar_kernel,boundary=None)
+    image_smooth = convolve_fft(image_pad,boxcar_kernel,boundary='fill',fill_value=0)
     image_smooth_unpad = image_smooth[kernel_size:(-1*kernel_size),kernel_size:(-1*kernel_size)]
 
     image_divided = flat_data / image_smooth_unpad
@@ -820,7 +820,7 @@ def Norm_Flat_Boxcar_Multiples( flat ,adc_stat=None):
     boxcar_kernel = Box2DKernel(kernel_size)
 
     finalimage_pad = np.pad(finalim_masked,kernel_size,'mean',stat_length=40) #Pad to reduce edge effects
-    finalimage_smooth = convolve(finalimage_pad,boxcar_kernel,boundary=None)
+    finalimage_smooth = convolve_fft(finalimage_pad,boxcar_kernel,boundary='fill',fill_value=0)
     finalimage_smooth_unpad = finalimage_smooth[kernel_size:(-1*kernel_size),kernel_size:(-1*kernel_size)]
     image_divided = nnQD / finalimage_smooth_unpad
 
@@ -854,7 +854,7 @@ def Norm_Flat_Boxcar_Multiples( flat ,adc_stat=None):
     boxcar_kernel = Box2DKernel(kernel_size)
 
     image_pad = np.pad(flat_data,kernel_size,'mean',stat_length=40) #Pad to reduce edge effects
-    image_smooth = convolve(image_pad,boxcar_kernel,boundary=None)
+    image_smooth = convolve_fft(image_pad,boxcar_kernel,boundary='fill',fill_value=0)
     image_smooth_unpad = image_smooth[kernel_size:(-1*kernel_size),kernel_size:(-1*kernel_size)]
 
     image_divided_quartz = flat_data / image_smooth_unpad
