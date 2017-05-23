@@ -46,21 +46,7 @@ python flux_calibration.py liststandard listflux liststar
        - You have to click the regions you want to exclude from the polynomial fit. 
 
 Python dependencies:
-- Astropy
-- numpy
-- scipy
-- pylb
+- See requirements.txt for list of needed packages. In addition, you will need the following two packages.
 - mpfit (can be found at http://code.google.com/p/astrolibpy/source/browse/trunk/)
 - LACOSMIC (can be found at http://www.astro.yale.edu/dokkum/lacosmic/)
-- warnings 
-- os
-- sys
-- datetime
-- matplotlib
-- glob
-- PyPDF2
-- pandas
-- argparse
-- pylab
-- pdb
 
