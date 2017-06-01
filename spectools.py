@@ -72,7 +72,10 @@ def readspectrum(specfile):
     
     trim_sec= spec[0].header["CCDSEC"]
     trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
-    bining= float( spec[0].header["PARAM18"] ) 
+    try:
+        bining= float( spec[0].header["PARAM18"] ) 
+    except:
+        bining= float( spec[0].header["PG3_2"] )
     nx= np.size(opfarr)#spec_data[0]
     Pixels= bining*(np.arange(0,nx,1)+trim_offset)
 

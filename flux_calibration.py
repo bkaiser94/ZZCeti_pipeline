@@ -174,7 +174,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             flux_tonight_list = np.genfromtxt('response_curves.txt',dtype=str)
             print 'Found response_curves.txt file.'
             print flux_tonight_list
-            if len(flux_tonight_list) == 1:
+            if flux_tonight_list.size == 1:
                 flux_tonight_list = np.array([flux_tonight_list])
             for x in flux_tonight_list:
                 print x
@@ -192,7 +192,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             print 'No response_curves.txt file found.'
             blue_mean_tonight = None
             red_mean_tonight = None
-
+        
     else: #Use the standard star fluxes in the typical manner
         #Read in each standard star spectrum 
         standards = np.genfromtxt(stdlist,dtype=str)

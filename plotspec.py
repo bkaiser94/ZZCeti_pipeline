@@ -52,7 +52,10 @@ try:
     
     trim_sec= spec_header["CCDSEC"]
     trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
-    bining= float( spec_header["PARAM18"] ) 
+    try:
+        bining= float( spec_header["PARAM18"] ) 
+    except:
+        bining= float( spec_header["PG3_2"] ) 
     nx= np.size(spec_data[0])
     Pixels= bining*(np.arange(0,nx,1)+trim_offset)
     

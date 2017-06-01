@@ -398,7 +398,10 @@ def WaveShift(specname,zzceti,plotall):
     
     trim_sec= spec_header["CCDSEC"]
     trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
-    bining= float( spec_header["PARAM18"] ) 
+    try:
+        bining= float( spec_header["PARAM18"] ) 
+    except:
+        bining= float( spec_header["PG3_2"] ) 
     nx= np.size(spec_data[0])
     Pixels= bining*(np.arange(0,nx,1)+trim_offset)
     WDwave = DispCalc(Pixels, alpha, theta, n_fr, n_fd, parm[2], n_zPnt)
@@ -562,8 +565,10 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
     trim_offset= float( trim_sec[1:len(trim_sec)-1].split(':')[0] )-1
 
     # Find Bining # 
-    bining= float( lamp_header["PARAM18"] ) 
-
+    try:
+        bining= float( lamp_header["PARAM18"] ) 
+    except:
+        bining= float( lamp_header["PG3_2"] ) 
     # Get Pixel Numbers # 
     nx= np.size(lamp_spec)
     Pixels= bining*(np.arange(0,nx,1)+trim_offset)

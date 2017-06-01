@@ -335,7 +335,10 @@ def Trim_Spec(img):
     img_head= fits.getheader(img) 
     img_data= fits.getdata(img)    
     Fix_Header(img_head)
-    length = float(img_head['PARAM17'])
+    try:
+        length = float(img_head['PARAM17'])
+    except:
+        length = float(img_head['PG3_1'])
     if length == 2071.:
         img_head.append( ('CCDSEC', '[9:2055,1:200]' ,'Original Pixel Indices'),
                    useblanks= True, bottom= True )
@@ -931,7 +934,7 @@ def Flat_Field( spec_list, flat ):
         try:
             hduflat = fits.getheader(flat)
             stitchloc = hduflat['STITCHLO']
-            print stitchloc
+            #print stitchloc
         except:
             stitchloc = 'None'
             pass
@@ -1088,7 +1091,9 @@ def imcombine(im_list, output_name, method,
         #   axis[2] is the horizontal axis of the chip.
         if i == 0:  
             img_data = fits.getdata(im_list[i])
-            n,Ny,Nx = np.shape(img_data)
+            #n,Ny,Nx = np.shape(img_data)
+            Ny = img_data.shape[-2]
+            Nx = img_data.shape[-1]
             img_block = np.ndarray( shape= (Ni,Ny,Nx) )
             img_block[i,:,:] = img_data
             if (not mask) is False:
