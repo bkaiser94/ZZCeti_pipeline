@@ -561,16 +561,17 @@ def diagnostic_plots_wavecal(files, flags):
         plt.title('Wavelength Fit Residuals - Blue - ' + star_name)
         plt.savefig(pp,format='pdf')
         plt.close()       
-
-        x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
-        plt.figure()
-        plt.plot(wave2,flux2)
-        plt.plot(x_line,line_fit)
-        plt.xlabel('Pixels')
-        plt.ylabel('Flux')
-        plt.title('Zero Point Offset - Blue - ' + star_name)
-        plt.savefig(pp,format='pdf')
-        plt.close()
+        
+        if len(wave2) != 0:
+            x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
+            plt.figure()
+            plt.plot(wave2,flux2)
+            plt.plot(x_line,line_fit)
+            plt.xlabel('Pixels')
+            plt.ylabel('Flux')
+            plt.title('Zero Point Offset - Blue - ' + star_name)
+            plt.savefig(pp,format='pdf')
+            plt.close()
         
         ##### FLAGS #####
         star_indexes = flags[flags['Star'] == star_name].index.tolist()
@@ -635,16 +636,16 @@ def diagnostic_plots_wavecal(files, flags):
         plt.title('Wavelength Fit Residuals - Red - ' + star_name)
         plt.savefig(pp,format='pdf')
         plt.close()        
-
-        x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
-        plt.figure()
-        plt.plot(wave2,flux2,'r')
-        plt.plot(x_line,line_fit,'g')
-        plt.xlabel('Pixels')
-        plt.ylabel('Flux')
-        plt.title('Zero Point Offset - Red - ' + star_name)
-        plt.savefig(pp,format='pdf')
-        plt.close()
+        if len(wave2) != 0:
+            x_line = np.linspace(np.min(wave2),np.max(wave2),len(line_fit))
+            plt.figure()
+            plt.plot(wave2,flux2,'r')
+            plt.plot(x_line,line_fit,'g')
+            plt.xlabel('Pixels')
+            plt.ylabel('Flux')
+            plt.title('Zero Point Offset - Red - ' + star_name)
+            plt.savefig(pp,format='pdf')
+            plt.close()
         
         ##### FLAGS #####
         star_indexes = flags[flags['Star'] == star_name].index.tolist()
