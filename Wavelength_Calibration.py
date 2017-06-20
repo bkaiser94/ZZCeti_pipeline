@@ -534,6 +534,7 @@ def WaveShift(specname,zzceti,plotall):
     #plt.show()
     return newzPnt
 
+
 # ===========================================================================
 # Code ====================================================================== 
 # ===========================================================================
@@ -801,7 +802,9 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
         lamp_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
                        useblanks= True, bottom= True )
         lamp_header.append( ('ZPOINT', n_zPnt,'Zero Point Pixel for Grat Eq.'), 
-                       useblanks= True, bottom= True )        
+                       useblanks= True, bottom= True )
+        lamp_header.append( ('RMSWAVE',rmsfit, 'RMS from Wavelength Calib.'),
+                            useblanks= True, bottom= True )
         NewHdu = fits.PrimaryHDU(data= lamp_data, header= lamp_header)
         NewHdu.writeto(newname, output_verify='warn', clobber= clob)
 
@@ -825,7 +828,9 @@ def calibrate_now(lamp,zz_specname,fit_zpoint,zzceti,offset_file,plotall=True):
         spec_header.append( ('FOCLEN', parm[2],'Focal Length for Grat Eq.'), 
                        useblanks= True, bottom= True )
         spec_header.append( ('ZPOINT', newzeropoint,'Zero Point Pixel for Grat Eq.'), 
-                       useblanks= True, bottom= True )        
+                       useblanks= True, bottom= True )      
+        spec_header.append( ('RMSWAVE',rmsfit, 'RMS from Wavelength Calib.'),
+                            useblanks= True, bottom= True )
         NewspecHdu = fits.PrimaryHDU(data= spec_data, header= spec_header)
 
         newname = 'w'+zz_specname
