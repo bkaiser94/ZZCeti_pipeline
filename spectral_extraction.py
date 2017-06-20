@@ -89,10 +89,6 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     data = datalist[0].data
     data = np.transpose(data[0,:,:])
     
-    #gain = datalist[0].header['GAIN']
-    gain = 1.286 #from Bart
-    rdnoise = datalist[0].header['RDNOISE']
-    
     #Since we have combined multiple images, to keep our statistics correct, we need to multiply the values in ADU by the number of images
     try:
         nimages = float(datalist[0].header['NCOMBINE'])
@@ -101,6 +97,10 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     
     data = nimages * data
     
+    #gain = datalist[0].header['GAIN']
+    gain = 1.31 #from Bart
+    rdnoise = np.sqrt(nimages) * datalist[0].header['RDNOISE']
+
     #Calculate the variance of each pixel in ADU
     varmodel = ((nimages*rdnoise**2.) + np.absolute(data)*gain)/gain
     
@@ -286,7 +286,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     shortpix = np.linspace(low_pixel,high_pixel,num=(high_pixel-low_pixel),endpoint=False)
     guessline = np.zeros(2)
     guessline[0] = (shortspec[-1] - shortspec[0]) / (shortpix[-1]-shortpix[0])
-    guessline[1] = guessline[0]*shortspec[0]
+    guessline[1] = shortspec[0]-guessline[0]*shortpix[0]
     par, cov = curve_fit(line,shortpix,shortspec,guessline)
     bestline = line(shortpix,par[0],par[1])
     
@@ -320,7 +320,6 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     Ni = 4. #Number of extensions
     Nx = 1. #All 1D spectra
     Ny = len(output_spec.spectrum[:,0])
-    
     spectrum = np.empty(shape = (Ni,Nx,Ny))
     spectrum[0,:,:] = output_spec.spectrum[:,0]
     spectrum[1,:,:] = output_spec.raw[:,0]
