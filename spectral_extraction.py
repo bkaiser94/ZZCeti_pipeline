@@ -89,7 +89,8 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     data = datalist[0].data
     data = np.transpose(data[0,:,:])
     
-    gain = datalist[0].header['GAIN']
+    #gain = datalist[0].header['GAIN']
+    gain = 1.286 #from Bart
     rdnoise = datalist[0].header['RDNOISE']
     
     #Since we have combined multiple images, to keep our statistics correct, we need to multiply the values in ADU by the number of images
@@ -101,7 +102,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     data = nimages * data
     
     #Calculate the variance of each pixel in ADU
-    varmodel = (rdnoise**2. + np.absolute(data)*gain)/gain
+    varmodel = ((nimages*rdnoise**2.) + np.absolute(data)*gain)/gain
     
     #Fit a Gaussian every 10 pixels to determine FWHM for convolving in the model fitting, unless this file already exists
     fitpixel = np.arange(3,len(data[:,100]),10)
