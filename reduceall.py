@@ -114,7 +114,7 @@ for x in lamp_files:
                 plotalot = True
             else:
                 plotalot = False
-            Wavelength_Calibration.calibrate_now(x,y,'yes','yes',offset_file,plotall=plotalot)
+            Wavelength_Calibration.calibrate_now(x,y,'no','yes',offset_file,plotall=plotalot)
 
 #=========================
 #Begin Continuum Normalization
