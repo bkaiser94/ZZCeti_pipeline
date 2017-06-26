@@ -423,7 +423,7 @@ def lacosmic(img):
     array = data2
     header = fits.getheader(img)
     Fix_Header(header) 
-    gain = 1.31 #datalist[0].header['GAIN']
+    gain = 1.33 #datalist[0].header['GAIN'] #1.33 from 2017-06-07
     rdnoise = datalist[0].header['RDNOISE']
 
     c = cosmics.cosmicsimage(array, gain=gain, readnoise=rdnoise, sigclip = 5.0, sigfrac = 0.5, objlim = 4.0,satlevel=45000.0,verbose=True)
