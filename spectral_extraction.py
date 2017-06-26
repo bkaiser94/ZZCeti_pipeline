@@ -98,7 +98,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     data = nimages * data
     
     #gain = datalist[0].header['GAIN']
-    gain = 1.31 #from Bart
+    gain = 1.33 #from 2017-06-07
     rdnoise = np.sqrt(nimages) * datalist[0].header['RDNOISE']
 
     #Calculate the variance of each pixel in ADU
