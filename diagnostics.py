@@ -1036,7 +1036,7 @@ def diagnostic_now():
     for sub in unique_names:
         file_names = [x for x in wave_cal_files if str(sub) in x]
         diagnostic_plots_wavecal(file_names, flags)
-
+    '''
     ##### ------------------------------------------------------------------ #####
     # Model Calibrations
     star_names = []
@@ -1050,7 +1050,7 @@ def diagnostic_now():
     for sub in unique_names:
         file_name = [x for x in model_cal_files if str(sub) in x]
         diagnostic_plots_continuum(file_name[0], flags)
-
+    '''
     ##### ------------------------------------------------------------------ #####
     # Extraction
     for i in range(len(extraction_files)):

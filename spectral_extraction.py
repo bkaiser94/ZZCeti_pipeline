@@ -103,7 +103,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
 
     #Calculate the variance of each pixel in ADU
     varmodel = ((nimages*rdnoise**2.) + np.absolute(data)*gain)/gain
-    
+    '''
     #Fit a Gaussian every 10 pixels to determine FWHM for convolving in the model fitting, unless this file already exists
     fitpixel = np.arange(3,len(data[:,100]),10)
     allfwhm = np.zeros(len(fitpixel))
@@ -159,7 +159,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
         allpixel = np.arange(0,len(data[:,100]),1)
         diagnostics[0:len(fwhm_fit),2] = fwhm_fit
         diagnostics[0:len(allpixel),3] = allpixel
-    
+    '''
     #===============================
     #Section to prepare inputs for extraction
     #===============================
@@ -239,9 +239,11 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     ##########
     
     print 'Done extracting. Starting to save.'
+    '''
     if not trace_exist:
         print 'Saving the trace.'
         np.save(specfile[0:locfwhm] + '_trace',output_spec.trace)
+    '''
     sigSpectrum = np.sqrt(output_spec.varSpectrum)
     #plt.clf()
     #plt.imshow(data)

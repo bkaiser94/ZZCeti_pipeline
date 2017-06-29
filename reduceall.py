@@ -155,9 +155,25 @@ continuum_files = sorted(continuum_files)
 #print continuum_files
 '''
 continuum_files = sorted(glob('wcftb*ms.fits'))
-stdlist = None
-fluxlist = None
-flux_calibration.flux_calibrate_now(stdlist,fluxlist,continuum_files,extinct_correct=True,masterresp=True)
+fluxlist = 'flux_list.txt'
+
+stdlist = np.genfromtxt('standard_list.txt')
+standardslist = []
+for x in stdlist:
+    standardslist.append(x[5:10])
+
+observedstandards = []
+observedstars = []
+for x in continuum_files:
+    for y in standardslist:
+        if y in x.lower():
+            observedstandards.append(x)
+        else:
+            observedstars.append(x)
+
+
+
+flux_calibration.flux_calibrate_now(observedstandards,fluxlist,observedstars,extinct_correct=True,masterresp=False)
 
 #=========================
 #Begin Flux Calibration
