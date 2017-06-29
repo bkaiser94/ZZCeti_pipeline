@@ -69,7 +69,7 @@ except:
 
 #np.savetxt('WD1456+103_spectrum.txt',np.transpose([WDwave,spec_data[0,0,:],spec_data[3,0,:],spec_data[2,0,:]]),header='wavelengths, optimally extracted spectrum, sigma spectrum, sky spectrum')
 #exit()
-#np.savetxt('hz4_obs.txt',np.transpose([WDwave,spec_data[0,0,:]]))
+#np.savetxt('WD1149p057_sigma.txt',np.transpose([WDwave,spec_data[3,0,:]]))
 #exit()
 
 if 'fe_' in specname.lower():

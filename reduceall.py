@@ -115,7 +115,7 @@ for x in lamp_files:
             else:
                 plotalot = False
             Wavelength_Calibration.calibrate_now(x,y,'no','yes',offset_file,plotall=plotalot)
-
+'''
 #=========================
 #Begin Continuum Normalization
 #=========================
@@ -136,7 +136,7 @@ while x < len(continuum_files):
         #print continuum_files[x]
         continuum_normalization.normalize_now(continuum_files[x],None,False,plotall=False)
         x += 1
-
+'''
 
 #=========================
 #Begin Flux Calibration
@@ -154,6 +154,7 @@ for x in single_spec_list:
 continuum_files = sorted(continuum_files)
 #print continuum_files
 '''
+continuum_files = sorted(glob('wcftb*ms.fits'))
 stdlist = None
 fluxlist = None
 flux_calibration.flux_calibrate_now(stdlist,fluxlist,continuum_files,extinct_correct=True,masterresp=True)
