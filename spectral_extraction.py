@@ -163,7 +163,7 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
     #===============================
     #Section to prepare inputs for extraction
     #===============================
-    
+    diagnostics = np.zeros([len(data[:,100]),12])
     
     #Fit a column of the 2D image to determine the FWHM in pixels
     if 'blue' in specfile.lower():
@@ -171,6 +171,8 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
         forfit = np.mean(np.array([data[1198,:],data[1199,:],data[1200,:],data[1201,:],data[1202,:]]),axis=0)
     elif 'red' in specfile.lower():
         forfit = np.mean(np.array([data[998,:],data[999,:],data[1000,:],data[1001,:],data[1002,:]]),axis=0)
+    else:
+        forfit = np.mean(np.array([data[1198,:],data[1199,:],data[1200,:],data[1201,:],data[1202,:]]),axis=0)
     
 
     guess = np.zeros(4)
@@ -283,6 +285,8 @@ def extract_now(specfile,lamp,FWHMfile,tracefile,trace_exist=False):
         low_pixel, high_pixel = 1125., 1175.
     elif 'red' in specfile.lower():
         low_pixel, high_pixel = 825., 875.
+    else:
+        low_pixel, high_pixel = 1125., 1175.
     shortspec = output_spec.spectrum[:,0][low_pixel:high_pixel]
     shortsigma = sigSpectrum[:,0][low_pixel:high_pixel]
     shortpix = np.linspace(low_pixel,high_pixel,num=(high_pixel-low_pixel),endpoint=False)

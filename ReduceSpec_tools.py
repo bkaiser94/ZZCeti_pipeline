@@ -918,6 +918,8 @@ def Flat_Field( spec_list, flat ):
         if len(file_exist) == 1:
             littrow_location = np.genfromtxt('littrow_ghost.txt')
             littrow_ghost = [littrow_location[0],littrow_location[1]]
+            if flat_data.shape[0] == 1:
+                flat_data = flat_data[0,:,:]
             fit_data = np.median(flat_data[75:85],axis=0)
             low_index = 1210. #Lowest pixel to search within
             high_index = 1710. #highest pixel to search within

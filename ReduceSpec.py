@@ -183,6 +183,8 @@ def reduce_now(args):
             ftb_spec_list.append( rt.Flat_Field(tb_spec_list[i], nbflatblue) )
         elif tb_spec_list[i][0].lower().__contains__('red') == True:
             ftb_spec_list.append( rt.Flat_Field(tb_spec_list[i], nbflatred) )
+        elif len(nb_flat) == 1:
+            ftb_spec_list.append( rt.Flat_Field(tb_spec_list[i], nb_flat[0]) )
         else: 
             print ("Problem applying the Flats." )
             print ("Could not identify blue or red setup.")

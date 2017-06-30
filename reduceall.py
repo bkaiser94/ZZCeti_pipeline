@@ -23,8 +23,9 @@ import continuum_normalization
 import flux_calibration
 import diagnostics
 from glob import glob
+import numpy as np
 
-
+print 'Running Evryscope version'
 
 #=========================
 #Begin Fits Reduction
@@ -73,6 +74,8 @@ for x in spec_files:
         lamp_file = lamp_file_blue[0]
     elif 'red' in x.lower():
         lamp_file = lamp_file_red[0]
+    else:
+        lamp_file = lamp_file_blue[0]
     FWHM_thisfile = FWHM_files[spec_files.index(x)]
     trace_thisfile = trace_files[spec_files.index(x)]
     if trace_thisfile != None:
@@ -108,13 +111,15 @@ for x in lamp_files:
         lamp_color = 'red'
     for y in spec_files:
         ###if (y[5:y.find('_930')] in x) and (y[y.find('_930'):y.find('_930')+8] in x):
-        if (lamp_color in y.lower()) and (y[5:y.find('_930')] in x):
+        ###if (lamp_color in y.lower()) and (y[5:y.find('_930')] in x):
+        if y[5:11] in x:
             print x, y, offset_file
             if offset_file == None:
                 plotalot = True
             else:
                 plotalot = False
             Wavelength_Calibration.calibrate_now(x,y,'no','yes',offset_file,plotall=plotalot)
+
 '''
 #=========================
 #Begin Continuum Normalization
@@ -154,24 +159,30 @@ for x in single_spec_list:
 continuum_files = sorted(continuum_files)
 #print continuum_files
 '''
+'''
 continuum_files = sorted(glob('wcftb*ms.fits'))
 fluxlist = 'flux_list.txt'
 
-stdlist = np.genfromtxt('standard_list.txt')
+stdlist = np.genfromtxt('standard_list.txt',dtype=str)
 standardslist = []
 for x in stdlist:
-    standardslist.append(x[5:10])
+    #print x
+    standardslist.append(x[5:11])
 
 observedstandards = []
 observedstars = []
+print continuum_files
+print standardslist
 for x in continuum_files:
     for y in standardslist:
-        if y in x.lower():
+        if y in x:
             observedstandards.append(x)
         else:
             observedstars.append(x)
-
-
+'''
+observedstandards = sorted(glob('wcftb*STD*ms.fits'))
+observedstars= sorted(glob('wcftb*EVR*ms.fits'))
+fluxlist = 'flux_list.txt'
 
 flux_calibration.flux_calibrate_now(observedstandards,fluxlist,observedstars,extinct_correct=True,masterresp=False)
 

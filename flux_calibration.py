@@ -204,14 +204,14 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 #plt.show()
 
             #Change to the standard star directory
-            cwd = os.getcwd()
-            os.chdir('/afs/cas.unc.edu/depts/physics_astronomy/clemens/students/group/standards')
+            #cwd = os.getcwd()
+            #os.chdir('/afs/cas.unc.edu/depts/physics_astronomy/clemens/students/group/standards')
 
             #read in the standard file
             placeholder = cucumber // 2
             stdfile = stdflux[placeholder]
             std_spectra = st.readstandard(stdfile)
-            os.chdir(cwd)
+            #os.chdir(cwd)
             #plt.clf()
             #plt.plot(std_spectra.warr,std_spectra.magarr,'.')
             #plt.show()
@@ -272,11 +272,12 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
             #Fit a low order polynomial to this function so that it is smooth.
             #The sensitivity function is in units of 2.5 * log10[counts/sec/Ang / ergs/cm2/sec/Ang]
             #Choose regions to not include in fit, first by checking if a mask file exists, and if not the prompt for user interaction.
+            
             if 'blue' in stdspecfile.lower():
                 std_mask = stdfile[0:-4] + '_blue_maskasdf.dat'
             if 'red' in stdspecfile.lower():
                 std_mask = stdfile[0:-4] + '_red_maskasdf.dat'
-            std_mask2 = glob(std_mask)
+            std_mask2 = glob('std_mask')
             if len(std_mask2) == 1.:
                 print 'Found mask file.\n'
                 mask = np.ones(len(std_spectra.warr))
@@ -338,7 +339,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 indices = np.where(mask !=0.)
                 lambdasfit = std_spectra.warr[indices]
                 fluxesfit = sens_function[indices]
-        
+                '''
                 #Save masked wavelengths
                 lambdasnotfit = std_spectra.warr[excluded]
                 #print lambdasnotfit
@@ -348,6 +349,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 if 'red' in stdspecfile.lower():
                     std_mask_name = stdfile[0:-4] + '_red_mask.dat'
                 np.savetxt(std_mask_name,np.transpose(np.array(lambdasnotfit)))
+                '''
                 #exit()
 
             ##Move back to directory with observed spectra
