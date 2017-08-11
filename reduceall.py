@@ -180,8 +180,15 @@ for x in continuum_files:
         else:
             observedstars.append(x)
 '''
-observedstandards = sorted(glob('wcftb*STD*ms.fits'))
-observedstars= sorted(glob('wcftb*EVR*ms.fits'))
+observedstandards1 = sorted(glob('wcftb*STD*ms.fits'))
+observedstars1= sorted(glob('wcftb*EVR*ms.fits'))
+observedstandards2 = sorted(glob('wcftb*std*ms.fits'))
+observedstars2= sorted(glob('wcftb*evr*ms.fits'))
+
+observedstandards = sorted(observedstandards1 + observedstandards2)
+observedstars = sorted(observedstars1 + observedstars2)
+
+
 fluxlist = 'flux_list.txt'
 
 flux_calibration.flux_calibrate_now(observedstandards,fluxlist,observedstars,extinct_correct=True,masterresp=False)
