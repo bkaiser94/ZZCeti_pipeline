@@ -371,6 +371,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 residual = fluxesfit - smooth_sens
                 plt.close()
                 plt.ion()
+                plt.hold(True)
                 g, (ax1,ax2) = plt.subplots(2,sharex=True)
                 ax1.plot(lambdasfit,fluxesfit,'b+')
                 ax1.plot(lambdasfit,smooth_sens,'r',linewidth=2.0)
@@ -382,6 +383,7 @@ def flux_calibrate_now(stdlist,fluxlist,speclist,extinct_correct=False,masterres
                 plt.setp([a.get_xticklabels() for a in g.axes[:-1]],visible=False)
                 plt.show()
                 plt.ioff()
+                plt.hold(False)
                 #Save this sensitivity curve
                 '''
                 try:
